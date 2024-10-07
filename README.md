@@ -2,14 +2,11 @@
 
 UnPaSt is a novel method for identification of differentially expressed biclusters.
 
-<img src="https://github.com/ozolotareva/unpast_paper/blob/main/docs/DESMOND2_steps2.png"  height="350">
+<img src="https://github.com/ozolotareva/unpast/blob/main/docs/DESMOND2_steps2.png"  height="350">
 
-
-## Cite
-UnPaSt preprint [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
 
 ## Install
-![Tests status](https://github.com/ozolotareva/unpast_paper/actions/workflows/run_tests.yml/badge.svg)
+![Tests status](https://github.com/ozolotareva/unpast/actions/workflows/run_tests.yml/badge.svg)
 
 ### Docker environment
 UnPaSt environment is available also as a Docker image.
@@ -82,7 +79,7 @@ python -m unpast.run_unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --ba
 python run_unpast.py -h
 ```
 * Real data example. Analysis of a subset of 200 samples randomly chosen from TCGA-BRCA dataset, including consensus biclustering and visualization:
-  [jupyter-notebook](https://github.com/ozolotareva/unpast_paper/blob/main/notebooks/UnPaSt_examples.ipynb).
+  [jupyter-notebook](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_examples.ipynb).
   
 ## Outputs
 `<basename>.[parameters].biclusters.tsv` - A `.tsv` file containing the identified biclusters with the following structure:
@@ -105,6 +102,9 @@ Along with the biclustering result, UnPaSt creates three files with intermediate
   - `<basename>.[parameters].binarization_stats.tsv` provides binarization statistics for each processed feature.
   - `<basename>.[parameters].background.tsv` stores background distributions of SNR values for each evaluated bicluster size.
 These files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
+
+## Cite
+UnPaSt preprint [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
 
 ## Versions
 UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/UnPaSt_PathoPlex.zip)

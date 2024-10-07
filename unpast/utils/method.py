@@ -9,6 +9,7 @@ from time import time
 import math
 
 from scipy.interpolate import interp1d
+from scipy.sparse.csr import csr_matrix
 from scipy.stats import chi2_contingency
 
 from sklearn.mixture import GaussianMixture
@@ -1050,19 +1051,7 @@ def run_Louvain(
         print("\tRunning Louvain ...", file=sys.stdout)
         print("\t\tmodularity:", modularity_measure, file=sys.stdout)
 
-    from sknetwork.clustering import Louvain
-    import sknetwork
-    try:
-        from sknetwork.clustering import modularity
-        old_sknetwork_version = True 
-    except:
-        from sknetwork.clustering import get_modularity
-        print("sknetwork version used:", sknetwork.__version__,file = sys.stderr)
-        old_sknetwork_version = False
-    try:
-        from scipy.sparse.csr import csr_matrix
-    except:
-        from scipy.sparse import csr_matrix
+    from sknetwork.clustering import Louvain, modularity
 
     modularities = []
     feature_clusters = {}
@@ -1078,15 +1067,8 @@ def run_Louvain(
         sim_binary = sim_binary.loc[non_zero_features, non_zero_features]
         gene_names = sim_binary.index.values
         sparse_matrix = csr_matrix(sim_binary)
-        
-        if old_sknetwork_version:
-            labels = Louvain(modularity=modularity_measure).fit_transform(sparse_matrix)
-            Q = modularity(sparse_matrix, labels)
-        else:
-            sparse_matrix = sparse_matrix.astype('bool')
-            labels = Louvain(modularity=modularity_measure).fit_predict(sparse_matrix)
-            Q = get_modularity(sparse_matrix, labels)
-
+        labels = Louvain(modularity=modularity_measure).fit_transform(sparse_matrix)
+        Q = modularity(sparse_matrix, labels)
         modularities.append(Q)
         # if binary similarity matrix contains no zeroes
         # bugfix for Louvain()

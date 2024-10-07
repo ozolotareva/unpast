@@ -23,7 +23,7 @@ def make_consensus_biclusters(
     min_n_genes=2,
     min_n_samples=5,
     min_n_times_detected=2,
-    modularity_measure="newman",
+    modularity_measure="potts",
     method="kmeans",  # sample clustering method
     seed=-1,
     plot=False,
