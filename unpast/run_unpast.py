@@ -250,7 +250,6 @@ def parse_args():
     
 
 def main():
-    print(f"unpast version {unpast.__version__} from {os.path.dirname(unpast.__file__)}")
 
     args = parse_args()
     
