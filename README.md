@@ -1,4 +1,11 @@
 # UnPaSt
+[![Python Versions](https://img.shields.io/pypi/pyversions/unpast.svg)](https://pypi.org/project/unpast/)
+![Tests status](https://github.com/ozolotareva/unpast/actions/workflows/run_tests.yml/badge.svg)
+[![PyPI version](https://badge.fury.io/py/unpast.svg)](https://badge.fury.io/py/unpast)
+![Docker Build Status](https://github.com/ozolotareva/unpast/actions/workflows/docker-publish.yml/badge.svg)
+![Docker Image Pulls](https://img.shields.io/docker/pulls/freddsle/unpast)
+[![License](https://img.shields.io/pypi/l/unpast.svg)](https://github.com/ozolotareva/unpast/blob/main/LICENSE)
+
 
 UnPaSt is a novel method for identification of differentially expressed biclusters.
 
@@ -13,51 +20,93 @@ Code: [https://github.com/ozolotareva/unpast_paper/](https://github.com/ozolotar
 [Run UnPaSt at CoSy.Bio server](https://apps.cosy.bio/unpast/)
 
 ## Install
-![Tests status](https://github.com/ozolotareva/unpast/actions/workflows/run_tests.yml/badge.svg)
 
-### Docker environment [to be updated]
-UnPaSt environment is available also as a Docker image.
+### Install via pip
+
+UnPaSt is available on PyPI and can be installed using pip:
 
 ```bash
-docker pull freddsle/unpast
+pip install unpast
+```
+Do not forget to install necessary R packages (see below).
+
+You can run UnPaSt from the command line using the `unpast` command.
+
+```bash
+unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500
+```
+
+### Docker Environment
+
+UnPaSt is also available as a Docker image. To pull the Docker Image:
+
+```bash
+docker pull freddsle/unpast:latest
+```
+
+Replace `latest` with a specific version tag if desired (for version before 10.2024 - v0.1.8).
+
+#### Run UnPaSt using Docker
+
+```bash
+# Clone the repository to get example data
 git clone https://github.com/ozolotareva/unpast.git
 cd unpast
 mkdir -p results
 
-# running UnPaSt with default parameters and example data
-command="python unpast/run_unpast.py --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500"
+# Define the command to run UnPaSt
+command="unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+
+# Run UnPaSt using Docker
 docker run --rm -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash freddsle/unpast -c "cd /data && PYTHONPATH=/data $command"
 ```
 
-### Requirements: [to be updated]
+### Requirements
+
+UnPaSt requires Python 3.8 or higher (<3.11) and certain Python and R packages.
+
+#### Python Dependencies
+
+The Python dependencies are installed automatically when installing via pip (or you can use requirements.txt). They include (with recommended versions):
+
 ```
-Python (version 3.8.16):
-    fisher==0.1.9
-    pandas==1.3.5
-    python-louvain==0.15
-    matplotlib==3.7.1
-    seaborn==0.11.1
-    numba==0.51.2
-    numpy==1.22.3
-    scikit-learn==1.2.2
-    scikit-network==0.24.0
-    scipy==1.7.1
-    statsmodels==0.13.2
-    kneed==0.8.1
-
-R (version 4.3.1):
-    WGCNA==1.70-3
-    limma==3.42.2
+fisher = ">=0.1.9,<=0.1.14"
+pandas = "1.3.5"
+python-louvain = "0.15"
+matplotlib = "3.7.1"
+seaborn = "0.11.1"
+numba = ">=0.51.2,<=0.55.2"
+numpy = "1.22.3"
+scikit-learn = "1.2.2"
+scikit-network = ">=0.24.0,<0.26.0"
+scipy = ">=1.7.1,<=1.7.3"
+statsmodels = "0.13.2"
+kneed = "0.8.1"
 ```
 
-### Installation tips [to be updated]
+#### R Dependencies
 
-It is recommended to use "BiocManager" for the installation of WGCNA:
+UnPaSt utilizes R packages for certain analyses. Ensure that you have R installed with the following packages:
+
+- `WGCNA` (version 1.70-3 or higher)
+- `limma` (version 3.42.2 or higher)
+
+### Installation Tips
+
+#### Installing R Dependencies
+
+It is recommended to use `BiocManager` for installing R packages:
+
 ```R
 install.packages("BiocManager")
-library(BiocManager)
 BiocManager::install("WGCNA")
+BiocManager::install("limma")
 ```
+
+#### Installing R
+
+Ensure that R (version 4.3.1 or higher) is installed on your system. You can download R from [CRAN](https://cran.r-project.org/).
+
 
 ## Input
 UnPaSt requires a tab-separated file with features (e.g. genes) in rows, and samples in columns.

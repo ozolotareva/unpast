@@ -1,0 +1,52 @@
+name: Build, Test, and Publish Docker Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag for the Docker image (e.g., v1.2.3)'
+        required: true
+        default: 'latest'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build -t unpast:${{ github.event.inputs.tag }} .
+          docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
+
+      - name: Run tests with specific version tag
+        run: |
+          IMAGE_TAG=${{ github.event.inputs.tag }} docker-compose up --abort-on-container-exit
+        env:
+          PYTHONPATH: /app
+
+      - name: Run tests with 'latest' tag
+        run: |
+          IMAGE_TAG=latest docker-compose up --abort-on-container-exit
+        env:
+          PYTHONPATH: /app
+
+      - name: Push Docker images to Docker Hub
+        if: ${{ success() }}
+        run: |
+          docker tag unpast:${{ github.event.inputs.tag }} ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
+          docker tag unpast:latest ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
