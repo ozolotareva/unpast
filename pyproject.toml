@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "unpast"
-version = "0.1.9.6.3"
+version = "0.1.10"
 description = "A novel method for unsupervised patient stratification."
 authors = ["Olga Zolotareva (ozolotareva)", "Michael Hartung (Maiykol)"]
 maintainers = ["Olga Zolotareva (ozolotareva)", "Michael Hartung (Maiykol)", "Alexey Savchik (savfod)", "Yuliya Burankova (freddsle)"]
