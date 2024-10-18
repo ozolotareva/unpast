@@ -544,6 +544,26 @@ files = [
 ]
 
 [[package]]
+name = "kneed"
+version = "0.8.5"
+description = "Knee-point detection in Python"
+category = "main"
+optional = false
+python-versions = ">=3.5"
+files = [
+    {file = "kneed-0.8.5-py3-none-any.whl", hash = "sha256:2f3fbd4e9bd808e65052841448702c41ea64d5fc78735cbfc97ab25f08bd9815"},
+    {file = "kneed-0.8.5.tar.gz", hash = "sha256:a4847ac4f1d04852fea278d5de7aa8bfdc3beb7fbca4a182fec0f0efee43f4b1"},
+]
+
+[package.dependencies]
+numpy = ">=1.14.2"
+scipy = ">=1.0.0"
+
+[package.extras]
+plot = ["matplotlib (>=2.2.5)"]
+testing = ["matplotlib (>=2.2.5)", "pytest (>=5.0.1)", "pytest-cov (>=3.0.0)"]
+
+[[package]]
 name = "lifelines"
 version = "0.27.4"
 description = "Survival analysis in Python, including Kaplan Meier, Nelson Aalen and regression"
@@ -1380,4 +1400,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.11"
-content-hash = "cca9c6e287312d1382e02ab611b453a300bfed30b75ce078d7804c08dcf7b163"
+content-hash = "6c7857ded5aea4d6f55e8597cd7172fc1e45bd5c28c85dd71eeb7c03d26a0209"
