@@ -1,0 +1,42 @@
+name: Publish Package
+
+on:
+    workflow_dispatch:
+        branches:
+            - main
+
+permissions:
+  contents: read
+  id-token: write  
+
+jobs:
+  build-test-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'  
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Run tests
+        run: |
+          poetry run pytest
+
+      - name: Build package
+        run: |
+          poetry build
+
+      - name: Publish to PyPI via Trusted Publisher
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages: dist/*
+          
