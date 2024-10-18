@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  unpast:
+    build: .
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./:/app
+    working_dir: /app
+    entrypoint:
+      - /bin/sh
+      - -c
+      - "pytest tests/test_run_unpast.py && pytest tests/utils/test_method.py"
