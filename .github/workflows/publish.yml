@@ -2,8 +2,6 @@ name: Publish Package
 
 on:
     workflow_dispatch:
-        branches:
-            - main
 
 permissions:
   contents: read
@@ -39,4 +37,3 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages: dist/*
-          
