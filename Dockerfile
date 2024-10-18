@@ -30,17 +30,8 @@ RUN R -e "BiocManager::install(version = '3.16')"
 RUN R -e "BiocManager::install('limma')"
 RUN R -e "BiocManager::install('WGCNA')"
 
-# RUN R CMD INSTALL /app/r_packages/GenomeInfoDbData_1.2.11.tar.gz
-# RUN R -e "BiocManager::install(c('BiocGenerics', 'GenomeInfoDb', 'IRanges', 'XVector', 'Biostrings', 'crayon'))"
-# COPY r_packages /app/r_packages
-# RUN R -e "BiocManager::install('KEGGREST')"
-# RUN R -e "if (!requireNamespace('KEGGREST', quietly = TRUE)) { BiocManager::install('KEGGREST') }"
-# RUN R -e "BiocManager::install(c('Biobase', 'DBI', 'RSQLite', 'AnnotationDbi'))"
-# # RUN R CMD INSTALL /app/r_packages/AnnotationDbi_1.64.1.tar.gz
-# RUN R CMD INSTALL /app/r_packages/GO.db_3.18.0.tar.gz
-
-# Install WGCNA and limma R packages
-# RUN R -e "BiocManager::install(c('WGCNA', 'limma'))"
+# If WGCNA is not available, install it directly via install.packages
+# RUN R -e "if (!requireNamespace('WGCNA', quietly = TRUE)) install.packages('WGCNA')"
 
 # Create a non-root user and switch to it
 RUN useradd -m user
