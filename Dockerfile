@@ -14,24 +14,22 @@ COPY pyproject.toml poetry.lock /app/
 RUN pip install --upgrade pip && \
     pip install poetry
 
-# Copy your project files into the container
+# Copy project files into the container
 COPY . /app
 
 # Build the Python package using Poetry
 RUN poetry config virtualenvs.create false && \
     poetry build
 
-# Install the built Python package (your package 'unpast')
+# Install the built unpast
 RUN pip install dist/unpast-*-py3-none-any.whl
 
 # Install BiocManager and core R packages
 RUN R -e "install.packages('BiocManager')"
-RUN R -e "BiocManager::install(version = '3.16')"
-RUN R -e "BiocManager::install('limma')"
-RUN R -e "BiocManager::install('WGCNA')"
+RUN R -e "BiocManager::install(c('limma', 'WGCNA'), Ncpus = 4)"
 
-# If WGCNA is not available, install it directly via install.packages
-# RUN R -e "if (!requireNamespace('WGCNA', quietly = TRUE)) install.packages('WGCNA')"
+# Verify WGCNA installation
+RUN R -e "if (!requireNamespace('WGCNA', quietly = TRUE)) { stop('WGCNA not installed') }"
 
 # Create a non-root user and switch to it
 RUN useradd -m user

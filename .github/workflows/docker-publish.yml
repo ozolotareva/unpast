@@ -31,17 +31,16 @@ jobs:
           docker build -t unpast:${{ github.event.inputs.tag }} .
           docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
 
-      - name: Run tests with specific version tag
+      - name: Run unpast command inside Docker container
         run: |
-          IMAGE_TAG=${{ github.event.inputs.tag }} docker-compose up --abort-on-container-exit
-        env:
-          PYTHONPATH: /app
-
-      - name: Run tests with 'latest' tag
-        run: |
-          IMAGE_TAG=latest docker-compose up --abort-on-container-exit
-        env:
-          PYTHONPATH: /app
+          mkdir -p results
+          docker run --rm -v "${{ github.workspace }}":/data unpast:${{ github.event.inputs.tag }} bash -c "cd /data && unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+          ls -l results
+          OUTPUT_FILE=$(ls results/scenario_B500*_*biclusters.tsv)
+          if [ ! -s "$OUTPUT_FILE" ]; then
+            echo "Test failed: Output file is missing or empty"
+            exit 1
+          fi
 
       - name: Push Docker images to Docker Hub
         if: ${{ success() }}
