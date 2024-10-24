@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -30,7 +30,7 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages("BiocManager", repos="https://cran.rstudio.com")'
-          Rscript -e 'BiocManager::install("WGCNA", "limma")'
+          Rscript -e 'BiocManager::install(c("WGCNA", "limma"))'
 
       - name: Install dependencies
         run: |
