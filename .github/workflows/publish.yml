@@ -30,7 +30,7 @@ jobs:
       - name: Install R packages
         run: |
           Rscript -e 'install.packages("BiocManager")'
-          Rscript -e 'BiocManager::install(c("WGCNA", "limma"))'
+          Rscript -e 'BiocManager::install(c("WGCNA", "limma"), type = "binary")'
 
       - name: Install dependencies
         run: |
