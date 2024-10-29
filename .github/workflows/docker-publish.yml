@@ -29,23 +29,37 @@ jobs:
       - name: Build Docker image
         run: |
           docker build -t unpast:${{ github.event.inputs.tag }} .
-          docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
-
-      - name: Run unpast command inside Docker container
+          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+            docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
+          fi
+      
+      - name: Set up results directory with permissions
         run: |
           mkdir -p results
-          docker run --rm -v "${{ github.workspace }}":/data unpast:${{ github.event.inputs.tag }} bash -c "cd /data && unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+          chmod -R 777 results
+      
+      - name: Run unpast command inside Docker container
+        run: |
+          docker run --rm -v "${{ github.workspace }}":/app -v "${{ github.workspace }}/results":/data/results --entrypoint bash unpast:${{ github.event.inputs.tag }} -c "
+            cd /data && unpast --exprs /app/unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+          
+      - name: Verify Output
+        run: |
           ls -l results
           OUTPUT_FILE=$(ls results/scenario_B500*_*biclusters.tsv)
           if [ ! -s "$OUTPUT_FILE" ]; then
             echo "Test failed: Output file is missing or empty"
             exit 1
           fi
-
+  
       - name: Push Docker images to Docker Hub
         if: ${{ success() }}
         run: |
           docker tag unpast:${{ github.event.inputs.tag }} ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          docker tag unpast:latest ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
+          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+            docker tag unpast:latest ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
+          fi
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
+          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
+          fi
