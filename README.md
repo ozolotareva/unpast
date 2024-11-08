@@ -160,4 +160,4 @@ Along with the biclustering result, UnPaSt creates three files with intermediate
 These files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
 
 ## Versions
-UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast_paper/blob/main/paper/UnPaSt_PathoPlex.zip)
+UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip)
