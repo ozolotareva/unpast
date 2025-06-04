@@ -9,7 +9,6 @@ from unpast.utils.method import zscore
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 
-
 def generate_exprs(
     data_sizes,
     g_size=5,
@@ -30,7 +29,8 @@ def generate_exprs(
 
     # generate background model
     np.random.seed(seed)
-    exprs = pd.DataFrame(np.random.normal(loc=0, scale=1.0, size=(n_genes, N)))
+    exprs = np.random.normal(loc=0, scale=1.0, size=(n_genes, N))
+    exprs = pd.DataFrame(exprs)
     exprs.columns = ["s_" + str(x) for x in exprs.columns.values]
     exprs.index = ["g_" + str(x) for x in exprs.index.values]
 
@@ -41,11 +41,19 @@ def generate_exprs(
     bg_g = set(exprs.index.values).difference(set(bic_g))
     bg_s = set(exprs.columns.values).difference(set(bic_s))
     bicluster_genes = []
-    for s_frac in frac_samples:
+    np.random.seed(seed)
+    seeds = np.random.choice(range(0,1000000), size=len(frac_samples), replace=False)
+    #print("bicluster seeds:",seeds)
+    for i in range(len(frac_samples)):
+        s_frac  = frac_samples[i]
         s_size = int(s_frac * N)
         # select random sets of samples and genes from the background
-        bic_genes = list(np.random.choice(list(bg_g), size=g_size, replace=False))
-        bic_samples = list(np.random.choice(list(bg_s), size=s_size, replace=False))
+        np.random.seed(seeds[i])
+        bic_genes = np.random.choice(sorted(bg_g), size=g_size, replace=False)
+        bic_genes = sorted(bic_genes)
+        np.random.seed(seeds[i])
+        bic_samples= np.random.choice(sorted(bg_s), size=s_size, replace=False)
+        bic_samples = sorted(bic_samples)
         bic_g += bic_genes
         bic_s += bic_samples
         # identify samples outside the bicluster
@@ -61,6 +69,7 @@ def generate_exprs(
             "n_genes": len(bic_genes),
             "n_samples:": len(bic_samples),
         }
+        np.random.seed(seeds[i])
         bic_exprs = np.random.normal(loc=m, scale=std, size=(g_size, s_size))
         # implant biclusters
         exprs.loc[bic_genes, bic_samples] += bic_exprs
@@ -69,20 +78,23 @@ def generate_exprs(
     # add modules of co-expressed genes
     bg_g = set(exprs.index.values).difference(set(bicluster_genes))
     r = 0.5
-    for module in add_coexpressed:
-        module_genes = list(np.random.choice(list(bg_g), size=module, replace=False))
-        n = exprs.loc[module_genes[0], :]
-        for i in range(1, module):
-            n_i = n * r + np.sqrt(1 - r ** 2) * exprs.loc[module_genes[i], :]
-            exprs.loc[module_genes[i], :] = n_i
-        print(
-            "\tco-exprs. module ",
-            module,
-            "r=",
-            (exprs.loc[module_genes, :].T.corr().sum().sum() - module)
-            / (module ** 2 / 2 - module),
-        )
-        coexpressed_modules.append(module_genes)
+    
+    if len(add_coexpressed)>0:
+        np.random.seed(seed+1)
+        seeds = np.random.choice(range(0,1000000), size=len(add_coexpressed), replace=False)
+        #print("co-expression seeds:",seeds)
+        for i in range(len(add_coexpressed)):
+            module = add_coexpressed[i]
+            np.random.seed(seeds[i])
+            module_genes = np.random.choice(sorted(bg_g), size=module, replace=False)
+            module_genes = sorted(module_genes)
+            n = exprs.loc[module_genes[0], :]
+            for i in range(1, module):
+                n_i = n * r + np.sqrt(1 - r ** 2) * exprs.loc[module_genes[i], :]
+                exprs.loc[module_genes[i], :] = n_i
+            avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module) / (module ** 2 / 2 - module)
+            print("\tco-exprs. module %s features, avg. pairwise r=%.2f"%(module,avg_r))
+            coexpressed_modules.append(module_genes)
 
     if z:
         # center to 0 and scale std to 1
@@ -756,15 +768,17 @@ def bic_survival(surv_anno, samples, event="OS", surv_time="", lr=True, verbose=
                 file=sys.stderr,
             )
     if v3 == 0:
-        print(
-            "zero variance for events in group; all events are ",
-            set(surv_data.loc[surv_data["x"] == 1, event].values),
-        )
+        if verbose:
+            print(
+                "zero variance for events in group; all events are ",
+                set(surv_data.loc[surv_data["x"] == 1, event].values),
+            )
     if v4 == 0:
-        print(
-            "zero variance for events in background; all events are ",
-            set(surv_data.loc[surv_data["x"] == 0, event].values),
-        )
+        if verbose:
+            print(
+                "zero variance for events in background; all events are ",
+                set(surv_data.loc[surv_data["x"] == 0, event].values),
+            )
 
     # check variance of covariates in event groups
     exclude_covars = []
