@@ -35,7 +35,9 @@ jobs:
 
       - name: Install R packages
         run: |
-          R -e "install.packages('BiocManager')"
+          sudo apt-get update
+          sudo apt-get install -y software-properties-common libcurl4-openssl-dev libssl-dev libxml2-dev
+          R -e "options(Ncpus = parallel::detectCores()); install.packages('BiocManager')"
           R -e "BiocManager::install('WGCNA')"
           R -e "BiocManager::install('limma')"
 
