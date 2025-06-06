@@ -1,6 +1,10 @@
 name: build docker image
 
 on:
+  pull_request:
+    branches: [ "main" ]
+    # don't publish on pull requests
+
   workflow_dispatch:
     inputs:
       tag:
@@ -15,7 +19,8 @@ permissions:
 jobs:
   build-test-publish:
     runs-on: ubuntu-latest
-
+    env:
+      TAG: ${{ github.event.inputs.tag || 'latest' }}
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -28,9 +33,9 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t unpast:${{ github.event.inputs.tag }} .
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
-            docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
+          docker build -t unpast:$TAG .
+          if [ "$TAG" != "latest" ]; then
+            docker tag unpast:$TAG unpast:latest
           fi
 
       - name: Set up results directory with permissions
@@ -43,7 +48,7 @@ jobs:
           docker run \
             --rm \
             --entrypoint "" \
-            unpast:${{ github.event.inputs.tag }} \
+            unpast:$TAG \
             bash -c "\
               poetry run pytest -m 'not slow' && \
               poetry run pytest \
@@ -54,7 +59,7 @@ jobs:
           docker run \
             --rm \
             -v "${{ github.workspace }}/results":/app/results \
-            unpast:${{ github.event.inputs.tag }} \
+            unpast:$TAG \
               --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
               --basename results/scenario_B500 \
               --verbose
@@ -69,13 +74,13 @@ jobs:
           fi
 
       - name: Push Docker images to Docker Hub
-        if: ${{ success() }}
+        if: ${{ success() && github.event_name != 'pull_request' }}
         run: |
-          docker tag unpast:${{ github.event.inputs.tag }} ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+          docker tag unpast:$TAG ${{ secrets.DOCKERHUB_USERNAME }}/unpast:$TAG
+          if [ "$TAG" != "latest" ]; then
             docker tag unpast:latest ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
           fi
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:$TAG
+          if [ "$TAG" != "latest" ]; then
             docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
           fi
