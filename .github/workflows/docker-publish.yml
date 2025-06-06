@@ -32,12 +32,12 @@ jobs:
           if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
             docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
           fi
-      
+
       - name: Set up results directory with permissions
         run: |
           mkdir -p results
           chmod -R 777 results
-      
+
       - name: Run tests inside Docker container
         run: |
           docker run \
@@ -56,9 +56,9 @@ jobs:
             -v "${{ github.workspace }}/results":/app/results \
             unpast:${{ github.event.inputs.tag }} \
               --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
-              --basename results/scenario_B500 --verbose \
-          
-   
+              --basename results/scenario_B500 \
+              --verbose
+
       - name: Verify Output
         run: |
           ls -l results
@@ -67,7 +67,7 @@ jobs:
             echo "Test failed: Output file is missing or empty"
             exit 1
           fi
-  
+
       - name: Push Docker images to Docker Hub
         if: ${{ success() }}
         run: |

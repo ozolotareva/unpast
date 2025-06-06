@@ -25,7 +25,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: $(python-version) # todo: check??
+          python-version: ${{ matrix.python-version }}
 
       - name: Set up R
         uses: r-lib/actions/setup-r@v2
