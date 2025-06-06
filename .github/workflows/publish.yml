@@ -41,6 +41,7 @@ jobs:
           poetry install
       - name: Run tests
         run: |
+          poetry run pytest -m 'not slow'        
           poetry run pytest
       - name: Build package
         run: |

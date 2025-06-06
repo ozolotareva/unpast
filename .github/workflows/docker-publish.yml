@@ -38,11 +38,27 @@ jobs:
           mkdir -p results
           chmod -R 777 results
       
+      - name: Run tests inside Docker container
+        run: |
+          docker run \
+            --rm \
+            --entrypoint "" \
+            unpast:${{ github.event.inputs.tag }} \
+            bash -c "\
+              poetry run pytest -m 'not slow' && \
+              poetry run pytest \
+            "
+
       - name: Run unpast command inside Docker container
         run: |
-          docker run --rm -v "${{ github.workspace }}":/app -v "${{ github.workspace }}/results":/data/results --entrypoint bash unpast:${{ github.event.inputs.tag }} -c "
-            cd /data && unpast --exprs /app/unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+          docker run \
+            --rm \
+            -v "${{ github.workspace }}/results":/app/results \
+            unpast:${{ github.event.inputs.tag }} \
+              --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
+              --basename results/scenario_B500 --verbose \
           
+   
       - name: Verify Output
         run: |
           ls -l results
