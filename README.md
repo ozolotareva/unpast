@@ -58,7 +58,8 @@ mkdir -p results
 command="unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
 
 # Run UnPaSt using Docker
-docker run --rm -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash freddsle/unpast -c "cd /data && PYTHONPATH=/data $command"
+
+docker run --rm -it -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash freddsle/unpast -c "cd /data && PYTHONPATH=/data $command"
 ```
 
 ### Requirements
