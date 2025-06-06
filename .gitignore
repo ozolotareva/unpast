@@ -131,3 +131,6 @@ dmypy.json
 .pyre/
 .idea
 /checkups/
+
+# Mac 
+.DS_Store
