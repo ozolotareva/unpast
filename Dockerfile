@@ -1,4 +1,5 @@
-FROM python:3.10.15
+ARG PYTHON_VERSION=3.10.15
+FROM python:${PYTHON_VERSION}
 
 # Set the working directory in the container
 WORKDIR /app
@@ -12,17 +13,9 @@ RUN apt-get update && \
 # Install Python dependencies (Poetry)
 COPY pyproject.toml poetry.lock /app/
 RUN pip install --upgrade pip && \
-    pip install poetry
-
-# Copy project files into the container
-COPY . /app
-
-# Build the Python package using Poetry
-RUN poetry config virtualenvs.create false && \
-    poetry build
-
-# Install the built unpast
-RUN pip install dist/unpast-*-py3-none-any.whl
+    pip install poetry && \
+    poetry config virtualenvs.create false && \
+    poetry install --no-root
 
 # Install BiocManager and core R packages
 RUN R -e "install.packages('BiocManager')"
@@ -30,6 +23,15 @@ RUN R -e "BiocManager::install(c('limma', 'WGCNA'), Ncpus = 4)"
 
 # Verify WGCNA installation
 RUN R -e "if (!requireNamespace('WGCNA', quietly = TRUE)) { stop('WGCNA not installed') }"
+
+# Copy project files into the container
+COPY . /app
+
+# Build the Python package using Poetry
+RUN poetry build
+
+# Install the built unpast
+RUN pip install dist/unpast-*-py3-none-any.whl
 
 # Create a non-root user and switch to it
 RUN useradd -m user
