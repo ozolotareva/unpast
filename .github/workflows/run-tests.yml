@@ -22,10 +22,8 @@ jobs:
         with:
           entrypoint: bash
           args: >
-          
             -c "
+            cd /github/workspace
             && python -m pytest unpast/tests -m 'not slow'
             && python -m pytest unpast/tests --durations=0
             "
-            
-          # cd /github/workspace
