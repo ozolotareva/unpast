@@ -506,7 +506,7 @@ def binarize(
     plot_SNR_thr=np.inf,
     show_fits=[],
     verbose=True,
-    seed=random.randint(0, 100000),
+    seed=42,
     prob_cutoff=0.5,
     n_permutations=10000,
 ):
@@ -1386,7 +1386,7 @@ def update_bicluster_data(bicluster, data):
             data.loc[genes_up, :].sum() - data.loc[genes_down, :].sum()
         ) / bicluster["n_genes"]
     else:
-        avg_zscore = data.loc[list(bicluster["genes"]), :].mean()
+        avg_zscore = data.loc[sorted(bicluster["genes"]), :].mean()
 
     # compute SNR for average z-score for this bicluster
     bicluster["SNR"] = np.abs(

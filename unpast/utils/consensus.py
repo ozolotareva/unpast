@@ -25,7 +25,7 @@ def make_consensus_biclusters(
     min_n_times_detected=2,
     modularity_measure="newman",
     method="kmeans",  # sample clustering method
-    seed=-1,
+    seed=42,  # fixed by default, can be set to -1 to use random seed
     plot=False,
     figsize=(7, 7),
     labels=False,
