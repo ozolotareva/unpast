@@ -24,6 +24,14 @@ TRY_USE_NUMBA = True
 
 
 def jit_if_available(func):
+    """Decorator that applies numba JIT compilation if available, otherwise returns unmodified function.
+
+    Args:
+        func: function to potentially JIT compile
+
+    Returns:
+        function: JIT-compiled function if numba available, otherwise original function
+    """
     # default "do nothing" decorator with the numba-like interface
     def decorated(*args, **kwargs):
         return func(*args, **kwargs)
@@ -41,6 +49,14 @@ if TRY_USE_NUMBA:
 
 
 def zscore(df):
+    """Standardize expression data by z-score normalization.
+
+    Args:
+        df (DataFrame): input expression matrix with features as rows and samples as columns
+
+    Returns:
+        DataFrame: z-score normalized expression matrix
+    """
     m = df.mean(axis=1)
     df = df.T - m
     df = df.T
@@ -67,6 +83,19 @@ def prepare_input_matrix(
     ceiling: float =0,  # if float>0, limit z-scores to [-x,x]
     verbose: bool =False,
 ):
+    """Prepare and standardize input expression matrix for biclustering analysis.
+
+    Args:
+        input_matrix (DataFrame): raw expression matrix with features as rows and samples as columns
+        min_n_samples (int): minimum number of samples required for processing
+        tol (float): tolerance for checking if data is already standardized
+        standradize (bool): whether to perform z-score standardization
+        ceiling (float): if >0, limit z-scores to [-ceiling, ceiling] range
+        verbose (bool): whether to print processing information
+
+    Returns:
+        DataFrame: processed and standardized expression matrix
+    """
     exprs = input_matrix.copy()
     exprs.index = [str(x) for x in exprs.index.values]
     exprs.columns = [str(x) for x in exprs.columns.values]
@@ -141,6 +170,18 @@ def prepare_input_matrix(
 
 
 def calc_snr_per_row(s, N, exprs, exprs_sums, exprs_sq_sums):
+    """Calculate SNR per row for given bicluster size.
+
+    Args:
+        s (int): bicluster size (number of samples)
+        N (int): total number of samples
+        exprs (array): expression matrix
+        exprs_sums (array): precomputed row sums
+        exprs_sq_sums (array): precomputed squared row sums
+
+    Returns:
+        array: SNR values per row
+    """
     bic = exprs[:, :s]
     bic_sums = bic.sum(axis=1)
     bic_sq_sums = np.square(bic).sum(axis=1)
@@ -158,6 +199,14 @@ def calc_snr_per_row(s, N, exprs, exprs_sums, exprs_sq_sums):
 
 
 def calc_mean_std_by_powers(powers):
+    """Calculate mean and standard deviation from power statistics.
+
+    Args:
+        powers (tuple): tuple containing (count, sum, sum_of_squares)
+
+    Returns:
+        tuple: (mean, std) calculated from the power statistics
+    """
     count, val_sum, sum_sq = powers
 
     mean = val_sum / count  # what if count == 0?
@@ -198,6 +247,19 @@ def calc_SNR(ar1, ar2, pd_mode=False):
 def generate_null_dist(
     N, sizes, n_permutations=10000, pval=0.001, seed=42, verbose=True
 ):
+    """Generate null distribution of SNR values for statistical testing.
+
+    Args:
+        N (int): total number of samples
+        sizes (array): bicluster sizes to generate null distributions for
+        n_permutations (int): number of permutations for empirical distribution
+        pval (float): p-value threshold for background distribution
+        seed (int): random seed for reproducibility
+        verbose (bool): whether to print progress information
+
+    Returns:
+        DataFrame: null distribution matrix with sizes as rows and permutations as columns
+    """
     # samples 'N' values from standard normal distribution, and split them into bicluster and background groups
     # 'sizes' defines bicluster sizes to test
     # returns a dataframe with the distribution of SNR for each bicluster size (sizes x n_permutations )
@@ -245,19 +307,19 @@ def generate_null_dist(
 
 
 def get_trend(sizes, thresholds, plot=True, verbose=True):
-    """
-    Smoothens the trend and retunrs a function min_SNR(size; p-val. cutoff)
-        Given a set of points (x_i, y_i), 
-        returns a function f(x) that interpolates the data with LOWESS+linear interpolation
+    """Smoothen the trend and return a function min_SNR(size; p-val cutoff).
+
+    Given a set of points (x_i, y_i), returns a function f(x) that interpolates 
+    the data with LOWESS+linear interpolation.
 
     Args:
-        sizes: values of x_i
-        thresholds: values of y_i
-        plot: if True, plots the trend
-        verbose: if True, prints the LOWESS frac
-    
+        sizes (array): values of x_i (bicluster sizes)
+        thresholds (array): values of y_i (SNR thresholds)
+        plot (bool): if True, plots the trend
+        verbose (bool): if True, prints the LOWESS frac
+
     Returns:
-        get_min_snr: a function that returns the minimal SNR for a given size
+        function: get_min_snr function that returns the minimal SNR for a given size
     """
     assert len(sizes) >= 0
     if len(sizes) == 1: 
@@ -284,11 +346,34 @@ def get_trend(sizes, thresholds, plot=True, verbose=True):
 
 
 def calc_e_pval(snr, size, null_distribution):
+    """Calculate empirical p-value from null distribution.
+
+    Args:
+        snr (float): observed SNR value
+        size (int): bicluster size
+        null_distribution (DataFrame): precomputed null distribution
+
+    Returns:
+        float: empirical p-value
+    """
     e_dist = null_distribution.loc[int(size), :]
     return (len(e_dist[e_dist >= abs(snr)]) + 1.0) / (null_distribution.shape[1] + 1.0)
 
 
 def plot_binarized_feature(feature_name, down_group, up_group, colors, hist_range, snr):
+    """Plot histogram of binarized feature values showing up and down groups.
+
+    Args:
+        feature_name (str): name of the feature being plotted
+        down_group (array): values in the down-regulated group
+        up_group (array): values in the up-regulated group
+        colors (tuple): colors for (down, up) groups
+        hist_range (tuple): range for histogram bins
+        snr (float): signal-to-noise ratio value
+
+    Returns:
+        None: displays plot
+    """
     down_color, up_color = colors
     n_bins = int(max(20, (len(down_group) + len(up_group)) / 10))
     n_bins = min(n_bins, 200)
@@ -323,8 +408,22 @@ def plot_binarized_feature(feature_name, down_group, up_group, colors, hist_rang
 
 
 def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
-    """ find 'higher' (positive), and 'lower' (negative) signal in vals. 
-        vals are found with GM binarization
+    """Identify positive and negative signal groups using Gaussian Mixture Model binarization.
+
+    Args:
+        row (array): expression values for a single feature across samples
+        min_n_samples (int): minimum number of samples required for each group
+        seed (int): random seed for reproducible clustering
+        prob_cutoff (float): probability threshold for group assignment
+        method (str): binarization method to use ("GMM")
+
+    Returns:
+        tuple: (mask_pos, mask_neg, snr, size, is_converged) where
+            - mask_pos: boolean mask for positive/high expression samples
+            - mask_neg: boolean mask for negative/low expression samples  
+            - snr: signal-to-noise ratio between groups
+            - size: effective sample size
+            - is_converged: whether GMM fitting converged
     """
     is_converged = None
     if method == "GMM":
@@ -417,6 +516,24 @@ def sklearn_binarization(
     prob_cutoff=0.5,
     method="GMM",
 ):
+    """Perform binarization of gene expression data using Gaussian Mixture Models.
+
+    Args:
+        exprs (DataFrame): expression matrix with genes as rows and samples as columns
+        min_n_samples (int): minimum number of samples required for each group
+        verbose (bool): whether to print progress information
+        plot (bool): whether to generate plots for binarization
+        plot_SNR_thr (float): SNR threshold above which to generate plots
+        show_fits (list): specific gene names for which to show fitting plots
+        seed (int): random seed for reproducible results
+        prob_cutoff (float): probability threshold for group assignment
+        method (str): binarization method to use ("GMM")
+
+    Returns:
+        tuple: (binarized_expressions, stats) where
+            - binarized_expressions: dict mapping gene names to binary sample groups
+            - stats: dict containing SNR and size statistics for each gene
+    """
     t0 = time()
 
     binarized_expressions = {}
@@ -510,9 +627,28 @@ def binarize(
     prob_cutoff=0.5,
     n_permutations=10000,
 ):
-    """
-       binarized_fname_prefix is a basename of binarized data file;
-       exprs is a dataframe with normalized features to be binarized.
+    """Main binarization function that creates binary expression profiles with significance testing.
+
+    Args:
+        binarized_fname_prefix (str): basename for output binarized data files
+        exprs (DataFrame): normalized expression matrix with features as rows and samples as columns
+        method (str): binarization method to use ("GMM")
+        save (bool): whether to save binarized data to files
+        load (bool): whether to try loading existing binarized data
+        min_n_samples (int): minimum number of samples required for each group
+        pval (float): p-value threshold for significance testing
+        plot_all (bool): whether to generate plots for all features
+        plot_SNR_thr (float): SNR threshold above which to generate plots
+        show_fits (list): specific feature names for which to show fitting plots
+        verbose (bool): whether to print progress information
+        seed (int): random seed for reproducible results
+        prob_cutoff (float): probability threshold for group assignment
+        n_permutations (int): number of permutations for null distribution generation
+
+    Returns:
+        tuple: (binarized_data, null_distribution) where
+            - binarized_data: DataFrame with binary expression profiles
+            - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
     t0 = time()
 
@@ -538,7 +674,7 @@ def binarize(
         + str(min_n_samples)
         + ".binarization_stats.tsv"
     )
-    # a file with background SNR distributions for each biclsuter size
+    # a file with background SNR distributions for each bicluster size
     n_permutations = max(n_permutations, int(1.0 / pval * 10))
     bin_bg_fname = (
         binarized_fname_prefix
@@ -611,7 +747,7 @@ def binarize(
 
     # load or generate empirical distributions for all bicluster sizes
     N = exprs.shape[1]
-    # sizes of binarized features
+    # bicluster sizes
     sizes1 = set([x for x in stats["size"].values if not np.isnan(x)])
     # no more than 100 of bicluster sizes are computed
     # step = max(int((N - min_n_samples) / 100), 1) 
@@ -800,6 +936,25 @@ def run_WGCNA_iterative(
     rscr_path=False,
     rpath="",
 ):
+    """Run WGCNA clustering iteratively until all features are clustered or stopping condition is met.
+
+    Args:
+        binarized_expressions (DataFrame): binary expression matrix with features as rows, samples as columns
+        tmp_prefix (str): prefix for temporary files during WGCNA execution
+        deepSplit (int): WGCNA parameter controlling module splitting sensitivity (0-4)
+        detectCutHeight (float): WGCNA height cutoff for merging modules (0-1)
+        nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
+        max_power (int): maximum soft thresholding power to test in WGCNA
+        precluster (bool): whether to perform pre-clustering before WGCNA
+        verbose (bool): whether to print progress information
+        rscr_path (bool): whether to use custom R script path
+        rpath (str): path to R installation
+
+    Returns:
+        tuple: (modules, not_clustered) where
+            - modules: list of feature modules/clusters found
+            - not_clustered: list of features that could not be clustered
+    """
 
     t0 = time()
 
@@ -853,6 +1008,25 @@ def run_WGCNA(
     rscr_path=False,
     rpath="",
 ):
+    """Run WGCNA (Weighted Gene Co-expression Network Analysis) clustering on binarized expression data.
+
+    Args:
+        binarized_expressions (DataFrame): binary expression matrix with features as rows, samples as columns
+        tmp_prefix (str): prefix for temporary files during WGCNA execution
+        deepSplit (int): WGCNA parameter controlling module splitting sensitivity (0-4)
+        detectCutHeight (float): WGCNA height cutoff for merging modules (0-1)
+        nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
+        max_power (int): maximum soft thresholding power to test in WGCNA
+        precluster (bool): whether to perform pre-clustering before WGCNA
+        verbose (bool): whether to print progress information
+        rscr_path (bool): whether to use custom R script path
+        rpath (str): path to R installation
+
+    Returns:
+        tuple: (modules, not_clustered) where
+            - modules: list of feature modules/clusters found by WGCNA
+            - not_clustered: list of features that could not be clustered
+    """
     t0 = time()
     # create unique suffix for tmp files
     from datetime import datetime
@@ -1041,6 +1215,22 @@ def run_Louvain(
     plot=False,
     modularity_measure="newman",
 ):
+    """Run Louvain community detection clustering on similarity matrix.
+
+    Args:
+        similarity (DataFrame): feature similarity matrix
+        similarity_cutoffs (array): range of similarity thresholds to test for clustering
+        m (bool): whether to return additional modularity information
+        verbose (bool): whether to print progress information
+        plot (bool): whether to generate plots of modularity vs cutoffs
+        modularity_measure (str): modularity measure to use ("newman", "dugue")
+
+    Returns:
+        tuple: (modules, not_clustered, best_Q) where
+            - modules: list of feature modules/clusters found
+            - not_clustered: list of features that could not be clustered
+            - best_Q: best modularity score achieved
+    """
     t0 = time()
     if similarity.shape[0] == 0:
         print("no features to cluster", file=sys.stderr)
@@ -1199,6 +1389,15 @@ def run_Louvain(
     return modules, not_clustered, best_cutoff
 
 def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
+    """Calculate Jaccard similarity matrix between features based on binary expression patterns.
+
+    Args:
+        binarized_data (DataFrame): binary expression matrix with samples as rows and features as columns
+        verbose (bool): whether to print progress information
+
+    Returns:
+        DataFrame: symmetric similarity matrix with Jaccard coefficients between all feature pairs
+    """
     t0 = time()
     genes = binarized_data.columns.values
     n_samples = binarized_data.shape[0]
@@ -1245,6 +1444,15 @@ def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
 
 
 def get_similarity_corr(df, verbose=True):
+    """Calculate correlation-based similarity matrix between features.
+
+    Args:
+        df (DataFrame): expression matrix with features as columns
+        verbose (bool): whether to print progress information
+
+    Returns:
+        DataFrame: correlation similarity matrix with positive correlations only
+    """
     t0 = time()
     corr = df.corr()  # .applymap(abs)
     corr = corr[corr > 0]  # to consider only direct correlations
@@ -1262,6 +1470,17 @@ def get_similarity_corr(df, verbose=True):
 
 
 def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
+    """Cluster samples into bicluster and background groups using unsupervised methods.
+
+    Args:
+        data (DataFrame): expression data with samples as rows and features as columns
+        min_n_samples (int): minimum number of samples required for each cluster
+        seed (int): random seed for reproducible clustering
+        method (str): clustering method to use ("kmeans", "Jenks", "ward")
+
+    Returns:
+        dict: bicluster information containing sample indices and cluster size
+    """
     # identify identify bicluster and backgound groups using 2-means
     max_n_iter = max(max(data.shape), 500)
     if method == "kmeans" or method == "Jenks":
@@ -1311,8 +1530,19 @@ def modules2biclusters(
     seed=0,
     verbose=True,
 ):
-    """Identifies optimal sample set for each module: 
-    splits samples into two sets in a subspace of each module
+    """Convert feature modules to biclusters by identifying optimal sample sets for each module.
+
+    Args:
+        modules (list): list of feature modules/clusters from clustering algorithms
+        data_to_cluster (DataFrame): expression data with samples as rows and features as columns
+        method (str): sample clustering method to use ("kmeans", "Jenks", "ward", "GMM")
+        min_n_samples (int): minimum number of samples required for each bicluster
+        min_n_genes (int): minimum number of genes required for each bicluster
+        seed (int): random seed for reproducible clustering
+        verbose (bool): whether to print progress information
+
+    Returns:
+        dict: biclusters dictionary with bicluster IDs as keys and bicluster information as values
     """
     t0 = time()
     biclusters = {}
@@ -1351,11 +1581,20 @@ def modules2biclusters(
 
 
 def update_bicluster_data(bicluster, data):
-    """ distinguishes up- and down-regulated gene
-    adds "samples" and "gene_indexes"
-    calculates average z-score
-    bicluster must contain "sample_indexes" and "genes"
-    data must contain all features, not just binarized"""
+    """Update bicluster with additional metadata including up/down-regulated genes and z-scores.
+
+    Args:
+        bicluster (dict): bicluster information containing "sample_indexes" and "genes"
+        data (DataFrame): complete expression data with all features (not just binarized)
+
+    Returns:
+        dict: updated bicluster with additional fields:
+            - "samples": sample names
+            - "gene_indexes": gene indices  
+            - "genes_up": up-regulated genes
+            - "genes_down": down-regulated genes
+            - "avg_zscore": average z-score of the bicluster
+    """
 
     # add "samples" and "gene_indexes"
     sample_names = data.columns.values
@@ -1398,6 +1637,20 @@ def update_bicluster_data(bicluster, data):
 def merge_biclusters(
     biclusters, data, J=0.8, min_n_samples=5, seed=42, method="kmeans", verbose=True
 ):
+    """Merge biclusters with similar sample sets based on Jaccard similarity.
+
+    Args:
+        biclusters (dict): dictionary of biclusters to be merged
+        data (DataFrame): expression data with samples as columns
+        J (float): Jaccard similarity threshold for merging biclusters
+        min_n_samples (int): minimum number of samples required for merged biclusters
+        seed (int): random seed for reproducible clustering
+        method (str): clustering method for sample grouping
+        verbose (bool): whether to print progress information
+
+    Returns:
+        dict: merged biclusters dictionary with reduced redundancy
+    """
     #  bicluaters -> binary -> jaccard sim
     binary_representation = {}
     N = data.shape[1]
@@ -1462,6 +1715,23 @@ def make_biclusters(
     cluster_binary=False,
     verbose=True,
 ):
+    """Create final biclusters from feature clusters by adding sample information and performing merging.
+
+    Args:
+        feature_clusters (list): list of feature modules/clusters from clustering algorithms
+        binarized_data (DataFrame): binary expression matrix
+        data (DataFrame): original z-score normalized expression data
+        merge (float): Jaccard similarity threshold for merging biclusters (0-1)
+        min_n_samples (int): minimum number of samples required for each bicluster
+        min_n_genes (int): minimum number of genes required for each bicluster
+        method (str): sample clustering method ("kmeans", "ward", "GMM")
+        seed (int): random seed for reproducible clustering
+        cluster_binary (bool): whether to cluster on binary data (True) or z-scores (False)
+        verbose (bool): whether to print progress information
+
+    Returns:
+        DataFrame: final biclusters with metadata including genes, samples, SNR, and z-scores
+    """
 
     biclusters = []
 

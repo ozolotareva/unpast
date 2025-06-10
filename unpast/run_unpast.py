@@ -30,6 +30,38 @@ def unpast(exprs_file: pd.DataFrame,
         plot_all: bool = False,
         e_dist_size: int = 10000,
         standradize: bool = True):
+    """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
+
+    Args:
+        exprs_file (pd.DataFrame): expression matrix with features as rows and samples as columns
+        basename (str): output files prefix (default: auto-generated timestamp)
+        out_dir (str): output directory path (default: "./")
+        save (bool): whether to save intermediate files (default: True)
+        load (bool): whether to load existing intermediate files (default: False)
+        ceiling (float): absolute threshold for z-scores (default: 3)
+        bin_method (str): binarization method - "kmeans", "ward", "GMM" (default: "kmeans")
+        clust_method (str): clustering method - "WGCNA", "iWGCNA", "Louvain" (default: "WGCNA")
+        min_n_samples (int): minimal number of samples in bicluster (default: 5)
+        show_fits (list): features to show binarization plots for (default: [])
+        pval (float): binarization p-value threshold (default: 0.01)
+        directions (list): clustering directions - ["DOWN","UP"] or ["BOTH"] (default: ["DOWN","UP"])
+        modularity (float): modularity parameter for Louvain clustering (default: 1/3)
+        similarity_cutoffs: similarity cutoffs for Louvain clustering (default: -1 for auto)
+        ds (int): deepSplit parameter for WGCNA (default: 3)
+        dch (float): detectCutHeight parameter for WGCNA (default: 0.995)
+        max_power (int): maximum power for WGCNA (default: 10)
+        precluster (bool): whether to precluster for WGCNA (default: True)
+        rpath (str): path to Rscript executable for WGCNA (default: "")
+        merge (float): similarity threshold for merging biclusters (default: 1)
+        seed (int): random seed for reproducibility (default: 42)
+        verbose (bool): whether to print progress messages (default: False)
+        plot_all (bool): whether to show all plots (default: False)
+        e_dist_size (int): size of empirical SNR distribution (default: 10000)
+        standradize (bool): whether to standardize input matrix (default: True)
+
+    Returns:
+        pd.DataFrame: biclusters table with columns for genes, samples, SNR, etc.
+    """
     
     import sys
     from time import time
@@ -218,6 +250,11 @@ def unpast(exprs_file: pd.DataFrame,
     return biclusters    
 
 def parse_args():
+    """Parse command line arguments for UnPaSt.
+
+    Returns:
+        Namespace: parsed command line arguments
+    """
     parser = argparse.ArgumentParser("UnPaSt identifies differentially expressed biclusters in a 2-dimensional matrix.")
     parser.add_argument('--seed',metavar=42, default=42, type=int, help="random seed")
     parser.add_argument('--exprs', metavar="exprs.z.tsv", required=True, 
@@ -251,7 +288,10 @@ def parse_args():
     
 
 def main():
-
+    """Main entry point for UnPaSt command line interface.
+    
+    Parses command line arguments and runs the UnPaSt biclustering algorithm.
+    """
     args = parse_args()
     
     directions = ["DOWN","UP"]
