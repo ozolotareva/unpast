@@ -35,6 +35,7 @@ def unpast(exprs_file: pd.DataFrame,
     from time import time
     from unpast.utils.method import prepare_input_matrix
     
+    np.random.seed(seed)  # todo: check if this is needed
     start_time = time()
     
     # make sure that out_dir has '/' suffix
