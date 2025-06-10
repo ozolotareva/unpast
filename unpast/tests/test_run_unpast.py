@@ -7,7 +7,7 @@ import pytest
 TEST_DIR = os.path.dirname(__file__)
 RESULTS_DIR = os.path.join(TEST_DIR, "results")
 if not os.access(RESULTS_DIR, os.W_OK):
-    # repo dir is currently read-only during the tesging stage in github-action
+    # repo dir is currently read-only during the testing stage in github-action
     RESULTS_DIR = "/tmp/unpast/results"
 REFERENCE_OUTPUT_DIR = os.path.join(TEST_DIR, "test_reference_output")
 
@@ -22,6 +22,7 @@ def run_unpast_on_file(filename, basename, *args, **kwargs):
         os.path.join(TEST_DIR, filename),
         out_dir=RESULTS_DIR,
         basename=basename,
+        verbose=True,  # use pytest -s ... to see the output
         *args,
         **kwargs,
     )

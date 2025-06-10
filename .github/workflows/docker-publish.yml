@@ -1,6 +1,10 @@
-name: Build Docker Image
+name: build docker image
 
 on:
+  pull_request:
+    # check but don't publish on pull requests
+    branches: [ "main" ]
+
   workflow_dispatch:
     inputs:
       tag:
@@ -15,10 +19,11 @@ permissions:
 jobs:
   build-test-publish:
     runs-on: ubuntu-latest
-
+    env:
+      TAG: ${{ github.event.inputs.tag || 'latest' }}
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -28,21 +33,37 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t unpast:${{ github.event.inputs.tag }} .
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
-            docker tag unpast:${{ github.event.inputs.tag }} unpast:latest
+          docker build -t unpast:$TAG .
+          if [ "$TAG" != "latest" ]; then
+            docker tag unpast:$TAG unpast:latest
           fi
-      
+
       - name: Set up results directory with permissions
         run: |
           mkdir -p results
           chmod -R 777 results
-      
+
+      - name: Run tests inside Docker container
+        run: |
+          docker run \
+            --rm \
+            --entrypoint "" \
+            unpast:$TAG \
+            bash -c "\
+              poetry run pytest -m 'not slow' && \
+              poetry run pytest \
+            "
+
       - name: Run unpast command inside Docker container
         run: |
-          docker run --rm -v "${{ github.workspace }}":/app -v "${{ github.workspace }}/results":/data/results --entrypoint bash unpast:${{ github.event.inputs.tag }} -c "
-            cd /data && unpast --exprs /app/unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
-          
+          docker run \
+            --rm \
+            -v "${{ github.workspace }}/results":/app/results \
+            unpast:$TAG \
+              --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
+              --basename results/scenario_B500 \
+              --verbose
+
       - name: Verify Output
         run: |
           ls -l results
@@ -51,15 +72,15 @@ jobs:
             echo "Test failed: Output file is missing or empty"
             exit 1
           fi
-  
+
       - name: Push Docker images to Docker Hub
-        if: ${{ success() }}
+        if: ${{ success() && github.event_name != 'pull_request' }}
         run: |
-          docker tag unpast:${{ github.event.inputs.tag }} ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+          docker tag unpast:$TAG ${{ secrets.DOCKERHUB_USERNAME }}/unpast:$TAG
+          if [ "$TAG" != "latest" ]; then
             docker tag unpast:latest ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
           fi
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:${{ github.event.inputs.tag }}
-          if [ "${{ github.event.inputs.tag }}" != "latest" ]; then
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:$TAG
+          if [ "$TAG" != "latest" ]; then
             docker push ${{ secrets.DOCKERHUB_USERNAME }}/unpast:latest
           fi

@@ -1,0 +1,37 @@
+# multi-python docker build and test
+name: 'Run Comprehensive Testing'
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10"]
+    
+    env: 
+      TAG: test-${{ matrix.python-version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t unpast:$TAG --build-arg PYTHON_VERSION=${{ matrix.python-version }} .
+
+      - name: Run tests inside Docker container
+        run: | 
+          docker run \
+            --rm \
+            --entrypoint "" \
+            unpast:$TAG \
+            bash -c "\
+              poetry run pytest -m 'not slow' && \
+              poetry run pytest \
+            "
+     
