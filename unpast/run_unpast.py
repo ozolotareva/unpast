@@ -3,6 +3,18 @@ import argparse
 import numpy as np
 import pandas as pd
 import os
+import sys
+from time import time
+
+from unpast.core.preprocessing import prepare_input_matrix
+from unpast.core.binarization import binarize
+from unpast.core.feature_clustering import run_Louvain
+from unpast.core.feature_clustering import get_similarity_jaccard
+from unpast.core.feature_clustering import run_WGCNA_iterative
+from unpast.core.feature_clustering import run_WGCNA
+from unpast.core.sample_clustering import make_biclusters
+from unpast.utils.io import write_bic_table
+
 
 def unpast(exprs_file: pd.DataFrame,
         basename: str ='',
@@ -62,11 +74,7 @@ def unpast(exprs_file: pd.DataFrame,
     Returns:
         pd.DataFrame: biclusters table with columns for genes, samples, SNR, etc.
     """
-    
-    import sys
-    from time import time
-    from unpast.utils.method import prepare_input_matrix
-    
+        
     np.random.seed(seed)  # todo: check if this is needed
     start_time = time()
     
@@ -75,7 +83,6 @@ def unpast(exprs_file: pd.DataFrame,
         out_dir += '/'
         
     if not basename: 
-        from datetime import datetime
         now = datetime.now()
         basename = "unpast_" + now.strftime("%y.%m.%d_%H:%M:%S")
         print("set output basename to", basename, file = sys.stdout)
@@ -124,7 +131,6 @@ def unpast(exprs_file: pd.DataFrame,
                                 )
         
     ######### binarization #########
-    from unpast.utils.method import binarize
     
     binarized_features, stats, null_distribution  = binarize(out_dir+basename, exprs=exprs,
                                  method=bin_method, save = save, load=load,
@@ -148,14 +154,14 @@ def unpast(exprs_file: pd.DataFrame,
         bin_data_dict["UP"]  = df_up
         bin_data_dict["DOWN"]  = df_down 
         
+
     ######### gene clustering #########
+    
     if verbose:
         print("Clustering features ...\n",file=sys.stdout)
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
+
     if clust_method == "Louvain":
-        from unpast.utils.method import run_Louvain
-        from unpast.utils.method import get_similarity_jaccard
-        
         for d in directions:
             df = bin_data_dict[d]
             if df.shape[0]>1:
@@ -184,13 +190,12 @@ def unpast(exprs_file: pd.DataFrame,
                 not_clustered+= list(df.index.values)
                 used_similarity_cutoffs.append(None)
         used_similarity_cutoffs = ",".join(map(str,used_similarity_cutoffs))
-        
+
+
     elif "WGCNA" in clust_method:
         if clust_method == "iWGCNA":
-            from unpast.utils.method import run_WGCNA_iterative
             WGCNA_func = run_WGCNA_iterative
         else:
-            from unpast.utils.method import run_WGCNA
             WGCNA_func = run_WGCNA
 
         for d in directions:
@@ -214,7 +219,6 @@ def unpast(exprs_file: pd.DataFrame,
             print("No biclusters found",file = sys.stderr)
         return pd.DataFrame()
         
-    from unpast.utils.method import make_biclusters
     biclusters = make_biclusters(feature_clusters,
                                  binarized_features,
                                  exprs,
@@ -226,8 +230,7 @@ def unpast(exprs_file: pd.DataFrame,
                                  cluster_binary=False,
                                  verbose = verbose)
 
-    
-    from unpast.utils.io import write_bic_table
+    ######### save biclusters #########
     suffix  = ".seed="+str(seed)+".bin="+bin_method+",pval="+str(pval)+",clust="+clust_method+",direction="+"-".join(directions)
     if "WGCNA" in clust_method:
         suffix2 = ",ds="+str(ds)+",dch="+str(dch)+",max_power="+str(max_power)+",precluster="+str(precluster)

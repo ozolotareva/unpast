@@ -60,7 +60,6 @@ def test_smoke():
     )
 
 
-@pytest.mark.slow
 def test_simple():
     """Check that clear biclusters are found."""
     res = run_unpast_on_file(
