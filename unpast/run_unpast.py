@@ -3,6 +3,18 @@ import argparse
 import numpy as np
 import pandas as pd
 import os
+import sys
+from time import time
+
+from unpast.core.preprocessing import prepare_input_matrix
+from unpast.core.binarization import binarize
+from unpast.core.feature_clustering import run_Louvain
+from unpast.core.feature_clustering import get_similarity_jaccard
+from unpast.core.feature_clustering import run_WGCNA_iterative
+from unpast.core.feature_clustering import run_WGCNA
+from unpast.core.sample_clustering import make_biclusters
+from unpast.utils.io import write_bic_table
+
 
 def unpast(exprs_file: pd.DataFrame,
         basename: str ='',
@@ -30,11 +42,39 @@ def unpast(exprs_file: pd.DataFrame,
         plot_all: bool = False,
         e_dist_size: int = 10000,
         standradize: bool = True):
-    
-    import sys
-    from time import time
-    from unpast.utils.method import prepare_input_matrix
-    
+    """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
+
+    Args:
+        exprs_file (pd.DataFrame): expression matrix with features as rows and samples as columns
+        basename (str): output files prefix (default: auto-generated timestamp)
+        out_dir (str): output directory path (default: "./")
+        save (bool): whether to save intermediate files (default: True)
+        load (bool): whether to load existing intermediate files (default: False)
+        ceiling (float): absolute threshold for z-scores (default: 3)
+        bin_method (str): binarization method - "kmeans", "ward", "GMM" (default: "kmeans")
+        clust_method (str): clustering method - "WGCNA", "iWGCNA", "Louvain" (default: "WGCNA")
+        min_n_samples (int): minimal number of samples in bicluster (default: 5)
+        show_fits (list): features to show binarization plots for (default: [])
+        pval (float): binarization p-value threshold (default: 0.01)
+        directions (list): clustering directions - ["DOWN","UP"] or ["BOTH"] (default: ["DOWN","UP"])
+        modularity (float): modularity parameter for Louvain clustering (default: 1/3)
+        similarity_cutoffs: similarity cutoffs for Louvain clustering (default: -1 for auto)
+        ds (int): deepSplit parameter for WGCNA (default: 3)
+        dch (float): detectCutHeight parameter for WGCNA (default: 0.995)
+        max_power (int): maximum power for WGCNA (default: 10)
+        precluster (bool): whether to precluster for WGCNA (default: True)
+        rpath (str): path to Rscript executable for WGCNA (default: "")
+        merge (float): similarity threshold for merging biclusters (default: 1)
+        seed (int): random seed for reproducibility (default: 42)
+        verbose (bool): whether to print progress messages (default: False)
+        plot_all (bool): whether to show all plots (default: False)
+        e_dist_size (int): size of empirical SNR distribution (default: 10000)
+        standradize (bool): whether to standardize input matrix (default: True)
+
+    Returns:
+        pd.DataFrame: biclusters table with columns for genes, samples, SNR, etc.
+    """
+        
     np.random.seed(seed)  # todo: check if this is needed
     start_time = time()
     
@@ -43,7 +83,6 @@ def unpast(exprs_file: pd.DataFrame,
         out_dir += '/'
         
     if not basename: 
-        from datetime import datetime
         now = datetime.now()
         basename = "unpast_" + now.strftime("%y.%m.%d_%H:%M:%S")
         print("set output basename to", basename, file = sys.stdout)
@@ -92,7 +131,6 @@ def unpast(exprs_file: pd.DataFrame,
                                 )
         
     ######### binarization #########
-    from unpast.utils.method import binarize
     
     binarized_features, stats, null_distribution  = binarize(out_dir+basename, exprs=exprs,
                                  method=bin_method, save = save, load=load,
@@ -116,14 +154,14 @@ def unpast(exprs_file: pd.DataFrame,
         bin_data_dict["UP"]  = df_up
         bin_data_dict["DOWN"]  = df_down 
         
+
     ######### gene clustering #########
+    
     if verbose:
         print("Clustering features ...\n",file=sys.stdout)
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
+
     if clust_method == "Louvain":
-        from unpast.utils.method import run_Louvain
-        from unpast.utils.method import get_similarity_jaccard
-        
         for d in directions:
             df = bin_data_dict[d]
             if df.shape[0]>1:
@@ -152,13 +190,12 @@ def unpast(exprs_file: pd.DataFrame,
                 not_clustered+= list(df.index.values)
                 used_similarity_cutoffs.append(None)
         used_similarity_cutoffs = ",".join(map(str,used_similarity_cutoffs))
-        
+
+
     elif "WGCNA" in clust_method:
         if clust_method == "iWGCNA":
-            from unpast.utils.method import run_WGCNA_iterative
             WGCNA_func = run_WGCNA_iterative
         else:
-            from unpast.utils.method import run_WGCNA
             WGCNA_func = run_WGCNA
 
         for d in directions:
@@ -182,7 +219,6 @@ def unpast(exprs_file: pd.DataFrame,
             print("No biclusters found",file = sys.stderr)
         return pd.DataFrame()
         
-    from unpast.utils.method import make_biclusters
     biclusters = make_biclusters(feature_clusters,
                                  binarized_features,
                                  exprs,
@@ -194,8 +230,7 @@ def unpast(exprs_file: pd.DataFrame,
                                  cluster_binary=False,
                                  verbose = verbose)
 
-    
-    from unpast.utils.io import write_bic_table
+    ######### save biclusters #########
     suffix  = ".seed="+str(seed)+".bin="+bin_method+",pval="+str(pval)+",clust="+clust_method+",direction="+"-".join(directions)
     if "WGCNA" in clust_method:
         suffix2 = ",ds="+str(ds)+",dch="+str(dch)+",max_power="+str(max_power)+",precluster="+str(precluster)
@@ -218,6 +253,11 @@ def unpast(exprs_file: pd.DataFrame,
     return biclusters    
 
 def parse_args():
+    """Parse command line arguments for UnPaSt.
+
+    Returns:
+        Namespace: parsed command line arguments
+    """
     parser = argparse.ArgumentParser("UnPaSt identifies differentially expressed biclusters in a 2-dimensional matrix.")
     parser.add_argument('--seed',metavar=42, default=42, type=int, help="random seed")
     parser.add_argument('--exprs', metavar="exprs.z.tsv", required=True, 
@@ -251,7 +291,10 @@ def parse_args():
     
 
 def main():
-
+    """Main entry point for UnPaSt command line interface.
+    
+    Parses command line arguments and runs the UnPaSt biclustering algorithm.
+    """
     args = parse_args()
     
     directions = ["DOWN","UP"]

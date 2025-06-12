@@ -9,8 +9,9 @@ from fisher import pvalue
 
 import matplotlib.pyplot as plt
 
-from unpast.utils.method import run_Louvain, cluster_samples, update_bicluster_data
-from unpast.utils.eval import find_best_matching_biclusters
+from unpast.core.feature_clustering import run_Louvain
+from unpast.core.sample_clustering import cluster_samples, update_bicluster_data
+from unpast.misc.eval import find_best_matching_biclusters
 
 def make_consensus_biclusters(
     biclusters_list,

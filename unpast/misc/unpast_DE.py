@@ -1,4 +1,4 @@
-# Usage: from unpast.utils.unpast_DE import run_de_for_unpast
+# Usage: from unpast.misc.unpast_DE import run_de_for_unpast
 # run_de_for_unpast(unpast_output_path, expression_matrix_path, counts = False, [keep_all=False,adj_p_value_cut_off = 0.05, logFC_cut_off = 1, r_script_path = None, r_executable_path = None])
 
 import pandas as pd
@@ -6,6 +6,7 @@ import os
 import logging
 import subprocess
 import numpy as np
+from pathlib import Path
 
 # Add all logging levels
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
@@ -14,6 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 # Constants
 ####################################################################################################
 DELIMITER = "\t"
+RSCRIPTS_DIR = Path(__file__).resolve().parent.parent / "rscripts"
 
 ####################################################################################################
 # Functions
@@ -39,9 +41,8 @@ def run_add_genes_script(
     r_executable_path: str = None,
 ) -> str:
     if not r_script_path:
-        # Assume add_genes.R is in the same folder
-        r_script_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "add_genes.R")
-
+        r_script_path = str(RSCRIPTS_DIR / "add_genes.R")
+    
     if r_executable_path is None:
         r_executable_path = "Rscript"
     else:
