@@ -1,11 +1,12 @@
+import sys
 import numpy as np
 import pandas as pd
 import math
+from time import time
 
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import statsmodels.api as sm
-
 
 def calc_snr_per_row(s, N, exprs, exprs_sums, exprs_sq_sums):
     """Calculate SNR per row for given bicluster size.

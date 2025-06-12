@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(message)s")
 # Constants
 ####################################################################################################
 DELIMITER = "\t"
-RSCRIPTS_DIR = Path(__file__).resolve().parent.parent / "rscript"
+RSCRIPTS_DIR = Path(__file__).resolve().parent.parent / "rscripts"
 
 ####################################################################################################
 # Functions

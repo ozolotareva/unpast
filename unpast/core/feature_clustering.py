@@ -9,7 +9,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
-RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscript").resolve()
+RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscripts").resolve()
 
 
 def run_WGCNA_iterative(

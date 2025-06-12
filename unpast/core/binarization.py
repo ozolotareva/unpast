@@ -12,7 +12,7 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection
 
-from unpast.utils.statistics import calc_SNR
+from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
 
 
 def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
