@@ -1,7 +1,6 @@
 import numpy as np
 import warnings
-from unpast.core.binarization import  get_trend 
-from unpast.utils.statistics import calc_SNR
+from unpast.utils.statistics import calc_SNR, get_trend
 
 
 def test_get_trend_single_point():

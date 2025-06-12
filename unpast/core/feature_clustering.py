@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 from time import time
 
-import matplotlib.pyplot as plt  # TODO: rm plt from anything except utils/visualization.py
+import matplotlib.pyplot as plt
 
 def run_WGCNA_iterative(
     binarized_expressions,

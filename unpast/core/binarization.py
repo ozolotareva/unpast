@@ -5,134 +5,14 @@ import warnings
 import pandas as pd
 import numpy as np
 from time import time
-import math
-
-from scipy.interpolate import interp1d
 
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans, AgglomerativeClustering
 
 import matplotlib.pyplot as plt
-import statsmodels.api as sm
 from statsmodels.stats.multitest import fdrcorrection
 
-from unpast.utils.statistics import calc_snr_per_row, calc_SNR
-
-
-def generate_null_dist(
-    N, sizes, n_permutations=10000, pval=0.001, seed=42, verbose=True
-):
-    """Generate null distribution of SNR values for statistical testing.
-
-    Args:
-        N (int): total number of samples
-        sizes (array): bicluster sizes to generate null distributions for
-        n_permutations (int): number of permutations for empirical distribution
-        pval (float): p-value threshold for background distribution
-        seed (int): random seed for reproducibility
-        verbose (bool): whether to print progress information
-
-    Returns:
-        DataFrame: null distribution matrix with sizes as rows and permutations as columns
-    """
-    # samples 'N' values from standard normal distribution, and split them into bicluster and background groups
-    # 'sizes' defines bicluster sizes to test
-    # returns a dataframe with the distribution of SNR for each bicluster size (sizes x n_permutations )
-    t0 = time()
-
-    if verbose:
-        print(
-            "\tGenerate background distribuition of SNR depending on the bicluster size ...",
-            file=sys.stdout,
-        )
-        print(
-            "\t\ttotal samples: %s,\n\t\tnumber of samples in a bicluster: %s - %s,\n\t\tn_permutations: %s"
-            % (N, min(sizes), max(sizes), n_permutations),
-            file=sys.stdout,
-        )
-        print("\t\tsnr pval threshold:", pval, file=sys.stdout)
-
-    exprs = np.zeros((n_permutations, N))  # generate random expressions from st.normal
-    # values = exprs.values.reshape(-1) # random samples from expression matrix
-    # exprs = np.random.choice(values,size=exprs.shape[1])
-    np.random.seed(seed=seed)
-    for i in range(n_permutations):
-        exprs[i,] = sorted(np.random.normal(size=N))
-
-    exprs_sums = exprs.sum(axis=1)
-    exprs_sq_sums = np.square(exprs).sum(axis=1)
-
-    null_distribution = pd.DataFrame(
-        np.zeros((sizes.shape[0], n_permutations)),
-        index=sizes,
-        columns=range(n_permutations),
-    )
-
-    for s in sizes:
-        null_distribution.loc[s, :] = -1 * calc_snr_per_row(
-            s, N, exprs, exprs_sums, exprs_sq_sums
-        )
-
-    if verbose:
-        print(
-            "\tBackground ditribution generated in {:.2f} s".format(time() - t0),
-            file=sys.stdout,
-        )
-    return null_distribution
-
-
-def get_trend(sizes, thresholds, plot=True, verbose=True):
-    """Smoothen the trend and return a function min_SNR(size; p-val cutoff).
-
-    Given a set of points (x_i, y_i), returns a function f(x) that interpolates 
-    the data with LOWESS+linear interpolation.
-
-    Args:
-        sizes (array): values of x_i (bicluster sizes)
-        thresholds (array): values of y_i (SNR thresholds)
-        plot (bool): if True, plots the trend
-        verbose (bool): if True, prints the LOWESS frac
-
-    Returns:
-        function: get_min_snr function that returns the minimal SNR for a given size
-    """
-    assert len(sizes) >= 0
-    if len(sizes) == 1: 
-        return lambda x: thresholds[0]
-    
-    lowess = sm.nonparametric.lowess
-    frac = max(1, min(math.floor(int(0.1 * len(sizes))), 15) / len(sizes))
-    # if verbose:
-    #    print("\t\t\tLOWESS frac=",round(frac,2), file = sys.stdout)
-    lowess_curve = lowess(
-        thresholds, sizes, frac=frac, return_sorted=True, is_sorted=False
-    )
-    get_min_snr = interp1d(
-        lowess_curve[:, 0], lowess_curve[:, 1]
-    )  # ,kind="nearest-up",fill_value="extrapolate")
-    if plot:
-        plt.plot(sizes, thresholds, "b--", lw=2)
-        plt.plot(sizes, get_min_snr(sizes), "r-", lw=2)
-        plt.xlabel("n_samples")
-        plt.ylabel("SNR")
-        plt.ylim((0, 5))
-        plt.show()
-    return get_min_snr
-
-
-def calc_e_pval(snr, size, null_distribution):
-    """Calculate empirical p-value from null distribution.
-
-    Args:
-        snr (float): observed SNR value
-        size (int): bicluster size
-        null_distribution (DataFrame): precomputed null distribution
-
-    Returns:
-        float: empirical p-value
-    """
-    e_dist = null_distribution.loc[int(size), :]
-    return (len(e_dist[e_dist >= abs(snr)]) + 1.0) / (null_distribution.shape[1] + 1.0)
+from unpast.utils.statistics import calc_SNR
 
 
 def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
