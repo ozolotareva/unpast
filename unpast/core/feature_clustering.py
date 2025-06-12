@@ -5,8 +5,12 @@ import subprocess
 import pandas as pd
 import numpy as np
 from time import time
+from pathlib import Path
 
 import matplotlib.pyplot as plt
+
+RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscript").resolve()
+
 
 def run_WGCNA_iterative(
     binarized_expressions,
@@ -140,10 +144,7 @@ def run_WGCNA(
     if verbose:
         print("\tRunning WGCNA for", fname, "...", file=sys.stdout)
     if not rscr_path:
-        # assume run_WGCNA.R is in the same folder
-        rscr_path = (
-            "/".join(os.path.realpath(__file__).split("/")[:-1]) + "/run_WGCNA.R"
-        )
+        rscr_path = str(RSCRIPTS_DIR / "run_WGCNA.R")
 
     binarized_expressions_ = binarized_expressions.loc[:, :].copy()
 
