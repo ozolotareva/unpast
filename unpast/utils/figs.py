@@ -31,11 +31,11 @@ def draw_heatmap2(
     row_labels_black=False,
 ):
     """* exprs - expressions of genes to plot
-       * biclusters in UnPaSt format
-       * annot - annotation for samples, columns - subtypes, rows - samples 
-       * color_dict - how to color each label
-       * bicluster_colors - color for bicluster annotation "black","auto" or list 
-       """
+    * biclusters in UnPaSt format
+    * annot - annotation for samples, columns - subtypes, rows - samples
+    * color_dict - how to color each label
+    * bicluster_colors - color for bicluster annotation "black","auto" or list
+    """
     bic_names = []
     ordered_genes = []
     row_colors = None
@@ -66,7 +66,7 @@ def draw_heatmap2(
         elif bicluster_colors == "auto":
             palette = sns.color_palette("colorblind")
             # Get the first n colors from the palette
-            bic_colors = sns.color_palette("colorblind",biclusters.shape[0]).as_hex()
+            bic_colors = sns.color_palette("colorblind", biclusters.shape[0]).as_hex()
             print("colors:", bic_colors)
 
         else:
@@ -174,14 +174,16 @@ def draw_heatmap2(
                     if row_tick.get_text() in biclusters.loc[bic_id, "genes"]:
                         if not row_labels_black:
                             row_tick.set_color(bic_colors[bic_id])
-    if legend_n_cols>0:
+    if legend_n_cols > 0:
         legends = []
         n_patches = 0
         for col in cols:
             patches = []
             col_color_map = color_dict[col]
             # add patches only for groups found in annotation
-            plot_groups = [x for x in col_color_map.keys() if x in set(annot[col].values)]
+            plot_groups = [
+                x for x in col_color_map.keys() if x in set(annot[col].values)
+            ]
             for group in plot_groups:
                 p = g.ax_col_dendrogram.bar(
                     0, 0, color=col_color_map[group], label=group, linewidth=0
@@ -190,11 +192,10 @@ def draw_heatmap2(
 
             # add the legend
             n_patches += len(patches)
-            l = g.ax_col_dendrogram.legend(loc="best", 
-                                            ncol=legend_n_cols,
-                                            bbox_transform=gcf().transFigure
-                                            )
-            legends.append(l)   
+            l = g.ax_col_dendrogram.legend(
+                loc="best", ncol=legend_n_cols, bbox_transform=gcf().transFigure
+            )
+            legends.append(l)
     return g, sample_order, (row_colors, col_colors)
 
 

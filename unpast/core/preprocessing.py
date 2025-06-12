@@ -32,11 +32,11 @@ def zscore(df):
 
 def prepare_input_matrix(
     input_matrix: pd.DataFrame,
-    min_n_samples: int =5,
-    tol: float =0.01,
+    min_n_samples: int = 5,
+    tol: float = 0.01,
     standradize: bool = True,
-    ceiling: float =0,  # if float>0, limit z-scores to [-x,x]
-    verbose: bool =False,
+    ceiling: float = 0,  # if float>0, limit z-scores to [-x,x]
+    verbose: bool = False,
 ):
     """Prepare and standardize input expression matrix for biclustering analysis.
 
@@ -60,14 +60,19 @@ def prepare_input_matrix(
     zero_var = list(std[std == 0].index.values)
     if len(zero_var) > 0:
         if verbose:
-            print("\tZero variance rows will be dropped: %s"%len(zero_var),
+            print(
+                "\tZero variance rows will be dropped: %s" % len(zero_var),
                 file=sys.stdout,
             )
         exprs = exprs.loc[std > 0]
         m = m[std > 0]
         std = std[std > 0]
-        if exprs.shape[0]<=2:
-            print("After excluding constant features (rows) , less than 3 features (rows) remain in the input matrix."% exprs.shape[0], file=sys.stderr)
+        if exprs.shape[0] <= 2:
+            print(
+                "After excluding constant features (rows) , less than 3 features (rows) remain in the input matrix."
+                % exprs.shape[0],
+                file=sys.stderr,
+            )
 
     mean_passed = np.all(np.abs(m) < tol)
     std_passed = np.all(np.abs(std - 1) < tol)
@@ -89,7 +94,8 @@ def prepare_input_matrix(
     if n_na > 0:
         if verbose:
             print(
-                "\tMissing values detected in %s rows"%missing_values[missing_values > 0].shape[0],
+                "\tMissing values detected in %s rows"
+                % missing_values[missing_values > 0].shape[0],
                 file=sys.stdout,
             )
         keep_features = missing_values[
@@ -104,7 +110,7 @@ def prepare_input_matrix(
         exprs = exprs.loc[keep_features, :]
 
     if standradize:
-        if ceiling>0:
+        if ceiling > 0:
             if verbose:
                 print(
                     "\tStandardized expressions will be limited to [-%s,%s]:"
@@ -117,8 +123,7 @@ def prepare_input_matrix(
                 exprs.fillna(-ceiling, inplace=True)
                 if verbose:
                     print(
-                        "\tMissing values will be replaced with -%s."
-                        % ceiling,
+                        "\tMissing values will be replaced with -%s." % ceiling,
                         file=sys.stdout,
                     )
     return exprs

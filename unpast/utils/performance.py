@@ -2,6 +2,7 @@
 
 TRY_USE_NUMBA = True
 
+
 def jit_if_available(func):
     """Decorator that applies numba JIT compilation if available, otherwise returns unmodified function.
 
@@ -11,6 +12,7 @@ def jit_if_available(func):
     Returns:
         function: JIT-compiled function if numba available, otherwise original function
     """
+
     # default "do nothing" decorator with the numba-like interface
     def decorated(*args, **kwargs):
         return func(*args, **kwargs)

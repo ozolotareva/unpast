@@ -46,4 +46,3 @@ def plot_binarized_feature(feature_name, down_group, up_group, colors, hist_rang
     )
     # tmp = plt.savefig("figs_binarization/"+feature_name+".hist.svg", bbox_inches='tight', transparent=True)
     plt.show()
-

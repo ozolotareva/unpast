@@ -9,6 +9,7 @@ from unpast.core.preprocessing import zscore
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 
+
 def generate_exprs(
     data_sizes,
     g_size=5,
@@ -42,17 +43,17 @@ def generate_exprs(
     bg_s = set(exprs.columns.values).difference(set(bic_s))
     bicluster_genes = []
     np.random.seed(seed)
-    seeds = np.random.choice(range(0,1000000), size=len(frac_samples), replace=False)
-    #print("bicluster seeds:",seeds)
+    seeds = np.random.choice(range(0, 1000000), size=len(frac_samples), replace=False)
+    # print("bicluster seeds:",seeds)
     for i in range(len(frac_samples)):
-        s_frac  = frac_samples[i]
+        s_frac = frac_samples[i]
         s_size = int(s_frac * N)
         # select random sets of samples and genes from the background
         np.random.seed(seeds[i])
         bic_genes = np.random.choice(sorted(bg_g), size=g_size, replace=False)
         bic_genes = sorted(bic_genes)
         np.random.seed(seeds[i])
-        bic_samples= np.random.choice(sorted(bg_s), size=s_size, replace=False)
+        bic_samples = np.random.choice(sorted(bg_s), size=s_size, replace=False)
         bic_samples = sorted(bic_samples)
         bic_g += bic_genes
         bic_s += bic_samples
@@ -78,11 +79,13 @@ def generate_exprs(
     # add modules of co-expressed genes
     bg_g = set(exprs.index.values).difference(set(bicluster_genes))
     r = 0.5
-    
-    if len(add_coexpressed)>0:
-        np.random.seed(seed+1)
-        seeds = np.random.choice(range(0,1000000), size=len(add_coexpressed), replace=False)
-        #print("co-expression seeds:",seeds)
+
+    if len(add_coexpressed) > 0:
+        np.random.seed(seed + 1)
+        seeds = np.random.choice(
+            range(0, 1000000), size=len(add_coexpressed), replace=False
+        )
+        # print("co-expression seeds:",seeds)
         for i in range(len(add_coexpressed)):
             module = add_coexpressed[i]
             np.random.seed(seeds[i])
@@ -90,10 +93,14 @@ def generate_exprs(
             module_genes = sorted(module_genes)
             n = exprs.loc[module_genes[0], :]
             for i in range(1, module):
-                n_i = n * r + np.sqrt(1 - r ** 2) * exprs.loc[module_genes[i], :]
+                n_i = n * r + np.sqrt(1 - r**2) * exprs.loc[module_genes[i], :]
                 exprs.loc[module_genes[i], :] = n_i
-            avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module) / (module ** 2 / 2 - module)
-            print("\tco-exprs. module %s features, avg. pairwise r=%.2f"%(module,avg_r))
+            avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module) / (
+                module**2 / 2 - module
+            )
+            print(
+                "\tco-exprs. module %s features, avg. pairwise r=%.2f" % (module, avg_r)
+            )
             coexpressed_modules.append(module_genes)
 
     if z:
@@ -239,9 +246,9 @@ def make_known_groups(annot, exprs, target_col="genefu_z", verbose=False):
             if len(group_samples) > int(len(samples) / 2):
                 print("take complement of ", group, file=sys.stderr)
                 group_samples = samples.difference(group_samples)
-            known_groups[
-                group
-            ] = group_samples  # {"set":group_samples,"complement": samples.difference(group_samples)}
+            known_groups[group] = (
+                group_samples  # {"set":group_samples,"complement": samples.difference(group_samples)}
+            )
             if verbose:
                 print(
                     group,
@@ -658,11 +665,24 @@ def find_best_matching_biclusters(
                             s2_ = s2 - o_s
                         assert bg_s == N_s - u_s, (
                             "i1=%s; i2=%s: bg=%s, N_s=%s, u_s=%s"
-                            % (i1, i2, bg_s, N_s, u_s)
+                            % (
+                                i1,
+                                i2,
+                                bg_s,
+                                N_s,
+                                u_s,
+                            )
                         )
                         assert u_s == o_s + s1_ + s2_, (
                             "i1=%s; i2=%s: u_s=%s, o_s=%s, s1_=%s, s2_=%s"
-                            % (i1, i2, u_s, o_s, s1_, s2_)
+                            % (
+                                i1,
+                                i2,
+                                u_s,
+                                o_s,
+                                s1_,
+                                s2_,
+                            )
                         )
                         if not by == "both":
                             # compute p-value again

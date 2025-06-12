@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import statsmodels.api as sm
 
+
 def calc_snr_per_row(s, N, exprs, exprs_sums, exprs_sq_sums):
     """Calculate SNR per row for given bicluster size.
 
@@ -81,6 +82,7 @@ def calc_SNR(ar1, ar2, pd_mode=False):
 
     return mean_diff / std_sum
 
+
 def generate_null_dist(
     N, sizes, n_permutations=10000, pval=0.001, seed=42, verbose=True
 ):
@@ -146,7 +148,7 @@ def generate_null_dist(
 def get_trend(sizes, thresholds, plot=True, verbose=True):
     """Smoothen the trend and return a function min_SNR(size; p-val cutoff).
 
-    Given a set of points (x_i, y_i), returns a function f(x) that interpolates 
+    Given a set of points (x_i, y_i), returns a function f(x) that interpolates
     the data with LOWESS+linear interpolation.
 
     Args:
@@ -159,9 +161,9 @@ def get_trend(sizes, thresholds, plot=True, verbose=True):
         function: get_min_snr function that returns the minimal SNR for a given size
     """
     assert len(sizes) >= 0
-    if len(sizes) == 1: 
+    if len(sizes) == 1:
         return lambda x: thresholds[0]
-    
+
     lowess = sm.nonparametric.lowess
     frac = max(1, min(math.floor(int(0.1 * len(sizes))), 15) / len(sizes))
     # if verbose:

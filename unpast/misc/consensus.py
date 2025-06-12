@@ -13,6 +13,7 @@ from unpast.core.feature_clustering import run_Louvain
 from unpast.core.sample_clustering import cluster_samples, update_bicluster_data
 from unpast.misc.eval import find_best_matching_biclusters
 
+
 def make_consensus_biclusters(
     biclusters_list,
     exprs,
@@ -46,7 +47,7 @@ def make_consensus_biclusters(
 
     t0 = time()
     N = exprs.shape[0]
-    
+
     if seed == -1:
         seed = random.randint(0, 1000000)
         print("Seed for sample clustering: %s" % (seed), file=sys.stderr)
@@ -90,7 +91,6 @@ def make_consensus_biclusters(
                         J_heatmap.loc[row[0], row[1]["bm_id"]] += row[1]["J"] / 2
                         J_heatmap.loc[row[1]["bm_id"], row[0]] += row[1]["J"] / 2
 
-    
     # if all biclusters are exactly the same
     if J_heatmap.min().min() == 1:
         # return the first bicluster
@@ -99,7 +99,7 @@ def make_consensus_biclusters(
         consensus_biclusters.loc[0, "detected_n_times"] = biclusters.shape[0]
         print("all biclusters are exactly the same", file=sys.stderr)
         return consensus_biclusters
-    
+
     # plot bicluster similarity heatmaps
     if plot:
         import seaborn as sns
@@ -157,10 +157,13 @@ def make_consensus_biclusters(
     # make consensus biclusters
     # for each group of matched biclusters, select consensus gene set
     # keep genes occuring at least 'min_n_times_detected' times
-    min_n_times_detected= max(min_n_times_detected,int(frac_runs*n_runs))
+    min_n_times_detected = max(min_n_times_detected, int(frac_runs * n_runs))
     if verbose:
-        print("keep genes included in at least %s merged biclusters" % round(min_n_times_detected))
-        
+        print(
+            "keep genes included in at least %s merged biclusters"
+            % round(min_n_times_detected)
+        )
+
     consensus_biclusters = []
     # for each group of matched biclusters
     for i in range(len(matched)):
@@ -204,7 +207,9 @@ def make_consensus_biclusters(
                 bicluster["n_genes"] = len(bicluster["genes"])
                 bicluster = update_bicluster_data(bicluster, exprs)
                 bicluster["detected_n_times"] = detected_n_times
-                bicluster["ids"] = set(bic_ids) # ids of biclusters merged to the consensus biclusters
+                bicluster["ids"] = set(
+                    bic_ids
+                )  # ids of biclusters merged to the consensus biclusters
                 consensus_biclusters.append(bicluster)
     consensus_biclusters = pd.DataFrame.from_records(consensus_biclusters)
 
@@ -271,8 +276,6 @@ def make_consensus_biclusters(
     return consensus_biclusters
 
 
-    
-
 def calc_signif_bicluster_similarities(
     biclusters_dict,
     exprs,
@@ -283,8 +286,7 @@ def calc_signif_bicluster_similarities(
     labels=False,
     colorbar_off=True,
 ):
-    
-    """ WILL REPLACE find_best_matching_biclusters(), currently is not used.
+    """WILL REPLACE find_best_matching_biclusters(), currently is not used.
     Calculates Jaccard similarities of significanly overlapping bicluster paires based on gene and/or sample overlaps, and optionally visualize the results.
 
         Parameters
@@ -321,7 +323,7 @@ def calc_signif_bicluster_similarities(
         -------
         pd.DataFrame
             A DataFrame containing pairwise Jaccard similarity values between biclusters, adjusted for statistical significance.
-    """ 
+    """
 
     if similarity not in ["genes", "samples", "both"]:
         print(
@@ -417,4 +419,3 @@ def calc_signif_bicluster_similarities(
         plt.show()
 
     return J_heatmap
-

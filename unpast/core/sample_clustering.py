@@ -131,7 +131,7 @@ def update_bicluster_data(bicluster, data):
     Returns:
         dict: updated bicluster with additional fields:
             - "samples": sample names
-            - "gene_indexes": gene indices  
+            - "gene_indexes": gene indices
             - "genes_up": up-regulated genes
             - "genes_down": down-regulated genes
             - "avg_zscore": average z-score of the bicluster

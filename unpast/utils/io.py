@@ -1,15 +1,16 @@
 import sys, os
 import pandas as pd
 
+
 def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame:
     """
-    Reads a bicluster table from a tab-separated file and processes the data into a pandas DataFrame. 
+    Reads a bicluster table from a tab-separated file and processes the data into a pandas DataFrame.
     Optionally, it can also parses metadata from the first line of the file if available.
 
     Args:
         file_name (str): The path to the tab-separated bicluster file.
-        parse_metadata (bool, optional): If True, parses metadata from the first line of the file. 
-                                         The metadata line must start with a "#" and contain key-value 
+        parse_metadata (bool, optional): If True, parses metadata from the first line of the file.
+                                         The metadata line must start with a "#" and contain key-value
                                          pairs separated by "; ". Defaults to False.
 
     Returns:
@@ -20,14 +21,14 @@ def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame
                           - "samples": set of all samples in the bicluster.
                           - "gene_indexes": set of gene index numbers (as integers).
                           - "sample_indexes": set of sample index numbers (as integers).
-                          
+
         If `parse_metadata` is True and metadata exists, returns a tuple:
         (pandas.DataFrame, dict): The bicluster DataFrame and a dictionary of metadata.
 
     Notes:
         - If the file does not exist returns None, if the file exists but is empty, an empty DataFrame is returned.
         - Missing values in "genes_up" and "genes_down" columns are filled with empty strings.
-        - The "genes", "genes_up", "genes_down", "samples", "gene_indexes", and "sample_indexes" 
+        - The "genes", "genes_up", "genes_down", "samples", "gene_indexes", and "sample_indexes"
           fields are processed as sets, splitting the original space-separated string values.
 
     Example:
@@ -35,7 +36,7 @@ def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame
     """
 
     if not os.path.exists(file_name):
-        return 
+        return
     biclusters = pd.read_csv(file_name, sep="\t", index_col=0, comment="#")
     if len(biclusters) == 0:
         return pd.DataFrame()
@@ -94,27 +95,27 @@ def write_bic_table(
     merge: bool = None,
 ) -> None:
     """
-    Writes a bicluster table to a tab-separated file and optionally adds metadata to the file. 
+    Writes a bicluster table to a tab-separated file and optionally adds metadata to the file.
 
     Args:
         biclusters (pd.DataFrame): A DataFrame containing biclusters.
         results_file_name (str): The path where the results should be written.
 
 
-        to_str (bool, optional): If True, converts sets of values (genes, samples, etc.) 
+        to_str (bool, optional): If True, converts sets of values (genes, samples, etc.)
                                  into space-separated strings before writing. Defaults to True.
-        add_metadata (bool, optional): Defaults to False. If True, writes metadata to the file's first line. 
+        add_metadata (bool, optional): Defaults to False. If True, writes metadata to the file's first line.
                                        For example, if `add_metadata` is True, metadata is written to the file
                                         in a format like "#seed=123; pval=0.05; min_n_samples=5; ...".
         seed (int, optional): Seed used for generating biclusters, added to metadata if provided.
         min_n_samples (int, optional): Minimum number of samples, included in metadata.
         bin_method (str, optional): Binning method used, included in metadata.
-        clust_method (str, optional): Clustering method used (e.g., "Louvain" or "WGCNA"), 
+        clust_method (str, optional): Clustering method used (e.g., "Louvain" or "WGCNA"),
                                       included in metadata.
         pval (float, optional): P-value threshold used for significance, included in metadata.
-        directions (list, optional): Directions used in biclustering (e.g., "up", "down"), 
+        directions (list, optional): Directions used in biclustering (e.g., "up", "down"),
                                      included in metadata.
-        similarity_cutoff (float, optional): Similarity cutoff used in the Louvain method, 
+        similarity_cutoff (float, optional): Similarity cutoff used in the Louvain method,
                                              included in metadata.
         ds (float, optional): Soft-thresholding power used in WGCNA, included in metadata.
         dch (float, optional): Dynamic cut height used in WGCNA, included in metadata.

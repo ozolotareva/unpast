@@ -36,7 +36,7 @@ def test_calc_SNR():
     assert calc_SNR([0, 0, 0], [1, 1, 1], True) == float("-inf")
     assert calc_SNR([1, 1, 1], [0, 0, 0]) == float("+inf")
 
-    # sends warning "overflow encountered" 
+    # sends warning "overflow encountered"
     # big numbers
     big_nums = [1e307, 1e307, 1e307]
     small_nums = [1e-150, 0, 0]
@@ -50,7 +50,6 @@ def test_calc_SNR():
         # zero std
         assert calc_SNR([1, 1, 1], [0, 0, 0]) in [float("inf"), float("+inf")]
         assert calc_SNR([0, 0, 0], [1, 1, 1]) in [float("inf"), float("-inf")]
-
 
 
 # def test_zscore():

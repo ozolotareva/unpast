@@ -1,4 +1,5 @@
 """Binarization module for gene expression data."""
+
 import sys
 import os
 import warnings
@@ -28,7 +29,7 @@ def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     Returns:
         tuple: (mask_pos, mask_neg, snr, size, is_converged) where
             - mask_pos: boolean mask for positive/high expression samples
-            - mask_neg: boolean mask for negative/low expression samples  
+            - mask_neg: boolean mask for negative/low expression samples
             - snr: signal-to-noise ratio between groups
             - size: effective sample size
             - is_converged: whether GMM fitting converged
@@ -358,10 +359,10 @@ def binarize(
     # bicluster sizes
     sizes1 = set([x for x in stats["size"].values if not np.isnan(x)])
     # no more than 100 of bicluster sizes are computed
-    # step = max(int((N - min_n_samples) / 100), 1) 
-    step = max(int((int(N / 2) - min_n_samples) / 100), 1) 
-    #sizes2 = set(map(int, np.arange(min_n_samples, int(N / 2), step)))
-    sizes2 = set(map(int, np.arange(min_n_samples, int(N / 2)+1, step)))
+    # step = max(int((N - min_n_samples) / 100), 1)
+    step = max(int((int(N / 2) - min_n_samples) / 100), 1)
+    # sizes2 = set(map(int, np.arange(min_n_samples, int(N / 2), step)))
+    sizes2 = set(map(int, np.arange(min_n_samples, int(N / 2) + 1, step)))
     sizes = np.array(sorted(sizes1 | sizes2))
 
     load_failed = False
@@ -527,4 +528,3 @@ def binarize(
         tmp = plt.show()
 
     return binarized_data, stats, null_distribution
-
