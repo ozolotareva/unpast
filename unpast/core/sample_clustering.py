@@ -7,6 +7,7 @@ from time import time
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans, AgglomerativeClustering
 
+from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.statistics import calc_SNR
 from unpast.utils.similarity import get_similarity_jaccard
 
