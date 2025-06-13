@@ -13,7 +13,7 @@ def test_get_trend_single_point():
 def test_get_trend_multiple_points():
     sizes = [10, 20, 30, 40, 50]
     thresholds = [2.5, 3.0, 3.5, 4.0, 4.5]
-    min_snr = get_trend(sizes, thresholds, plot=False, verbose=False)
+    min_snr = get_trend(sizes, thresholds, plot=True, verbose=False)
     assert np.allclose(min_snr(sizes), thresholds)
 
 
