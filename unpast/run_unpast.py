@@ -9,10 +9,10 @@ from time import time
 from unpast.core.preprocessing import prepare_input_matrix
 from unpast.core.binarization import binarize
 from unpast.core.feature_clustering import run_Louvain
-from unpast.core.feature_clustering import get_similarity_jaccard
 from unpast.core.feature_clustering import run_WGCNA_iterative
 from unpast.core.feature_clustering import run_WGCNA
 from unpast.core.sample_clustering import make_biclusters
+from unpast.utils.similarity import get_similarity_jaccard
 from unpast.utils.io import write_bic_table
 
 
