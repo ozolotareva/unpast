@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from fisher import pvalue
 from scipy.stats import chi2_contingency
+from sklearn.metrics import adjusted_rand_score
 from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.core.preprocessing import zscore
@@ -301,9 +302,6 @@ def compare_gene_clusters(bics1, bics2, N):
         clust_similarity["avg_bm_J_2"] = bm2.loc[:, "J"].mean()
 
     return clust_similarity, bm, bm2
-
-
-from sklearn.metrics import adjusted_rand_score
 
 
 def calculate_perfromance(
