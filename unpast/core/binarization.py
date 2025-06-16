@@ -17,8 +17,38 @@ from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, cal
 from unpast.utils.visualization import plot_binarized_feature
 
 
+def _fit_gmm_model(row, seed=42, prob_cutoff=0.5):
+    """Fit a Gaussian Mixture Model to identify two groups in expression data.
+    
+    Args:
+        row (array): expression values for a single feature across samples
+        seed (int): random seed for reproducibility
+        prob_cutoff (float): probability cutoff for group assignment
+        
+    Returns:
+        tuple: (labels, is_converged) where
+            - labels: boolean array indicating group membership
+            - is_converged: whether the GMM fitting converged
+    """
+    with warnings.catch_warnings():  # this is to ignore convergence warnings
+        warnings.simplefilter("ignore")
+        row2d = row[:, np.newaxis]  # adding mock axis for GM interface
+        model = GaussianMixture(
+            n_components=2,
+            init_params="kmeans",
+            max_iter=len(row),
+            n_init=1,
+            covariance_type="spherical",
+            random_state=seed,
+        ).fit(row2d)
+
+        labels = (model.predict_proba(row2d)[:, 0] > prob_cutoff)
+        is_converged = model.converged_
+        return labels, is_converged
+
+
 def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
-    """Identify positive and negative signal groups using Gaussian Mixture Model binarization.
+    """Identify positive and negative signal groups using GMM or other method of binarization.
 
     Args:
         row (array): expression values for a single feature across samples
@@ -37,83 +67,56 @@ def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     """
     is_converged = None
     if method == "GMM":
-        with warnings.catch_warnings():  # this is to ignore convergence warnings
-            warnings.simplefilter("ignore")
-            row2d = row[:, np.newaxis]  # adding mock axis for GM interface
-            # np.random.seed(seed=seed)
-            model = GaussianMixture(
-                n_components=2,
-                init_params="kmeans",
-                max_iter=len(row),
-                n_init=1,
-                covariance_type="spherical",
-                random_state=seed,
-            ).fit(row2d)
-            is_convergend = model.converged_
-            p0 = model.predict_proba(row2d)[:, 0]
-            labels = np.zeros(len(row), dtype=bool)
-
-            # let labels == True be always a smaller sample set
-            if len(labels[p0 >= prob_cutoff]) >= len(labels[p0 < 1 - prob_cutoff]):
-                labels[p0 < 1 - prob_cutoff] = True
-            else:
-                labels[p0 >= prob_cutoff] = True
+        mask_pos, is_converged = _fit_gmm_model(row, seed=seed, prob_cutoff=prob_cutoff)
 
     elif method in ["kmeans", "ward"]:
         row2d = row[:, np.newaxis]  # adding mock axis
         if method == "kmeans":
             model = KMeans(n_clusters=2, max_iter=len(row), n_init=1, random_state=seed)
-        elif method == "ward":
+        else:
+            assert method == "ward"
             model = AgglomerativeClustering(n_clusters=2, linkage="ward")
         # elif method == "HC_ward":
         #    model = Ward(n_clusters=2)
-        labels = np.zeros(len(row), dtype=bool)
-        pred_labels = model.fit_predict(row2d)
-        # let labels == True be always a smaller sample set
-        if len(pred_labels[pred_labels == 1]) >= len(pred_labels[pred_labels == 0]):
-            labels[pred_labels == 0] = True
-        else:
-            labels[pred_labels == 1] = True
+
+        mask_pos = (model.fit_predict(row2d) == 1)
+            
     else:
         print(
-            "wrong method name",
-            method,
-            "must be ['GMM', 'kmeans', 'ward']",
+            f"wrong binarization method name {method},"
+            " must be ['GMM', 'kmeans', 'ward']",
             file=sys.stderr,
         )
         raise NotImplementedError(f"method {method} is not implemented")
 
+    assert mask_pos.dtype is np.dtype(bool)
+    assert len(mask_pos) == len(row)
+
+    # let mask_pos == True be always a smaller sample set
+    if mask_pos.sum() >= (~mask_pos).sum():
+        mask_pos = ~mask_pos
+
     # special treatment for cases when bic distribution is too wide and overlaps bg distribution
     # remove from bicluster samples with the sign different from its median sign
-    if len(row[labels]) > 0:
-        if np.median(row[labels]) >= 0:
-            labels[row < 0] = False
+    # TODO: consider removing/using more robust method
+    if mask_pos.sum() > 0:
+        if np.median(row[mask_pos]) >= 0:
+            mask_pos[row < 0] = False
         else:
-            labels[row > 0] = False
-
-    n0 = len(labels[labels])
-    n1 = len(labels[~labels])
-
-    assert n0 + n1 == len(row)
-
+            mask_pos[row > 0] = False
+        
+    # if SNR < 0, then switch groups
+    # TODO: consider how it works with the previous two steps
     snr = np.nan
-    e_pval = np.nan
     size = np.nan
-    mask_pos = np.zeros(len(row), dtype=bool)
-    mask_neg = np.zeros(len(row), dtype=bool)
+    if mask_pos.sum() >= min_n_samples:
+        snr = calc_SNR(row[mask_pos], row[~mask_pos])
+        if snr <= 0:
+            mask_pos = ~mask_pos
+        
+        size = mask_pos.sum()  # always the pos group size 
 
-    if n0 >= min_n_samples:
-        snr = calc_SNR(row[labels], row[~labels])
-        size = n0
-
-        if snr > 0:
-            mask_pos = labels
-            mask_neg = ~labels
-        else:
-            mask_neg = labels
-            mask_pos = ~labels
-
-    return mask_pos, mask_neg, abs(snr), size, is_converged
+    return mask_pos, ~mask_pos, abs(snr), size, is_converged
 
 
 def sklearn_binarization(
@@ -127,7 +130,7 @@ def sklearn_binarization(
     prob_cutoff=0.5,
     method="GMM",
 ):
-    """Perform binarization of gene expression data using Gaussian Mixture Models.
+    """Perform binarization of gene expression data using GMM or other method.
 
     Args:
         exprs (DataFrame): expression matrix with genes as rows and samples as columns
@@ -148,42 +151,36 @@ def sklearn_binarization(
     t0 = time()
 
     binarized_expressions = {}
-
     stats = {}
-    for i, (gene, row) in enumerate(exprs.iterrows()):
-        e_pval = -1
-        row = row.values
-        pos_mask, neg_mask, snr, size, is_converged = select_pos_neg(
+    for i, (gene, row_) in enumerate(exprs.iterrows()):
+        row = row_.values
+
+        pos_mask, neg_mask, snr, _size, is_converged = select_pos_neg(
             row, min_n_samples, seed=seed, prob_cutoff=prob_cutoff, method=method
         )
 
-        # logging
-        if verbose:
-            if i % 1000 == 0:
-                print("\t\tgenes processed:", i)
+        # bicluster is the smaller part
+        if pos_mask.sum() <= neg_mask.sum():
+            mask, direction = pos_mask, "UP"
+        else:
+            mask, direction = neg_mask, "DOWN"
 
-        up_group = row[pos_mask]
-        down_group = row[neg_mask]
-        n_up = len(up_group)
-        n_down = len(down_group)
-
-        # if smaller sample group shows over- or under-expression
-        if n_up <= n_down:  # up-regulated group is bicluster
-            binarized_expressions[gene] = pos_mask.astype(int)
-            direction = "UP"
-        else:  # down-regulated group is bicluster
-            binarized_expressions[gene] = neg_mask.astype(int)
-            direction = "DOWN"
-
+        binarized_expressions[gene] = mask.astype(int)
         stats[gene] = {
             "pval": 0,
             "SNR": snr,
-            "size": size,
+            "size": pos_mask.sum(),  # size is the positive group size
             "direction": direction,
             "convergence": is_converged,
         }
 
-        if gene in show_fits or (abs(snr) > plot_SNR_thr and plot):
+        # logging
+        # TODO: tqdm
+        if verbose:
+            if i % 1000 == 0:
+                print("\t\tgenes processed:", i)
+
+        if (plot and abs(snr) > plot_SNR_thr) or (gene in show_fits):
             hist_range = row.min(), row.max()
 
             # set colors to two sample groups
@@ -192,20 +189,21 @@ def sklearn_binarization(
             # grey - background (group size > 1/2 of all samples)
             colors = ["grey", "grey"]
 
-            if n_down - n_up >= 0:  # up-regulated group is bicluster
+            if direction == "UP"
                 colors[1] = "red"
-
-            if n_up - n_down > 0:  # down-regulated group is bicluster
+            elif direction == "DOWN":
                 colors[0] = "blue"
+            else: 
+                raise ValueError(f"direction = {direction}")
 
-            # in case of insignificant size difference
-            # between up- and down-regulated groups
-            # the bigger half is treated as signal too
-            if abs(n_up - n_down) <= min_n_samples:
-                colors = "blue", "red"
+            # # in case of insignificant size difference
+            # # between up- and down-regulated groups
+            # # the bigger half is treated as signal too
+            # if abs(n_up - n_down) <= min_n_samples:
+            #     colors = "blue", "red"
 
             # plotting
-            plot_binarized_feature(gene, down_group, up_group, colors, hist_range, snr)
+            plot_binarized_feature(gene, row[pos_mask], row[neg_mask], colors, hist_range, snr)
 
     stats = pd.DataFrame.from_dict(stats).T
 
