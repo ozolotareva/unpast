@@ -125,6 +125,16 @@ def run_WGCNA(
     if len(tmp_prefix) > 0:
         fname = tmp_prefix + "." + fname
 
+    # create dir if required
+    if os.path.dirname(fname) != "":
+        if not os.path.exists(os.path.dirname(fname)):
+            os.makedirs(os.path.dirname(fname))
+            print(
+                "\t\tCreated directory for WGCNA tmp files:",
+                os.path.dirname(fname),
+                file=sys.stdout,
+            )
+
     if verbose:
         print("\t\tWGCNA pre-clustering:", precluster, file=sys.stdout)
     if precluster:

@@ -3,9 +3,16 @@
 import numpy as np
 import pandas as pd
 import pytest
+import os
 from unittest.mock import patch, MagicMock
 from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.similarity import get_similarity_jaccard
+
+TMP_DIR = os.path.join(os.path.dirname(__file__), "tmp_results")
+if not os.access(TMP_DIR, os.W_OK):
+    # repo dir is currently read-only during the testing stage in github-action
+    TMP_DIR = "/tmp/unpast/tmp_results"
+
 
 class TestRunLouvain:
     """Test cases for run_Louvain function."""
@@ -150,6 +157,7 @@ class TestWGCNAFunctions:
             deepSplit=2,
             detectCutHeight=0.8,
             verbose=True,
+            tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
         )
 
         # Verify subprocess was called
@@ -181,7 +189,11 @@ class TestWGCNAFunctions:
             index=["1", "2", "3", "4"],
         )
 
-        modules, not_clustered = run_WGCNA(data, verbose=False)
+        modules, not_clustered = run_WGCNA(
+            data,
+            verbose=False,
+            tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
+        )
 
         # Should handle file read errors gracefully
         assert modules == []
@@ -225,7 +237,7 @@ class TestWGCNAFunctions:
                 "gene 2": [0, 1, 0, 1],
                 "gene1": [1, 1, 0, 0],  # Duplicate after space removal
             },
-            index=["v1", "v 2", "v 3", "v 3"], # Duplicate feature names
+            index=["v1", "v 2", "v 3", "v 3"],  # Duplicate feature names
         )
 
         # Mock subprocess and file operations to avoid R dependencies
@@ -241,19 +253,20 @@ class TestWGCNAFunctions:
             # Mock empty modules result
             mock_read_csv.side_effect = Exception("File not found")
 
-            wcgna_func = {"WCGNA": run_WGCNA, "IterativeWGCNA": run_WGCNA_iterative}[
-                method
-            ]
+            wcgna_func = {
+                "WCGNA": run_WGCNA,
+                "IterativeWGCNA": run_WGCNA_iterative,
+            }[method]
 
-            # Should handle name processing without crashing
-            modules, not_clustered = wcgna_func(data, verbose=True)
-            assert isinstance(modules, list)
-            assert isinstance(not_clustered, list)
-
-            # Should handle name processing without crashing
-            modules, not_clustered = wcgna_func(data.T, verbose=True)
-            assert isinstance(modules, list)
-            assert isinstance(not_clustered, list)
+            # Should handle name/index processing without crashing
+            for d in data, data.T:
+                modules, not_clustered = wcgna_func(
+                    d,
+                    verbose=True,
+                    tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
+                )
+                assert isinstance(modules, list)
+                assert isinstance(not_clustered, list)
 
 
 class TestIntegrationFeatureClustering:
