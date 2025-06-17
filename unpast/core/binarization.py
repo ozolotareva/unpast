@@ -66,7 +66,7 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     """
     is_converged = None
     if method == "GMM":
-        mask_pos, is_converged = _fit_gmm_model(row, seed=seed, prob_cutoff=prob_cutoff)
+        labels, is_converged = _fit_gmm_model(row, seed=seed, prob_cutoff=prob_cutoff)
 
     elif method in ["kmeans", "ward"]:
         row2d = row[:, np.newaxis]  # adding mock axis
@@ -78,7 +78,7 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         # elif method == "HC_ward":
         #    model = Ward(n_clusters=2)
 
-        mask_pos = model.fit_predict(row2d) == 1
+        labels = model.fit_predict(row2d) == 1
 
     else:
         print(
@@ -88,34 +88,40 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         )
         raise NotImplementedError(f"method {method} is not implemented")
 
-    assert mask_pos.dtype is np.dtype(bool)
-    assert len(mask_pos) == len(row)
+    assert labels.dtype is np.dtype(bool)
+    assert len(labels) == len(row)
 
-    # let mask_pos == True be always a smaller sample set
-    if mask_pos.sum() >= (~mask_pos).sum():
-        mask_pos = ~mask_pos
+    # let labels == True be always a smaller sample set
+    if labels.sum() >= (~labels).sum():
+        labels = ~labels
 
     # special treatment for cases when bic distribution is too wide and overlaps bg distribution
     # remove from bicluster samples with the sign different from its median sign
     # TODO: consider removing/using more robust method
-    if mask_pos.sum() > 0:
-        if np.median(row[mask_pos]) >= 0:
-            mask_pos[row < 0] = False
+    if labels.sum() > 0:
+        if np.median(row[labels]) >= 0:
+            labels[row < 0] = False
         else:
-            mask_pos[row > 0] = False
+            labels[row > 0] = False
 
-    # if SNR < 0, then switch groups
-    # TODO: consider how it works with the previous two steps
-    snr = np.nan
-    size = np.nan
-    if mask_pos.sum() >= min_n_samples:
-        snr = calc_SNR(row[mask_pos], row[~mask_pos])
+    if labels.sum() >= min_n_samples:
+        size = labels.sum()  # the smaller group size
+        snr = calc_SNR(row[labels], row[~labels])
+
+        # return first the positive group
         if snr <= 0:
-            mask_pos = ~mask_pos
+            labels = ~labels
+        return labels, ~labels, abs(snr), size, is_converged
 
-        size = mask_pos.sum()  # always the pos group size or nan
-
-    return mask_pos, ~mask_pos, abs(snr), size, is_converged
+    else:
+        # not enough samples in the group, return empty masks
+        return (
+            np.zeros_like(labels),
+            np.zeros_like(labels),
+            np.nan,
+            np.nan,
+            is_converged,
+        )
 
 
 def sklearn_binarization(
@@ -261,6 +267,7 @@ def _try_loading_binarization_files(paths, verbose=True):
 
     return binarized_data, stats, null_distribution
 
+
 def _save_binarization_files(
     paths, binarized_data, stats, null_distribution, verbose=True
 ):
@@ -288,6 +295,7 @@ def _save_binarization_files(
     null_distribution.to_csv(paths.bin_bg_fname, sep="\t")
     if verbose:
         print(f"Background distribution saved to {paths.bin_bg_fname}", file=sys.stdout)
+
 
 def _generate_missing_null_distribution_sizes(
     null_distribution, N, sizes, pval, n_permutations, seed, verbose
@@ -323,9 +331,10 @@ def _generate_missing_null_distribution_sizes(
             )
     return null_distribution
 
+
 def _add_snrs(stats, null_distribution, sizes, pval, verbose):
     """Calculate SNR p-values and thresholds based on null distribution.
-    
+
     Args:
         stats (DataFrame): DataFrame with statistics including 'SNR' and 'size'
         null_distribution (DataFrame): DataFrame with empirical null distribution
@@ -339,13 +348,10 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
     stats["pval_BH"] = pval_adj
 
     # find SNR threshold
-    thresholds = np.quantile(
-        null_distribution.loc[sizes, :].values, q=1 - pval, axis=1
-    )
+    thresholds = np.quantile(null_distribution.loc[sizes, :].values, q=1 - pval, axis=1)
     size_snr_trend = get_trend(sizes, thresholds, plot=False, verbose=verbose)
     stats["SNR_threshold"] = stats["size"].apply(lambda x: size_snr_trend(x))
     return stats, size_snr_trend
-
 
 
 def binarize(
@@ -403,7 +409,7 @@ def binarize(
             paths, verbose
         )
 
-    # Calculate binarization for data and statistics if not loaded
+    # Calculate binarization data and statistics if not loaded
     if (binarized_data is None) or (stats is None):
         if exprs is None:
             print("Provide either raw or binarized data.", file=sys.stderr)
@@ -459,7 +465,6 @@ def binarize(
             null_distribution_full,  # save even not-used distributions
             verbose=verbose,
         )
-
 
     ### keep features passed binarization
     passed = stats.loc[stats["SNR"] > stats["SNR_threshold"], :]
