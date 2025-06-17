@@ -69,7 +69,7 @@ def prepare_input_matrix(
         std = std[std > 0]
         if exprs.shape[0] <= 2:
             print(
-                "After excluding constant features (rows) , less than 3 features (rows) remain in the input matrix."
+                "After excluding constant features (rows), less than 3 features (rows) remain in the input matrix. Remaining: %s"
                 % exprs.shape[0],
                 file=sys.stderr,
             )

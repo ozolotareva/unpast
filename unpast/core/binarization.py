@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
+from unpast.utils.visualization import plot_binarized_feature
 
 
 def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
@@ -77,9 +78,10 @@ def select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         print(
             "wrong method name",
             method,
-            "must be ['GMM','kmeans','ward']",
+            "must be ['GMM', 'kmeans', 'ward']",
             file=sys.stderr,
         )
+        raise NotImplementedError(f"method {method} is not implemented")
 
     # special treatment for cases when bic distribution is too wide and overlaps bg distribution
     # remove from bicluster samples with the sign different from its median sign
