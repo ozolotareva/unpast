@@ -1,7 +1,10 @@
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
-def plot_binarized_feature(feature_name, down_group, up_group, colors, hist_range, snr):
+def plot_binarized_feature_impl(
+    feature_name, down_group, up_group, colors, hist_range, snr
+):
     """Plot histogram of binarized feature values showing up and down groups.
 
     Args:
@@ -46,3 +49,28 @@ def plot_binarized_feature(feature_name, down_group, up_group, colors, hist_rang
     )
     # tmp = plt.savefig("figs_binarization/"+feature_name+".hist.svg", bbox_inches='tight', transparent=True)
     plt.show()
+
+
+def plot_binarized_feature(row, direction, pos_mask, neg_mask, snr):
+    gene = row.name
+    row_values = row.values
+    hist_range = row_values.min(), row_values.max()
+
+    # set colors to two sample groups
+    # red - overexpression
+    # blue - under-expression
+    # grey - background (group size > 1/2 of all samples)
+    colors = ["grey", "grey"]
+
+    if direction == "UP":
+        colors[1] = "red"
+    elif direction == "DOWN":
+        colors[0] = "blue"
+    # elif BOTH ...
+    else:
+        raise ValueError(f"direction = {direction}")
+
+    # plotting
+    plot_binarized_feature_impl(
+        gene, row[pos_mask], row[neg_mask], colors, hist_range, snr
+    )

@@ -200,3 +200,47 @@ def write_bic_table(
                 bics["ids"] = bics["ids"].apply(lambda x: " ".join(map(str, sorted(x))))
         bics.index.name = "id"
     bics.to_csv(results_file_name, sep="\t", mode=write_mode)
+
+
+class ProjectPaths:
+    """
+    A class to manage project paths for input and output files.
+    """
+
+    def __init__(
+        self,
+        fname_prefix: str,
+        seed: int,
+        method: str,
+        min_n_samples: int,
+        n_permutations: int,
+        pval: float,
+    ):
+        """
+        Initializes the ProjectPaths with the given parameters.
+        Args:
+            fname_prefix (str): The prefix for the file names.
+            seed (int): Random seed used for reproducibility.
+            method (str): Binarization method used
+            min_n_samples (int): Minimum number of samples required for binarization.
+            n_permutations (int): Number of permutations for background SNR distributions.
+            pval (float): P-value threshold for significance testing.
+        """
+        # note: tmp paths, to be simplified soon
+
+        # a file with binarized gene expressions and statistics of binarization
+        base_params = f"seed={seed}.bin_method={method}.min_ns={min_n_samples}"
+        self.bin_exprs_fname = f"{fname_prefix}.{base_params}.binarized.tsv"
+        self.bin_stats_fname = f"{fname_prefix}.{base_params}.binarization_stats.tsv"
+
+        # a file with background SNR distributions for each bicluster size
+        n_permutations = max(n_permutations, int(1.0 / pval * 10))
+        perm_params = f"seed={seed}.n={n_permutations}.min_ns={min_n_samples}"
+        self.bin_bg_fname = f"{fname_prefix}.{perm_params}.background.tsv"
+
+    def makedirs_if_missing(self) -> None:
+        """
+        Creates the directory for the project paths if it does not exist.
+        """
+        dir_name = os.path.dirname(self.bin_exprs_fname)
+        os.makedirs(dir_name, exist_ok=True)
