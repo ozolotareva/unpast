@@ -1,7 +1,6 @@
 """Binarization module for gene expression data."""
 
 import sys
-import os
 import warnings
 import pandas as pd
 import numpy as np
@@ -10,11 +9,10 @@ from time import time
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans, AgglomerativeClustering
 
-import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
-from unpast.utils.visualization import plot_binarized_feature
+from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
 from unpast.utils.io import ProjectPaths
 
 
@@ -225,8 +223,9 @@ def try_loading_binarization_files(paths, verbose=True):
                 file=sys.stdout,
             )
         binarized_data = pd.read_csv(paths.bin_exprs_fname, sep="\t", index_col=0)
-    except Exception:
+    except Exception as e:
         print("Failed to load", paths.bin_exprs_fname, file=sys.stderr)
+        print("    Error:", e, file=sys.stderr)
 
     # Try to load stats
     try:
@@ -235,8 +234,9 @@ def try_loading_binarization_files(paths, verbose=True):
                 "Loading statistics from", paths.bin_stats_fname, "\n", file=sys.stdout
             )
         stats = pd.read_csv(paths.bin_stats_fname, sep="\t", index_col=0)
-    except Exception:
+    except Exception as e:
         print("Failed to load", paths.bin_stats_fname, file=sys.stderr)
+        print("    Error:", e, file=sys.stderr)
 
     # Try to load background distribution
     try:
@@ -249,12 +249,13 @@ def try_loading_binarization_files(paths, verbose=True):
             )
         null_distribution = pd.read_csv(paths.bin_bg_fname, sep="\t", index_col=0)
         null_distribution.columns = [int(x) for x in null_distribution.columns.values]
-    except Exception:
+    except Exception as e:
         print(
             "Failed to load",
             paths.bin_bg_fname,
             file=sys.stderr,
         )
+        print("    Error:", e, file=sys.stderr)
 
     return binarized_data, stats, null_distribution
 
@@ -329,12 +330,11 @@ def binarize(
         n_permutations (int): number of permutations for null distribution generation
 
     Returns:
-        tuple: (binarized_data, null_distribution) where
+        tuple: (binarized_data, stats, null_distribution) where
             - binarized_data: DataFrame with binary expression profiles
+            - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    t0 = time()
-
     paths = ProjectPaths(
         fname_prefix=fname_prefix,
         seed=seed,
@@ -461,37 +461,6 @@ def binarize(
     binarized_data.index = exprs.columns.values
 
     if plot_all:
-        fig, ax = plt.subplots(figsize=(10, 4.5))
-
-        # plot binarization results for real genes
-        passed = stats.loc[stats["SNR"] > stats["SNR_threshold"], :]
-        failed = stats.loc[stats["SNR"] <= stats["SNR_threshold"], :]
-        tmp = ax.scatter(
-            failed["size"], failed["SNR"], alpha=1, color="black", label="not passed"
-        )
-        for i, txt in enumerate(failed["size"].index.values):
-            ax.annotate(txt, (failed["size"][i], failed["SNR"][i] + 0.1), fontsize=18)
-        tmp = ax.scatter(
-            passed["size"], passed["SNR"], alpha=1, color="red", label="passed"
-        )
-        for i, txt in enumerate(passed["size"].index.values):
-            ax.annotate(txt, (passed["size"][i], passed["SNR"][i] + 0.1), fontsize=18)
-
-        # plot cutoff
-        tmp = ax.plot(
-            sizes,
-            [size_snr_trend(x) for x in sizes],
-            color="darkred",
-            lw=2,
-            ls="--",
-            label="e.pval<" + str(pval),
-        )
-        plt.gca().legend(("not passed", "passed", "e.pval<" + str(pval)), fontsize=18)
-        tmp = ax.set_xlabel("n_samples", fontsize=18)
-        tmp = ax.yaxis.tick_right()
-        tmp = ax.set_ylabel("SNR", fontsize=18)
-        tmp = ax.set_ylim((0, 4))
-        # tmp = plt.savefig("figs_binarization/dist.svg", bbox_inches='tight', transparent=True)
-        tmp = plt.show()
+        plot_binarization_results(stats, size_snr_trend, sizes, pval)
 
     return binarized_data, stats, null_distribution
