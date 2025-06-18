@@ -110,7 +110,7 @@ def plot_binarization_results(stats, size_snr_trend, sizes, pval):
         ls="--",
         label="e.pval<" + str(pval),
     )
-    plt.gca().legend(("not passed", "passed", "e.pval<" + str(pval)), fontsize=18)
+    ax.legend(("not passed", "passed", "e.pval<" + str(pval)), fontsize=18)
     ax.set_xlabel("n_samples", fontsize=18)
     ax.yaxis.tick_right()
     ax.set_ylabel("SNR", fontsize=18)

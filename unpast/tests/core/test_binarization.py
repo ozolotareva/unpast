@@ -199,6 +199,7 @@ def test_binarize_save_load(tmp_path):
     pd.testing.assert_frame_equal(null_dist1, null_dist2, check_dtype=False)
 
 
+@pytest.mark.plot
 def test_binarize_plot(monkeypatch, tmp_path):
     # Patch plotting and file I/O
     monkeypatch.setattr(binarization, "plot_binarized_feature", lambda *a, **k: None)
