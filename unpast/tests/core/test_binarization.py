@@ -6,10 +6,10 @@ import pytest
 from unpast.core import binarization
 
 
-def test_select_pos_neg_gmm():
+def test__select_pos_neg_gmm():
     # Two clear clusters
     row = np.array([1, 1, 1, 10, 10, 10])
-    mask_pos, mask_neg, snr, size, is_converged = binarization.select_pos_neg(
+    mask_pos, mask_neg, snr, size, is_converged = binarization._select_pos_neg(
         row, min_n_samples=2, method="GMM"
     )
     # Should split into two groups of size 3
@@ -19,9 +19,9 @@ def test_select_pos_neg_gmm():
     assert size == 3
 
 
-def test_select_pos_neg_kmeans():
+def test__select_pos_neg_kmeans():
     row = np.array([1, 1, 1, 10, 10, 10])
-    mask_pos, mask_neg, snr, size, is_converged = binarization.select_pos_neg(
+    mask_pos, mask_neg, snr, size, is_converged = binarization._select_pos_neg(
         row, min_n_samples=2, method="kmeans"
     )
     assert mask_pos.sum() == 3
@@ -30,19 +30,19 @@ def test_select_pos_neg_kmeans():
     assert size == 3
 
 
-def test_select_pos_neg_too_few_samples():
+def test__select_pos_neg_too_few_samples():
     row = np.array([1, 1, 10])
-    mask_pos, mask_neg, snr, size, is_converged = binarization.select_pos_neg(
+    mask_pos, mask_neg, snr, size, is_converged = binarization._select_pos_neg(
         row, min_n_samples=4, method="GMM"
     )
     # Should not assign any group if not enough samples
     assert size != size or size < 4  # nan or < min_n_samples
 
 
-def test_select_pos_neg_methods():
+def test__select_pos_neg_methods():
     for method in ["GMM", "kmeans", "ward"]:
         row = np.array([1, 1, 1, 10, 10, 10])
-        mask_pos, mask_neg, snr, size, is_converged = binarization.select_pos_neg(
+        mask_pos, mask_neg, snr, size, is_converged = binarization._select_pos_neg(
             row, min_n_samples=2, method=method
         )
         assert mask_pos.sum() == 3
@@ -52,7 +52,7 @@ def test_select_pos_neg_methods():
 
     with pytest.raises(RuntimeError):
         row = np.array([1, 1, 1, 10, 10, 10])
-        binarization.select_pos_neg(row, min_n_samples=2, method="invalid_method")
+        binarization._select_pos_neg(row, min_n_samples=2, method="invalid_method")
 
 
 def test_sklearn_binarization_basic():
@@ -199,6 +199,7 @@ def test_binarize_save_load(tmp_path):
     pd.testing.assert_frame_equal(null_dist1, null_dist2, check_dtype=False)
 
 
+@pytest.mark.plot
 def test_binarize_plot(monkeypatch, tmp_path):
     # Patch plotting and file I/O
     monkeypatch.setattr(binarization, "plot_binarized_feature", lambda *a, **k: None)
