@@ -32,14 +32,8 @@ def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.
     # )
 
     # tmp compatible formatters untill enh:print->log everywhere
-    console_formatter = logging.Formatter(
-        "%(message)s", datefmt="%H:%M:%S"
-    )
-    file_formatter = logging.Formatter(
-        "%(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    )
-
-
+    console_formatter = logging.Formatter("%(message)s", datefmt="%H:%M:%S")
+    file_formatter = logging.Formatter("%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     # Create console handler
     console_handler = logging.StreamHandler()
@@ -111,18 +105,3 @@ def _test_func():
 # initialize logging with default settings
 setup_logging()
 logger = get_logger(__name__)
-
-
-if __name__ == "__main__":
-    setup_logging(
-        log_file="app.log", log_level=logging.INFO, log_file_level=logging.DEBUG
-    )
-    logger = get_logger("logname")
-    logger.info("Logging setup complete.")
-    logger.debug("This is a debug message.")
-    time.sleep(1)  # Simulate some processing time
-    logger.error("This is an error message.")
-    logger.warning("This is a warning message.")
-
-    _test_func()  # Call the test function to see logging in action
-    logger.info(f"Function {_test_func.__name__} called.")

@@ -1,6 +1,13 @@
+from datetime import datetime
 import os
 import sys
 import pandas as pd
+from typing import Optional, Tuple
+from pathlib import Path
+from .logs import get_logger
+
+logger = get_logger(__name__)
+DEFAULT_SAVE_DIR = "."
 
 
 def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame:
@@ -208,40 +215,104 @@ class ProjectPaths:
     A class to manage project paths for input and output files.
     """
 
-    def __init__(
-        self,
-        fname_prefix: str,
-        seed: int,
-        method: str,
-        min_n_samples: int,
-        n_permutations: int,
-        pval: float,
-    ):
+    def _build_root(self, save_dir: Optional[str] = ".") -> Tuple[Path, bool]:
         """
-        Initializes the ProjectPaths with the given parameters.
+        Calculates the root directory
+            ./runs/run_YYMMDDTHHMMSS by default
+
         Args:
-            fname_prefix (str): The prefix for the file names.
-            seed (int): Random seed used for reproducibility.
-            method (str): Binarization method used
-            min_n_samples (int): Minimum number of samples required for binarization.
-            n_permutations (int): Number of permutations for background SNR distributions.
-            pval (float): P-value threshold for significance testing.
-        """
-        # note: tmp paths, to be simplified soon
+            runs_dir (str, optional): The base directory for runs. Defaults to "./runs".
+            continue_run (str, optional): If provided, it will be used as the directory name.
 
-        # a file with binarized gene expressions and statistics of binarization
-        base_params = f"seed={seed}.bin_method={method}.min_ns={min_n_samples}"
-        self.bin_exprs_fname = f"{fname_prefix}.{base_params}.binarized.tsv"
-        self.bin_stats_fname = f"{fname_prefix}.{base_params}.binarization_stats.tsv"
-
-        # a file with background SNR distributions for each bicluster size
-        n_permutations = max(n_permutations, int(1.0 / pval * 10))
-        perm_params = f"seed={seed}.n={n_permutations}.min_ns={min_n_samples}"
-        self.bin_bg_fname = f"{fname_prefix}.{perm_params}.background.tsv"
-
-    def makedirs_if_missing(self) -> None:
+        Returns:
+            Path: The calculated root directory path.
+            created = False if the directory already exists, True otherwise.
         """
-        Creates the directory for the project paths if it does not exist.
+
+        if save_dir is None:
+            save_dir = DEFAULT_SAVE_DIR
+        path = Path(save_dir).resolve()
+
+        # add runs/run_{now}
+        #   if not added beforehand (for continue run)
+        if "runs/run_" not in str(path.parent / path.name):
+            path = path / f"runs/run_{datetime.now():%Y%m%dT%H%M%S}"
+
+        created = False
+        if not path.exists():
+            path.mkdir(parents=True, exist_ok=True)
+            created = True
+
+        return path, created
+
+    def __init__(self, save_dir: Optional[str] = DEFAULT_SAVE_DIR) -> None:
         """
-        dir_name = os.path.dirname(self.bin_exprs_fname)
-        os.makedirs(dir_name, exist_ok=True)
+        Initializes the ProjectPaths with the given directory
+            If save_dir is None, it defaults to the current directory
+
+        Args:
+
+        """
+        self.root, created = self._build_root(save_dir)
+        using = "Created new" if created else "Using existsing"
+        logger.info(f"{using} directory for outputs: {self.root}")
+
+        # Main output files
+        self.args = str(self.root / "args.tsv")
+        self.res = str(self.root / "res.tsv")
+
+        # Binarization
+        self.bin_dir = str(self.root / "binarization")
+        self.binarization_args = str(self.root / "binarization/bin_args.tsv")
+        self.binarization_res = str(self.root / "binarization/bin_res.tsv")
+        self.binarization_stats = str(self.root / "binarization/bin_stats.tsv")
+        self.binarization_bg = str(self.root / "binarization/bin_background.tsv")
+
+        self.tmp_wgcna = self.root / "tmp_wgcna"
+
+        # mkdirs
+        for path in [self.bin_dir]:
+            Path(path).mkdir(exist_ok=True)
+
+    def get_root_dir(self) -> str:
+        """
+        Returns the root directory of outputs.
+        """
+        return str(self.root)
+
+    def get_wgcna_tmp_file(self) -> str:
+        """
+        Returns a temporary file path for WGCNA results.
+        The file name includes a timestamp to ensure uniqueness.
+        """
+        self.tmp_wgcna.mkdir(exist_ok=True)
+        self.tmp_wgcna_file = str(
+            self.tmp_wgcna / f"wgcna_{datetime.now():%Y%m%dT%H%M%S}.tsv"
+        )
+        return self.tmp_wgcna_file
+
+    def clear_wgcna_tmp_files(self) -> None:
+        """
+        Clears the temporary WGCNA file and folder by removing it if it exists.
+        """
+        try:
+            os.remove(self.tmp_wgcna_file)
+        except Exception as e:
+            logger.warning(
+                f"Failed to remove temporary WGCNA file: {self.tmp_wgcna_file}."
+            )
+            logger.warning(f"  Error: {e}")
+
+        try:
+            self.tmp_wgcna.rmdir()
+        except Exception as e:
+            logger.warning(
+                f"Failed to remove temporary WGCNA directory: {self.tmp_wgcna}"
+            )
+            logger.warning(f"  Error: {e}")
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the ProjectPaths object.
+        """
+        return f"ProjectPaths(root='{self.root}')"

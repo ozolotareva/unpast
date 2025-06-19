@@ -167,8 +167,8 @@ def test_binarize_save_load(tmp_path):
         seed=42,
     )
 
-    # Check what files were actually created
-    created_files = list((tmp_path / "subdir").glob("*.tsv"))
+    # Check what files were actually created (search recursively)
+    created_files = list(tmp_path.rglob("*.tsv"))
     assert len(created_files) >= 2, (
         f"Expected at least 2 files, got {len(created_files)}: {[f.name for f in created_files]}"
     )

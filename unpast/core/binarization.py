@@ -226,24 +226,27 @@ def _try_loading_binarization_files(paths, verbose=True):
         if verbose:
             print(
                 "Load binarized features from",
-                paths.bin_exprs_fname,
+                paths.binarization_res,
                 "\n",
                 file=sys.stdout,
             )
-        binarized_data = pd.read_csv(paths.bin_exprs_fname, sep="\t", index_col=0)
+        binarized_data = pd.read_csv(paths.binarization_res, sep="\t", index_col=0)
     except Exception as e:
-        print("Failed to load", paths.bin_exprs_fname, file=sys.stderr)
+        print("Failed to load", paths.binarization_res, file=sys.stderr)
         print("    Error:", e, file=sys.stderr)
 
     # Try to load stats
     try:
         if verbose:
             print(
-                "Loading statistics from", paths.bin_stats_fname, "\n", file=sys.stdout
+                "Loading statistics from",
+                paths.binarization_stats,
+                "\n",
+                file=sys.stdout,
             )
-        stats = pd.read_csv(paths.bin_stats_fname, sep="\t", index_col=0)
+        stats = pd.read_csv(paths.binarization_stats, sep="\t", index_col=0)
     except Exception as e:
-        print("Failed to load", paths.bin_stats_fname, file=sys.stderr)
+        print("Failed to load", paths.binarization_stats, file=sys.stderr)
         print("    Error:", e, file=sys.stderr)
 
     # Try to load background distribution
@@ -251,16 +254,16 @@ def _try_loading_binarization_files(paths, verbose=True):
         if verbose:
             print(
                 "Loading background distribution from",
-                paths.bin_bg_fname,
+                paths.binarization_bg,
                 "\n",
                 file=sys.stdout,
             )
-        null_distribution = pd.read_csv(paths.bin_bg_fname, sep="\t", index_col=0)
+        null_distribution = pd.read_csv(paths.binarization_bg, sep="\t", index_col=0)
         null_distribution.columns = [int(x) for x in null_distribution.columns.values]
     except Exception as e:
         print(
             "Failed to load",
-            paths.bin_bg_fname,
+            paths.binarization_bg,
             file=sys.stderr,
         )
         print("    Error:", e, file=sys.stderr)
@@ -283,18 +286,19 @@ def _save_binarization_files(
     Returns:
         None: Saves files to specified paths
     """
-    paths.makedirs_if_missing()
-    binarized_data.to_csv(paths.bin_exprs_fname, sep="\t")
+    binarized_data.to_csv(paths.binarization_res, sep="\t")
     if verbose:
-        print(f"Binarized data saved to {paths.bin_exprs_fname}", file=sys.stdout)
+        print(f"Binarized data saved to {paths.binarization_res}", file=sys.stdout)
 
-    stats.to_csv(paths.bin_stats_fname, sep="\t")
+    stats.to_csv(paths.binarization_stats, sep="\t")
     if verbose:
-        print(f"Statistics saved to {paths.bin_stats_fname}", file=sys.stdout)
+        print(f"Statistics saved to {paths.binarization_stats}", file=sys.stdout)
 
-    null_distribution.to_csv(paths.bin_bg_fname, sep="\t")
+    null_distribution.to_csv(paths.binarization_bg, sep="\t")
     if verbose:
-        print(f"Background distribution saved to {paths.bin_bg_fname}", file=sys.stdout)
+        print(
+            f"Background distribution saved to {paths.binarization_bg}", file=sys.stdout
+        )
 
 
 def _generate_missing_null_distribution_sizes(
@@ -355,7 +359,7 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
 
 
 def binarize(
-    fname_prefix,
+    out_dir,
     exprs,
     method="GMM",
     save=True,
@@ -373,7 +377,7 @@ def binarize(
     """Main binarization function that creates binary expression profiles with significance testing.
 
     Args:
-        fname_prefix (str): basename for output binarized data files
+        out_dir (str): basename for output binarized data files
         exprs (DataFrame): normalized expression matrix with features as rows and samples as columns
         method (str): binarization method to use ("GMM")
         save (bool): whether to save binarized data to files
@@ -394,14 +398,7 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    paths = ProjectPaths(
-        fname_prefix=fname_prefix,
-        seed=seed,
-        method=method,
-        min_n_samples=min_n_samples,
-        n_permutations=n_permutations,
-        pval=pval,
-    )
+    paths = ProjectPaths(out_dir)
 
     binarized_data, stats, null_distribution = None, None, None
     if load:

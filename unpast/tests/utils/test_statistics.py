@@ -1,6 +1,7 @@
 import numpy as np
 import warnings
 from unpast.utils.statistics import calc_SNR, get_trend
+import pytest
 
 
 def test_get_trend_single_point():
@@ -10,6 +11,7 @@ def test_get_trend_single_point():
     assert min_snr(10) == 2.5
 
 
+@pytest.mark.plot
 def test_get_trend_multiple_points():
     sizes = [10, 20, 30, 40, 50]
     thresholds = [2.5, 3.0, 3.5, 4.0, 4.5]
