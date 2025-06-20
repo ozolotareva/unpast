@@ -7,6 +7,7 @@ import os
 from unittest.mock import patch, MagicMock
 from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.io import ProjectPaths
 
 TMP_DIR = os.path.join(os.path.dirname(__file__), "tmp_results")
 if not os.access(TMP_DIR, os.W_OK):
@@ -89,7 +90,7 @@ class TestRunLouvain:
 class TestWGCNAFunctions:
     """Test cases for WGCNA-related functions."""
 
-    def test_run_wgcna_parameter_validation(self):
+    def test_run_wgcna_parameter_validation(self, tmp_path):
         """Test WGCNA parameter validation without actually running R."""
         from unpast.core.feature_clustering import run_WGCNA
 
@@ -105,6 +106,7 @@ class TestWGCNAFunctions:
         # Test invalid deepSplit parameter
         modules, not_clustered = run_WGCNA(
             data,
+            paths=ProjectPaths(tmp_path),
             deepSplit=5,  # Invalid value
             verbose=False,
         )
@@ -116,6 +118,7 @@ class TestWGCNAFunctions:
         # Test invalid detectCutHeight parameter
         modules, not_clustered = run_WGCNA(
             data,
+            paths=ProjectPaths(tmp_path),
             detectCutHeight=1.5,  # Invalid value
             verbose=False,
         )
@@ -124,10 +127,10 @@ class TestWGCNAFunctions:
         assert modules == []
         assert not_clustered == []
 
-    @patch("subprocess.Popen")
-    @patch("pandas.read_csv")
     @patch("os.remove")
-    def test_run_wgcna_mocked(self, mock_remove, mock_read_csv, mock_popen):
+    @patch("pandas.read_csv")
+    @patch("subprocess.Popen")
+    def test_run_wgcna_mocked(self, mock_popen, mock_read_csv, mock_remove, tmp_path):
         """Test WGCNA execution with mocked subprocess and file operations."""
         from unpast.core.feature_clustering import run_WGCNA
 
@@ -154,10 +157,10 @@ class TestWGCNAFunctions:
 
         modules, not_clustered = run_WGCNA(
             data,
+            paths=ProjectPaths(tmp_path),
             deepSplit=2,
             detectCutHeight=0.8,
             verbose=True,
-            tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
         )
 
         # Verify subprocess was called
@@ -169,9 +172,10 @@ class TestWGCNAFunctions:
 
     @patch("subprocess.Popen")
     @patch("pandas.read_csv")
-    def test_run_wgcna_file_error(self, mock_read_csv, mock_popen):
+    def test_run_wgcna_file_error(self, mock_read_csv, mock_popen, tmp_path):
         """Test WGCNA when output file cannot be read."""
         from unpast.core.feature_clustering import run_WGCNA
+        from unpast.utils.io import ProjectPaths
 
         # Mock subprocess
         mock_process = MagicMock()
@@ -188,11 +192,11 @@ class TestWGCNAFunctions:
             },
             index=["1", "2", "3", "4"],
         )
-
+        paths = ProjectPaths(tmp_path)
         modules, not_clustered = run_WGCNA(
             data,
+            paths=paths,
             verbose=False,
-            tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
         )
 
         # Should handle file read errors gracefully
@@ -212,13 +216,17 @@ class TestWGCNAFunctions:
             },
             index=["1", "2", "3", "4"],
         )
+        from unpast.utils.io import ProjectPaths
 
         # Mock run_WGCNA to avoid R dependencies
         with patch("unpast.core.feature_clustering.run_WGCNA") as mock_wgcna:
             # Mock to return no modules (stop condition)
             mock_wgcna.return_value = ([], ["gene1", "gene2", "gene3"])
 
-            modules, not_clustered = run_WGCNA_iterative(data, verbose=False)
+            paths = ProjectPaths("/tmp")
+            modules, not_clustered = run_WGCNA_iterative(
+                data, paths=paths, verbose=False
+            )
 
             # Should call run_WGCNA at least once
             assert mock_wgcna.called
@@ -226,7 +234,7 @@ class TestWGCNAFunctions:
             assert isinstance(not_clustered, (list, np.ndarray))
 
     @pytest.mark.parametrize("method", ["WCGNA", "IterativeWGCNA"])
-    def test_feature_name_handling(self, method):
+    def test_feature_name_handling(self, method, tmp_path):
         """Test handling of special characters in feature names."""
         from unpast.core.feature_clustering import run_WGCNA, run_WGCNA_iterative
 
@@ -262,8 +270,8 @@ class TestWGCNAFunctions:
             for d in data, data.T:
                 modules, not_clustered = wcgna_func(
                     d,
+                    paths=ProjectPaths(tmp_path),
                     verbose=True,
-                    tmp_prefix=os.path.join(TMP_DIR, "test_wgcna"),
                 )
                 assert isinstance(modules, list)
                 assert isinstance(not_clustered, list)

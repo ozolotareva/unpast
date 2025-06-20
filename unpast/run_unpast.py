@@ -13,7 +13,7 @@ from unpast.core.feature_clustering import run_WGCNA_iterative
 from unpast.core.feature_clustering import run_WGCNA
 from unpast.core.sample_clustering import make_biclusters
 from unpast.utils.similarity import get_similarity_jaccard
-from unpast.utils.io import write_bic_table
+from unpast.utils.io import ProjectPaths, write_bic_table, write_args
 
 
 def unpast(
@@ -85,9 +85,14 @@ def unpast(
         out_dir += "/"
 
     if not basename:
-        now = datetime.now()
-        basename = "unpast_" + now.strftime("%y.%m.%d_%H:%M:%S")
-        print("set output basename to", basename, file=sys.stdout)
+        basename = "."
+        # now = datetime.now()
+        # basename = "unpast_" + now.strftime("%y.%m.%d_%H:%M:%S")
+        # print("set output basename to", basename, file=sys.stdout)
+
+    out_dir = os.path.abspath(os.path.join(os.path.abspath(out_dir), basename))
+    paths = ProjectPaths(save_dir=out_dir)
+    write_args(locals(), paths.args)
 
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
@@ -154,7 +159,7 @@ def unpast(
     ######### binarization #########
 
     binarized_features, stats, null_distribution = binarize(
-        out_dir + basename,
+        out_dir=out_dir,
         exprs=exprs,
         method=bin_method,
         save=save,
@@ -233,23 +238,11 @@ def unpast(
 
         for d in directions:
             # WGCNA tmp file prefix
-            tmp_prefix = (
-                out_dir
-                + basename
-                + "."
-                + bin_method
-                + ".pval="
-                + str(pval)
-                + ".seed="
-                + str(seed)
-                + "."
-                + d
-            )
             df = bin_data_dict[d]
             if df.shape[0] > 1:
                 modules, single_features = WGCNA_func(
                     df,
-                    tmp_prefix=tmp_prefix,
+                    paths=paths,
                     deepSplit=ds,
                     detectCutHeight=dch,
                     nt="signed_hybrid",
@@ -286,36 +279,13 @@ def unpast(
     )
 
     ######### save biclusters #########
-    suffix = (
-        ".seed="
-        + str(seed)
-        + ".bin="
-        + bin_method
-        + ",pval="
-        + str(pval)
-        + ",clust="
-        + clust_method
-        + ",direction="
-        + "-".join(directions)
-    )
     if "WGCNA" in clust_method:
-        suffix2 = (
-            ",ds="
-            + str(ds)
-            + ",dch="
-            + str(dch)
-            + ",max_power="
-            + str(max_power)
-            + ",precluster="
-            + str(precluster)
-        )
         modularity, similarity_cutoff = None, None
     elif clust_method == "Louvain":
-        suffix2 = ",m=" + str(round(modularity, 2))
         ds, dhs = None, None
     write_bic_table(
         biclusters,
-        out_dir + basename + suffix + suffix2 + ".biclusters.tsv",
+        results_file_name=paths.res,
         to_str=True,
         add_metadata=True,
         seed=seed,
@@ -334,9 +304,7 @@ def unpast(
     )
 
     if verbose:
-        print(
-            out_dir + basename + suffix + suffix2 + ".biclusters.tsv", file=sys.stdout
-        )
+        print(f"Biclusters saved to {paths.res}", file=sys.stdout)
         print("Total runtime: {:.2f} s".format(time() - start_time), file=sys.stdout)
 
     return biclusters

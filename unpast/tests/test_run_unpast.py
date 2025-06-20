@@ -21,19 +21,19 @@ from unpast.run_unpast import unpast
 def run_unpast_on_file(filename, basename, *args, **kwargs):
     unpast(
         os.path.join(TEST_DIR, filename),
-        out_dir=RESULTS_DIR,
-        basename=basename,
+        out_dir=os.path.join(RESULTS_DIR, "runs"),
+        basename=f"run_{basename}",
         verbose=True,  # use pytest -s ... to see the output
         *args,
         **kwargs,
     )
-    return parse_answer(RESULTS_DIR, basename)
+    return parse_answer(os.path.join(RESULTS_DIR, f"runs/run_{basename}"))
 
 
-def parse_answer(answer_dir, basename):
+def parse_answer(answer_dir, startswith=""):
     files = os.listdir(answer_dir)
     answer_files = [
-        f for f in files if f.startswith(basename) and f.endswith("biclusters.tsv")
+        f for f in files if f.startswith(startswith) and f.endswith("biclusters.tsv")
     ]
     assert len(answer_files) == 1, f"There are {len(answer_files)} files instead of 1"
     return pd.read_csv(os.path.join(answer_dir, answer_files[0]), sep="\t", comment="#")
@@ -101,6 +101,6 @@ def test_reproducible():
     )
     reference = parse_answer(
         answer_dir=REFERENCE_OUTPUT_DIR,
-        basename="test_reproducible",
+        startswith="test_reproducible",
     )
     assert res.equals(reference), "The results are not reproducible"
