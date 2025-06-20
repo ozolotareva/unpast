@@ -119,7 +119,7 @@ def update_bicluster_data(bicluster, data):
     """Update bicluster with additional metadata including up/down-regulated genes and z-scores.
 
     Args:
-        bicluster (dict): bicluster information containing "sample_indexes" and "genes"
+        bicluster (dict): bicluster dictionary containing "genes" and "samples" or "sample_indexes"
         data (DataFrame): complete expression data with all features (not just binarized)
 
     Returns:
@@ -128,17 +128,28 @@ def update_bicluster_data(bicluster, data):
             - "gene_indexes": gene indices
             - "genes_up": up-regulated genes
             - "genes_down": down-regulated genes
-            - "avg_zscore": average z-score of the bicluster
+            - "SNR": SNR for absolute average z-scores of all bicluster genes 
     """
-
     # add "samples" and "gene_indexes"
     sample_names = data.columns.values
     gene_names = data.index.values
-
-    bic_samples = sample_names[list(bicluster["sample_indexes"])]
+    
+    if "sample_indexes" in bicluster.keys():
+        bic_samples = sample_names[list(bicluster["sample_indexes"])]
+    elif "samples" in bicluster.keys():
+        bic_samples = bicluster["samples"]
+        bicluster["sample_indexes"] = set(
+            [np.where(sample_names == x)[0][0] for x in bic_samples]
+        )
+    else: 
+        print('"samples" or "sample_indexes" of a bicluster not specified',file=sys.stderr)
+        
+    if not "samples" in bicluster.keys():
+        bicluster["samples"] = set(bic_samples)
+    
     bic_genes = list(bicluster["genes"])
-    bg_samples = [x for x in sample_names if x not in bic_samples]
-    bicluster["samples"] = set(bic_samples)
+    bic_samples = list(bicluster["samples"])
+    bg_samples = [x for x in sample_names if not x in bic_samples]
     bicluster["gene_indexes"] = set(
         [np.where(gene_names == x)[0][0] for x in bicluster["genes"]]
     )
@@ -155,7 +166,7 @@ def update_bicluster_data(bicluster, data):
     genes_down = m_bic[m_bic < m_bg].index.values
 
     # calculate average z-score for each sample
-    if min(len(genes_up), len(genes_down)) > 0:  # take direction into account
+    if min(len(genes_up), len(genes_down)) > 0:  # take sign into account
         avg_zscore = (
             data.loc[genes_up, :].sum() - data.loc[genes_down, :].sum()
         ) / bicluster["n_genes"]
