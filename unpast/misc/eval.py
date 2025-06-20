@@ -6,9 +6,11 @@ from scipy.stats import chi2_contingency
 from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.core.preprocessing import zscore
+from unpast.utils.io import write_bic_table
+from unpast.core.sample_clustering import update_bicluster_data
+
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
-
 
 def generate_exprs(
     data_sizes,
@@ -62,19 +64,23 @@ def generate_exprs(
             bg_g = bg_g.difference(set(bic_g))
         if not s_overlap:
             bg_s = bg_s.difference(set(bic_s))
-        # generate bicluster
-        biclusters[s_frac] = {
+            
+        # generate and implant bicluster
+        np.random.seed(seeds[i])
+        bic_exprs = np.random.normal(loc=m, scale=std, size=(g_size, s_size))
+        exprs.loc[bic_genes, bic_samples] += bic_exprs
+        # save bicluster genes
+        bicluster_genes += bic_genes
+        # store bicluster
+        bicluster = {
             "genes": set(bic_genes),
             "samples": set(bic_samples),
             "frac": s_frac,
             "n_genes": len(bic_genes),
-            "n_samples:": len(bic_samples),
+            "n_samples": len(bic_samples),
         }
-        np.random.seed(seeds[i])
-        bic_exprs = np.random.normal(loc=m, scale=std, size=(g_size, s_size))
-        # implant biclusters
-        exprs.loc[bic_genes, bic_samples] += bic_exprs
-        bicluster_genes += bic_genes
+        biclusters["bic_"+str(s_frac)] = bicluster
+        
 
     # add modules of co-expressed genes
     bg_g = set(exprs.index.values).difference(set(bicluster_genes))
@@ -106,65 +112,27 @@ def generate_exprs(
     if z:
         # center to 0 and scale std to 1
         exprs = zscore(exprs)
+    
+    # calculate bicluster SNR 
+    # distinguish up- and down-regulated genes
+    for bic_id in biclusters.keys():
+        biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
+    
     biclusters = pd.DataFrame.from_dict(biclusters).T
     # biclusters.set_index("frac",inplace = True,drop=True)
     biclusters_ = biclusters.copy()
 
     if outfile_basename:
-        # overlap extension
-        if s_overlap:
-            if g_overlap:
-                overlap_ext = ",overlap=yes"
-            else:
-                overlap_ext = ",overlap=s"
-        elif g_overlap:
-            overlap_ext = ",overlap=g"
-        else:
-            overlap_ext = ",overlap=no"
-        # save expressions
-        exprs_file = (
-            outdir
-            + "/"
-            + outfile_basename
-            + ".n_genes="
-            + str(g_size)
-            + ",m="
-            + str(m)
-            + ",std="
-            + str(std)
-        )
-        exprs_file += overlap_ext + ".exprs_z.tsv"
-        print("expressions:", exprs_file)
+        exprs_file = outdir + outfile_basename + ".data.tsv.gz"
+        print("input data:", exprs_file)
         exprs.to_csv(exprs_file, sep="\t")
 
         # save ground truth
-        biclusters["n_genes"] = biclusters["genes"].apply(lambda x: len(x))
-        biclusters["n_samples"] = biclusters["samples"].apply(lambda x: len(x))
-        biclusters["genes"] = biclusters["genes"].apply(
-            lambda x: " ".join((map(str, sorted(x))))
-        )
-        biclusters["samples"] = biclusters["samples"].apply(
-            lambda x: " ".join((map(str, sorted(x))))
-        )
-
-        biclusters_file = (
-            outdir
-            + "/"
-            + outfile_basename
-            + ".n_genes="
-            + str(g_size)
-            + ",m="
-            + str(m)
-            + ",std="
-            + str(std)
-        )
-        biclusters_file += overlap_ext + ".biclusters.tsv"
-        biclusters.to_csv(biclusters_file, sep="\t")
-        print("true bilusters:", biclusters_file)
-        biclusters.to_csv(biclusters_file, sep="\t")
+        bic_file_name = outdir + outfile_basename + ".true_biclusters.tsv.gz"
+        print("true bilusters:", bic_file_name)
+        write_bic_table(biclusters, bic_file_name)
 
     return exprs, biclusters_, coexpressed_modules
-
 
 def make_ref_groups(subtypes, annotation, exprs):
     import copy
