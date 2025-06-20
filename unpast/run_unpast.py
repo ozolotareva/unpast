@@ -13,7 +13,7 @@ from unpast.core.feature_clustering import run_WGCNA_iterative
 from unpast.core.feature_clustering import run_WGCNA
 from unpast.core.sample_clustering import make_biclusters
 from unpast.utils.similarity import get_similarity_jaccard
-from unpast.utils.io import write_bic_table, ProjectPaths
+from unpast.utils.io import ProjectPaths, write_bic_table, write_args
 
 
 def unpast(
@@ -92,6 +92,7 @@ def unpast(
 
     out_dir = os.path.abspath(os.path.join(os.path.abspath(out_dir), basename))
     paths = ProjectPaths(save_dir=out_dir)
+    write_args(locals(), paths.args)
 
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
@@ -303,7 +304,7 @@ def unpast(
     )
 
     if verbose:
-        print(f"Result saved to {paths.res}", file=sys.stdout)
+        print(f"Biclusters saved to {paths.res}", file=sys.stdout)
         print("Total runtime: {:.2f} s".format(time() - start_time), file=sys.stdout)
 
     return biclusters

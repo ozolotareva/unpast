@@ -80,3 +80,19 @@ def test_project_paths(tmp_path):
     root = paths.get_root_dir()
     new_paths = io.ProjectPaths(root)
     assert new_paths.get_root_dir() == root
+
+
+def test_write_and_read_args(tmp_path):
+    args = {
+        "float_value": 0.1,
+        "str_value": "test",
+        "ing_value": 42,
+        "bool_value": True,
+        "list_value": [1, 2, 3],
+    }
+    file_path = tmp_path / "args.tsv"
+    io.write_args(args, str(file_path))
+    loaded_args = io.read_args(str(file_path))
+    # All values are read as strings from the file
+    expected_args = {k: str(v) for k, v in args.items()}
+    assert loaded_args == expected_args

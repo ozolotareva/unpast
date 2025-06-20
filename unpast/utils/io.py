@@ -259,7 +259,7 @@ class ProjectPaths:
 
         # Main output files
         self.args = str(self.root / "args.tsv")
-        self.res = str(self.root / "res.tsv")
+        self.res = str(self.root / "biclusters.tsv")
 
         # Binarization
         self.bin_dir = str(self.root / "binarization")
@@ -316,3 +316,34 @@ class ProjectPaths:
         Returns a string representation of the ProjectPaths object.
         """
         return f"ProjectPaths(root='{self.root}')"
+
+
+def write_args(args: dict, file_path: str) -> None:
+    """
+    Writes the arguments to a file in a tab-separated format.
+
+    Args:
+        args (dict): A dictionary of arguments to save.
+        file_path (str): The path to the file where the arguments will be saved.
+    """
+    assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
+    df = pd.DataFrame(list(args.items()), columns=["arg", "value"])
+    df.to_csv(file_path, sep="\t", index=False)
+    logger.info(f"Arguments written to {file_path}")
+
+
+def read_args(file_path: str) -> dict:
+    """
+    Reads arguments from a file in a tab-separated format.
+
+    Args:
+        file_path (str): The path to the file from which to load the arguments.
+
+    Returns:
+        dict: A dictionary of loaded arguments.
+    """
+    assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
+    df = pd.read_csv(file_path, sep="\t")
+    args = dict(zip(df["arg"], df["value"]))
+    logger.info(f"Arguments loaded from {file_path}")
+    return args

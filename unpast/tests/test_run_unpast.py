@@ -32,7 +32,9 @@ def run_unpast_on_file(filename, basename, *args, **kwargs):
 
 def parse_answer(answer_dir, startswith=""):
     files = os.listdir(answer_dir)
-    answer_files = [f for f in files if f.startswith(startswith) and f.endswith(".tsv")]
+    answer_files = [
+        f for f in files if f.startswith(startswith) and f.endswith("biclusters.tsv")
+    ]
     assert len(answer_files) == 1, f"There are {len(answer_files)} files instead of 1"
     return pd.read_csv(os.path.join(answer_dir, answer_files[0]), sep="\t", comment="#")
 

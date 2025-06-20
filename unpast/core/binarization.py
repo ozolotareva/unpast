@@ -13,7 +13,7 @@ from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
 from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
-from unpast.utils.io import ProjectPaths
+from unpast.utils.io import ProjectPaths, write_args
 
 
 def _fit_gmm_model(row, seed=42, prob_cutoff=0.5):
@@ -399,9 +399,11 @@ def binarize(
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
     paths = ProjectPaths(out_dir)
+    write_args(locals(), paths.binarization_args)
 
     binarized_data, stats, null_distribution = None, None, None
     if load:
+        # TODO: add _warn_diff_args(locals(), paths)
         binarized_data, stats, null_distribution = _try_loading_binarization_files(
             paths, verbose
         )
