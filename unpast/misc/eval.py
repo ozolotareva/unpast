@@ -12,6 +12,7 @@ from unpast.core.sample_clustering import update_bicluster_data
 from lifelines import CoxPHFitter
 from lifelines.statistics import logrank_test
 
+
 def generate_exprs(
     data_sizes,
     g_size=5,
@@ -64,7 +65,7 @@ def generate_exprs(
             bg_g = bg_g.difference(set(bic_g))
         if not s_overlap:
             bg_s = bg_s.difference(set(bic_s))
-            
+
         # generate and implant bicluster
         np.random.seed(seeds[i])
         bic_exprs = np.random.normal(loc=m, scale=std, size=(g_size, s_size))
@@ -79,8 +80,7 @@ def generate_exprs(
             "n_genes": len(bic_genes),
             "n_samples": len(bic_samples),
         }
-        biclusters["bic_"+str(s_frac)] = bicluster
-        
+        biclusters["bic_" + str(s_frac)] = bicluster
 
     # add modules of co-expressed genes
     bg_g = set(exprs.index.values).difference(set(bicluster_genes))
@@ -112,12 +112,12 @@ def generate_exprs(
     if z:
         # center to 0 and scale std to 1
         exprs = zscore(exprs)
-    
-    # calculate bicluster SNR 
+
+    # calculate bicluster SNR
     # distinguish up- and down-regulated genes
     for bic_id in biclusters.keys():
         biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
-    
+
     biclusters = pd.DataFrame.from_dict(biclusters).T
     # biclusters.set_index("frac",inplace = True,drop=True)
     biclusters_ = biclusters.copy()
@@ -133,6 +133,7 @@ def generate_exprs(
         write_bic_table(biclusters, bic_file_name)
 
     return exprs, biclusters_, coexpressed_modules
+
 
 def make_ref_groups(subtypes, annotation, exprs):
     import copy
