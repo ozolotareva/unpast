@@ -128,12 +128,12 @@ def update_bicluster_data(bicluster, data):
             - "gene_indexes": gene indices
             - "genes_up": up-regulated genes
             - "genes_down": down-regulated genes
-            - "SNR": SNR for absolute average z-scores of all bicluster genes 
+            - "SNR": SNR for absolute average z-scores of all bicluster genes
     """
     # add "samples" and "gene_indexes"
     sample_names = data.columns.values
     gene_names = data.index.values
-    
+
     if "sample_indexes" in bicluster.keys():
         bic_samples = sample_names[list(bicluster["sample_indexes"])]
     elif "samples" in bicluster.keys():
@@ -141,12 +141,15 @@ def update_bicluster_data(bicluster, data):
         bicluster["sample_indexes"] = set(
             [np.where(sample_names == x)[0][0] for x in bic_samples]
         )
-    else: 
-        print('"samples" or "sample_indexes" of a bicluster not specified',file=sys.stderr)
-        
+    else:
+        print(
+            '"samples" or "sample_indexes" of a bicluster not specified',
+            file=sys.stderr,
+        )
+
     if not "samples" in bicluster.keys():
         bicluster["samples"] = set(bic_samples)
-    
+
     bic_genes = list(bicluster["genes"])
     bic_samples = list(bicluster["samples"])
     bg_samples = [x for x in sample_names if not x in bic_samples]
