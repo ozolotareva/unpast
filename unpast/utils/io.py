@@ -255,11 +255,12 @@ class ProjectPaths:
         """
         self.root, created = self._build_root(save_dir)
         using = "Created new" if created else "Using existsing"
-        logger.info(f"{using} directory for outputs: {self.root}")
+        logger.debug(f"{using} directory for outputs: {self.root}")
 
         # Main output files
         self.args = str(self.root / "args.tsv")
         self.res = str(self.root / "biclusters.tsv")
+        self.log = str(self.root / "unpast.log")
 
         # Binarization
         self.bin_dir = str(self.root / "binarization")
@@ -329,7 +330,7 @@ def write_args(args: dict, file_path: str) -> None:
     assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
     df = pd.DataFrame(list(args.items()), columns=["arg", "value"])
     df.to_csv(file_path, sep="\t", index=False)
-    logger.info(f"Arguments written to {file_path}")
+    logger.debug(f"Arguments written to {file_path}")
 
 
 def read_args(file_path: str) -> dict:
@@ -345,5 +346,5 @@ def read_args(file_path: str) -> dict:
     assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
     df = pd.read_csv(file_path, sep="\t")
     args = dict(zip(df["arg"], df["value"]))
-    logger.info(f"Arguments loaded from {file_path}")
+    logger.debug(f"Arguments loaded from {file_path}")
     return args

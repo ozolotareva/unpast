@@ -10,9 +10,14 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 
+from unpast.utils.logs import get_logger, log_function_duration
+
+logger = get_logger(__name__)
+
 RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscripts").resolve()
 
 
+@log_function_duration(name="WGCNA Iterative")
 def run_WGCNA_iterative(
     binarized_expressions,
     paths,
@@ -45,8 +50,6 @@ def run_WGCNA_iterative(
             - not_clustered: list of features that could not be clustered
     """
 
-    t0 = time()
-
     not_clustered = binarized_expressions.columns.values
     binarized_expressions_ = binarized_expressions.loc[:, :].copy()
     stop_condition = False
@@ -68,23 +71,20 @@ def run_WGCNA_iterative(
             rscr_path=rscr_path,
             rpath=rpath,
         )
-        if verbose:
-            print(
-                "\t\t\tWGCNA iteration %s, modules:%s, not clustered:%s"
-                % (i, len(m), len(not_clustered)),
-                file=sys.stdout,
-            )
+        logger.debug(
+            f"\t\t\tWGCNA iteration {i}, modules:{len(m)}, not clustered:{len(not_clustered)}"
+        )
         modules += m
         # stop when the number of not clustred samples does not change
         if len(m) == 0:
             stop_condition = True
-            if verbose:
-                print("\t\t\tWGCNA iterations terminated at step ", i, file=sys.stdout)
+            logger.debug(f"\t\t\tWGCNA iterations terminated at step {i}")
 
         i += 1
     return (modules, not_clustered)
 
 
+@log_function_duration(name="WGCNA")
 def run_WGCNA(
     binarized_expressions,
     paths,
@@ -116,13 +116,11 @@ def run_WGCNA(
             - modules: list of feature modules/clusters found by WGCNA
             - not_clustered: list of features that could not be clustered
     """
-    t0 = time()
     # create unique suffix for tmp files
 
     fname = paths.get_wgcna_tmp_file()
 
-    if verbose:
-        print("\t\tWGCNA pre-clustering:", precluster, file=sys.stdout)
+    logger.debug(f"\t\tWGCNA pre-clustering: {precluster}")
     if precluster:
         precluster = "T"
     else:
@@ -138,8 +136,7 @@ def run_WGCNA(
             file=sys.stderr,
         )
         return ([], [])
-    if verbose:
-        print("\tRunning WGCNA for", fname, "...", file=sys.stdout)
+    logger.debug(f"\tRunning WGCNA for {fname} ...")
     if not rscr_path:
         rscr_path = str(RSCRIPTS_DIR / "run_WGCNA.R")
 
@@ -170,12 +167,9 @@ def run_WGCNA(
     feature_names = binarized_expressions.columns.values
     feature_names_with_space = [x for x in feature_names if " " in x]
     if len(feature_names_with_space) > 0:
-        if verbose:
-            print(
-                "\t\tfeature names containing spaces (will be replaced):%s"
-                % len(feature_names_with_space),
-                file=sys.stdout,
-            )
+        logger.debug(
+            f"\t\tfeature names containing spaces (will be replaced):{len(feature_names_with_space)}"
+        )
         fn_mapping = {}
         fn_mapping_back = {}
         for fn in feature_names:
@@ -194,36 +188,21 @@ def run_WGCNA(
     if len(rpath) > 0:
         rpath = rpath + "/"
 
-    if verbose:
-        print("\tR command line:", file=sys.stdout)
-        print(
-            "\t"
-            + " ".join(
-                [
-                    rpath + "Rscript",
-                    rscr_path,
-                    fname,
-                    str(deepSplit),
-                    str(detectCutHeight),
-                    nt,
-                    str(max_power),
-                    precluster,
-                ]
-            ),
-            file=sys.stdout,
-        )
+    r_cmd_args = [
+        rpath + "Rscript",
+        rscr_path,
+        fname,
+        str(deepSplit),
+        str(detectCutHeight),
+        nt,
+        str(max_power),
+        precluster,
+    ]
+    logger.debug("\tR command line:")
+    logger.debug("\t" + " ".join(r_cmd_args))
 
     process = subprocess.Popen(
-        [
-            rpath + "Rscript",
-            rscr_path,
-            fname,
-            str(deepSplit),
-            str(detectCutHeight),
-            nt,
-            str(max_power),
-            precluster,
-        ],
+        r_cmd_args,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
@@ -235,14 +214,10 @@ def run_WGCNA(
     except:
         # print("WGCNA output:", stdout, file = sys.stdout)
         stderr = stderr.decode("utf-8")
-        if verbose:
-            print("WGCNA error:", stderr, file=sys.stdout)
+        logger.debug(f"WGCNA error: {stderr}")
         modules_df = pd.DataFrame.from_dict({})
-    if verbose:
-        print(
-            "\tWGCNA runtime: modules detected in {:.2f} s.".format(time() - t0),
-            file=sys.stdout,
-        )
+        # raise
+        # TODO: raise + test "no bicluster in output is ok"
 
     # read WGCNA output
     modules = []
@@ -273,22 +248,19 @@ def run_WGCNA(
         os.remove(module_file)
         paths.clear_wgcna_tmp_files()
     except Exception as e:
-        print("Failed to remove WGCNA temporary files: {}".format(e), file=sys.stderr)
+        logger.debug(f"Failed to remove WGCNA temporary files: {e}")
 
-    if verbose:
-        print(
-            "\tmodules: {}, not clustered features {} ".format(
-                len(modules), len(not_clustered)
-            ),
-            file=sys.stdout,
-        )
-        # print(stdout,file = sys.stdout)
-        if len(stderr) > 0:
-            print(stderr, file=sys.stderr)
+    logger.debug(
+        f"\tmodules: {len(modules)}, not clustered features {len(not_clustered)} "
+    )
+    # print(stdout,file = sys.stdout)
+    if len(stderr) > 0:
+        print(stderr, file=sys.stderr)
 
     return (modules, not_clustered)
 
 
+@log_function_duration(name="Louvain")
 def run_Louvain(
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
@@ -313,14 +285,12 @@ def run_Louvain(
             - not_clustered: list of features that could not be clustered
             - best_Q: best modularity score achieved
     """
-    t0 = time()
     if similarity.shape[0] == 0:
         print("no features to cluster", file=sys.stderr)
         return [], [], None
 
-    if verbose:
-        print("\tRunning Louvain ...", file=sys.stdout)
-        print("\t\tmodularity:", modularity_measure, file=sys.stdout)
+    logger.debug("\tRunning Louvain ...")
+    logger.debug(f"\t\tmodularity: {modularity_measure}")
 
     from sknetwork.clustering import Louvain
     import sknetwork
@@ -392,8 +362,7 @@ def run_Louvain(
             curve_type = "increasing"
             if modularities[0] >= modularities[-1]:
                 curve_type = "decreasing"
-            if verbose:
-                print("\tcurve type:", curve_type, file=sys.stdout)
+            logger.debug(f"\tcurve type: {curve_type}")
             # detect knee and choose the one with the highest modularity
             try:
                 kn = KneeLocator(
@@ -454,21 +423,8 @@ def run_Louvain(
             modules.append(genes)
         else:
             not_clustered.append(genes[0])
-    if verbose:
-        print(
-            "\tLouvain runtime: modules detected in {:.2f} s.".format(time() - t0),
-            file=sys.stdout,
-        )
-        print(
-            "\tmodules: {}, not clustered features {} ".format(
-                len(modules), len(not_clustered)
-            ),
-            file=sys.stdout,
-        )
-        print(
-            "\t\tsimilarity cutoff: {:.2f} modularity: {:.3f}".format(
-                best_cutoff, best_Q
-            ),
-            file=sys.stdout,
-        )
+    logger.debug(
+        f"\tmodules: {len(modules)}, not clustered features {len(not_clustered)} "
+    )
+    logger.debug(f"\t\tsimilarity cutoff: {best_cutoff:.2f} modularity: {best_Q:.3f}")
     return modules, not_clustered, best_cutoff

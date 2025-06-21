@@ -2,6 +2,10 @@ import sys
 import pandas as pd
 import numpy as np
 
+from unpast.utils.logs import get_logger
+
+logger = get_logger(__name__)
+
 
 def zscore(df):
     """Standardize expression data by z-score normalization.
@@ -21,10 +25,8 @@ def zscore(df):
     # set to 0 not variable genes
     zero_var_genes = s[s == 0].index.values
     if len(zero_var_genes) > 0:
-        print(
-            len(zero_var_genes),
-            "zero variance rows detected, assign zero z-scores ",
-            file=sys.stderr,
+        logger.warning(
+            f"{len(zero_var_genes)} zero variance rows detected, assign zero z-scores "
         )
     df.loc[zero_var_genes, :] = 0
     return df
@@ -59,71 +61,50 @@ def prepare_input_matrix(
     # find zero variance rows
     zero_var = list(std[std == 0].index.values)
     if len(zero_var) > 0:
-        if verbose:
-            print(
-                "\tZero variance rows will be dropped: %s" % len(zero_var),
-                file=sys.stdout,
-            )
+        logger.debug(f"\tZero variance rows will be dropped: {len(zero_var)}")
         exprs = exprs.loc[std > 0]
         m = m[std > 0]
         std = std[std > 0]
         if exprs.shape[0] <= 2:
-            print(
-                "After excluding constant features (rows), less than 3 features (rows) remain in the input matrix. Remaining: %s"
-                % exprs.shape[0],
-                file=sys.stderr,
+            logger.warning(
+                "After excluding constant features (rows), less than 3 features (rows) remain"
+                f" in the input matrix. Remaining: {exprs.shape[0]}"
             )
 
     mean_passed = np.all(np.abs(m) < tol)
     std_passed = np.all(np.abs(std - 1) < tol)
     if not (mean_passed and std_passed):
-        if verbose:
-            print("\tInput is not standardized.", file=sys.stdout)
+        logger.debug("\tInput is not standardized.")
         if standradize:
             exprs = zscore(exprs)
             if not mean_passed:
-                if verbose:
-                    print("\tCentering mean to 0", file=sys.stdout)
+                logger.debug("\tCentering mean to 0")
             if not std_passed:
-                if verbose:
-                    print("\tScaling std to 1", file=sys.stdout)
+                logger.debug("\tScaling std to 1")
     if len(set(exprs.index.values)) < exprs.shape[0]:
-        print("\tRow names are not unique.", file=sys.stderr)
+        logger.warning("\tRow names are not unique.")
     missing_values = exprs.isna().sum(axis=1)
     n_na = missing_values[missing_values > 0].shape[0]
     if n_na > 0:
-        if verbose:
-            print(
-                "\tMissing values detected in %s rows"
-                % missing_values[missing_values > 0].shape[0],
-                file=sys.stdout,
-            )
+        logger.warning(
+            f"\tMissing values detected in {missing_values[missing_values > 0].shape[0]} rows"
+        )
         keep_features = missing_values[
             missing_values <= exprs.shape[1] - min_n_samples
         ].index.values
-        if verbose:
-            print(
-                "\tFeatures with too few values (<%s) dropped: %s"
-                % (min_n_samples, exprs.shape[0] - len(keep_features)),
-                file=sys.stdout,
-            )
+        logger.warning(
+            f"\tFeatures with too few values (<{min_n_samples}) dropped: {exprs.shape[0] - len(keep_features)}"
+        )
         exprs = exprs.loc[keep_features, :]
 
     if standradize:
         if ceiling > 0:
-            if verbose:
-                print(
-                    "\tStandardized expressions will be limited to [-%s,%s]:"
-                    % (ceiling, ceiling),
-                    file=sys.stdout,
-                )
+            logger.debug(
+                f"\tStandardized expressions will be limited to [-{ceiling},{ceiling}]:"
+            )
             exprs[exprs > ceiling] = ceiling
             exprs[exprs < -ceiling] = -ceiling
             if n_na > 0:
                 exprs.fillna(-ceiling, inplace=True)
-                if verbose:
-                    print(
-                        "\tMissing values will be replaced with -%s." % ceiling,
-                        file=sys.stdout,
-                    )
+                logger.debug(f"\tMissing values will be replaced with -{ceiling}.")
     return exprs

@@ -14,10 +14,67 @@ from unpast.core.feature_clustering import run_WGCNA
 from unpast.core.sample_clustering import make_biclusters
 from unpast.utils.similarity import get_similarity_jaccard
 from unpast.utils.io import ProjectPaths, write_bic_table, write_args
+from unpast.utils.logs import (
+    setup_logging,
+    get_logger,
+    LOG_LEVELS,
+    log_function_duration,
+)
+
+logger = get_logger(__name__)
 
 
+def check_input_shape(exprs_shape, min_n_samples):
+    """Check if the input expression matrix has the required shape.
+
+    Args:
+        exprs_shape (tuple): shape of the input expression matrix (rows, columns)
+        min_n_samples (int): minimum number of samples required
+
+    Raises:
+        AssertionError: if the input matrix does not meet the requirements
+    """
+    errs = []
+    if exprs_shape[1] < 5:
+        errs.append(
+            "Input matrix must contain at least 5 samples (columns)"
+            f" and 2 features (rows), but only {exprs_shape[1]}"
+            " columns are found."
+        )
+
+    if exprs_shape[0] < 2:
+        errs.append(
+            "Input matrix must contain at least 2 features (rows)"
+            f", but only {exprs_shape[0]} rows are found."
+        )
+
+    if min_n_samples < 2:
+        errs.append(
+            "The minimal number of samples in a bicluster `min_n_samples`"
+            f" must be >= 2, found {min_n_samples}."
+        )
+
+    if min_n_samples > exprs_shape[1] // 2:
+        errs.append(
+            "The minimal number of samples in a bicluster `min_n_samples`"
+            " must be not greater than half of the cohort size"
+            f", found {min_n_samples} > {exprs_shape[1] // 2}."
+        )
+
+    if errs:
+        for msg in errs:
+            logger.error(msg)
+        raise ValueError(errs[0])
+
+    if min_n_samples < 5:
+        logger.warning(
+            f"\tmin_n_samples is recommended to be >= 5, found {min_n_samples}"
+        )
+
+
+@log_function_duration(name="UnPaSt")
 def unpast(
-    exprs_file: pd.DataFrame,
+    exprs_file: str,
     basename: str = "",
     out_dir: str = "./",
     save: bool = True,
@@ -47,7 +104,7 @@ def unpast(
     """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
 
     Args:
-        exprs_file (pd.DataFrame): expression matrix with features as rows and samples as columns
+        exprs_file (str): expression matrix with features as rows and samples as columns
         basename (str): output files prefix (default: auto-generated timestamp)
         out_dir (str): output directory path (default: "./")
         save (bool): whether to save intermediate files (default: True)
@@ -76,9 +133,7 @@ def unpast(
     Returns:
         pd.DataFrame: biclusters table with columns for genes, samples, SNR, etc.
     """
-
     np.random.seed(seed)  # todo: check if this is needed
-    start_time = time()
 
     # make sure that out_dir has '/' suffix
     if out_dir[-1] != "/":
@@ -92,59 +147,20 @@ def unpast(
 
     out_dir = os.path.abspath(os.path.join(os.path.abspath(out_dir), basename))
     paths = ProjectPaths(save_dir=out_dir)
+    if verbose:
+        setup_logging(log_file=paths.log, log_level=LOG_LEVELS["DEBUG"])
+    else:
+        setup_logging(log_file=paths.log, log_level=LOG_LEVELS["INFO"])
     write_args(locals(), paths.args)
 
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
-    if verbose:
-        print("Read input from ", exprs_file, file=sys.stdout)
-        print(
-            "\t{} features x {} samples".format(exprs.shape[0], exprs.shape[1]),
-            file=sys.stdout,
-        )
-    if exprs.shape[1] < 5:
-        print(
-            "Input matrix must contain at least 5 samples (columns), but only %s columns are found."
-            % exprs.shape[1],
-            file=sys.stderr,
-        )
-
-    if exprs.shape[0] < 2:
-        print(
-            "Input matrix must contain at least 2 features (rows), but only %s rows are found."
-            % exprs.shape[0],
-            file=sys.stderr,
-        )
-
-    if exprs.shape[1] < 5 or exprs.shape[0] < 2:
-        sys.exit(1)
-
-    if min_n_samples < 2:
-        print(
-            "The minimal number of samples in a bicluster `min_n_samples` must be >= 2.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    if min_n_samples > int((exprs.shape[1] / 2) // 1):
-        print(
-            "The minimal number of samples in a bicluster `min_n_samples` must be not greater than half of the cohort size.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    if verbose:
-        print(
-            "Mininal number of samples in a bicluster:", min_n_samples, file=sys.stdout
-        )
-    if min_n_samples < 5:
-        print("\tmin_n_samples is recommended to be >= 5", file=sys.stderr)
+    logger.info(f"Read input from {exprs_file}")
+    logger.debug(f"\t{exprs.shape[0]} features x {exprs.shape[1]} samples")
+    check_input_shape(exprs.shape, min_n_samples)
 
     e_dist_size = max(e_dist_size, int(1.0 / pval * 10))
-    if verbose:
-        print(
-            "The size of empirical SNR distribution: %s" % e_dist_size, file=sys.stdout
-        )
+    logger.debug(f"The size of empirical SNR distribution: {e_dist_size}")
 
     # check if input is standardized (between-sample)
     # if necessary, standardize and limit values to [-ceiling,ceiling]
@@ -195,8 +211,7 @@ def unpast(
 
     ######### gene clustering #########
 
-    if verbose:
-        print("Clustering features ...\n", file=sys.stdout)
+    logger.debug("Clustering features ...")
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
 
     if clust_method == "Louvain":
@@ -255,14 +270,13 @@ def unpast(
                 not_clustered += single_features
 
     else:
-        print(
-            "'clust_method' must be 'WGCNA', 'iWGCNA', or 'Louvain'.", file=sys.stderr
+        raise NotImplementedError(
+            f"'clust_method' must be 'WGCNA', 'iWGCNA', or 'Louvain', found {clust_method}"
         )
 
     ######### making biclusters #########
     if len(feature_clusters) == 0:
-        if verbose:
-            print("No biclusters found", file=sys.stderr)
+        logger.warning("No biclusters found")
         return pd.DataFrame()
 
     biclusters = make_biclusters(
@@ -303,9 +317,7 @@ def unpast(
         merge=merge,
     )
 
-    if verbose:
-        print(f"Biclusters saved to {paths.res}", file=sys.stdout)
-        print("Total runtime: {:.2f} s".format(time() - start_time), file=sys.stdout)
+    logger.info(f"Biclusters saved to {paths.res}")
 
     return biclusters
 
@@ -445,31 +457,37 @@ def main():
     if args.bidirectional:
         directions = ["BOTH"]
 
-    biclusters = unpast(
-        args.exprs,
-        args.basename,
-        out_dir=args.out_dir,
-        save=args.save_binary,
-        load=args.load_binary,
-        ceiling=args.ceiling,
-        bin_method=args.binarization,
-        clust_method=args.clustering,
-        pval=args.pval,
-        directions=directions,
-        min_n_samples=args.min_n_samples,
-        show_fits=[],
-        modularity=args.modularity,
-        similarity_cutoffs=args.similarity_cutoffs,  # for Louvain
-        ds=args.ds,
-        dch=args.dch,
-        rpath=args.rpath,
-        precluster=True,  # for WGCNA
-        # cluster_binary = False,
-        # merge = args.merge,
-        seed=args.seed,
-        # plot_all = args.plot,
-        verbose=args.verbose,
-    )
+    try:
+        biclusters = unpast(
+            args.exprs,
+            args.basename,
+            out_dir=args.out_dir,
+            save=args.save_binary,
+            load=args.load_binary,
+            ceiling=args.ceiling,
+            bin_method=args.binarization,
+            clust_method=args.clustering,
+            pval=args.pval,
+            directions=directions,
+            min_n_samples=args.min_n_samples,
+            show_fits=[],
+            modularity=args.modularity,
+            similarity_cutoffs=args.similarity_cutoffs,  # for Louvain
+            ds=args.ds,
+            dch=args.dch,
+            rpath=args.rpath,
+            precluster=True,  # for WGCNA
+            # cluster_binary = False,
+            # merge = args.merge,
+            seed=args.seed,
+            # plot_all = args.plot,
+            verbose=args.verbose,
+        )
+    except Exception as e:
+        logger.error(e)
+        raise
+
+    return biclusters
 
 
 if __name__ == "__main__":

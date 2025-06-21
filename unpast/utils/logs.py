@@ -2,6 +2,16 @@ import logging
 from logging import getLogger as get_logger
 import time
 from functools import wraps
+import sys
+
+LOG_LEVELS = {
+    "CRITICAL": logging.CRITICAL,
+    "ERROR": logging.ERROR,
+    "WARNING": logging.WARNING,
+    "INFO": logging.INFO,
+    "DEBUG": logging.DEBUG,
+    "NOTSET": logging.NOTSET,
+}
 
 
 def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.DEBUG):
@@ -36,7 +46,7 @@ def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.
     file_formatter = logging.Formatter("%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 
     # Create console handler
-    console_handler = logging.StreamHandler()
+    console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
@@ -77,6 +87,8 @@ def log_function_duration(name=None):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
+            # Get logger for the module where the decorated function is defined
+            func_logger = get_logger(func.__module__)
             start_time = time.time()
             result = func(*args, **kwargs)
             end_time = time.time()
@@ -87,7 +99,7 @@ def log_function_duration(name=None):
             else:
                 step_name = func.__name__
 
-            logger.info(f"{step_name} completed in: {duration:7.2f} seconds")
+            func_logger.debug(f"{step_name} completed in: {duration:7.2f} seconds")
             return result
 
         return wrapper

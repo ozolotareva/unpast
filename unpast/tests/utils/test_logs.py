@@ -7,7 +7,7 @@ def test_log_file_creation_and_write(tmp_path):
     log_path = tmp_path / "test.log"
     logs.setup_logging(log_file=str(log_path))
     logger = logs.get_logger(__name__)
-    logger.info("Test log message")
+    logger.debug("Test log message")
     assert os.path.exists(log_path)
     with open(log_path) as f:
         content = f.read()
@@ -22,7 +22,7 @@ def test_log_file_append(tmp_path):
 
     logs.setup_logging(log_file=str(log_path))
     logger = logs.get_logger(__name__)
-    logger.info("Second message")
+    logger.debug("Second message")
 
     with open(log_path) as f:
         lines = f.read()
@@ -39,7 +39,7 @@ def test_log_file_custom_level(tmp_path):
     with open(log_path) as f:
         content = f.read()
     assert "Error message" in content
-    logger.info("Info message")
+    logger.debug("Info message")
     with open(log_path) as f:
         content = f.read()
     assert "Info message" not in content
