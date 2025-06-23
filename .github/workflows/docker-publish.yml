@@ -67,7 +67,7 @@ jobs:
       - name: Verify Output
         run: |
           ls -l results
-          OUTPUT_FILE=$(ls results/scenario_B500*_*biclusters.tsv)
+          OUTPUT_FILE=$(ls results/scenario_B500/runs/run_*/biclusters.tsv)
           if [ ! -s "$OUTPUT_FILE" ]; then
             echo "Test failed: Output file is missing or empty"
             exit 1

@@ -15,7 +15,7 @@ RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscripts").resolve()
 
 def run_WGCNA_iterative(
     binarized_expressions,
-    tmp_prefix="",
+    paths,
     deepSplit=0,
     detectCutHeight=0.995,
     nt="signed_hybrid",  # see WGCNA documentation
@@ -29,7 +29,7 @@ def run_WGCNA_iterative(
 
     Args:
         binarized_expressions (DataFrame): binary expression matrix with features as rows, samples as columns
-        tmp_prefix (str): prefix for temporary files during WGCNA execution
+        paths (ProjectPaths): project paths object containing paths for temporary files
         deepSplit (int): WGCNA parameter controlling module splitting sensitivity (0-4)
         detectCutHeight (float): WGCNA height cutoff for merging modules (0-1)
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
@@ -58,7 +58,7 @@ def run_WGCNA_iterative(
 
         m, not_clustered = run_WGCNA(
             binarized_expressions_,
-            tmp_prefix=tmp_prefix,
+            paths=paths,
             deepSplit=deepSplit,
             detectCutHeight=detectCutHeight,
             nt=nt,
@@ -87,7 +87,7 @@ def run_WGCNA_iterative(
 
 def run_WGCNA(
     binarized_expressions,
-    tmp_prefix="",
+    paths,
     deepSplit=0,
     detectCutHeight=0.995,
     nt="signed_hybrid",  # see WGCNA documentation
@@ -101,7 +101,7 @@ def run_WGCNA(
 
     Args:
         binarized_expressions (DataFrame): binary expression matrix with features as rows, samples as columns
-        tmp_prefix (str): prefix for temporary files during WGCNA execution
+        paths (ProjectPaths): project paths object containing paths for temporary files
         deepSplit (int): WGCNA parameter controlling module splitting sensitivity (0-4)
         detectCutHeight (float): WGCNA height cutoff for merging modules (0-1)
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
@@ -118,22 +118,8 @@ def run_WGCNA(
     """
     t0 = time()
     # create unique suffix for tmp files
-    from datetime import datetime
 
-    now = datetime.now()
-    fname = "tmpWGCNA_" + now.strftime("%y.%m.%d_%H:%M:%S") + ".tsv"
-    if len(tmp_prefix) > 0:
-        fname = tmp_prefix + "." + fname
-
-    # create dir if required
-    if os.path.dirname(fname) != "":
-        if not os.path.exists(os.path.dirname(fname)):
-            os.makedirs(os.path.dirname(fname))
-            print(
-                "\t\tCreated directory for WGCNA tmp files:",
-                os.path.dirname(fname),
-                file=sys.stdout,
-            )
+    fname = paths.get_wgcna_tmp_file()
 
     if verbose:
         print("\t\tWGCNA pre-clustering:", precluster, file=sys.stdout)
@@ -243,7 +229,7 @@ def run_WGCNA(
     )
     stdout, stderr = process.communicate()
     # stdout = stdout.decode('utf-8')
-    module_file = fname.replace(".tsv", ".modules.tsv")  # stdout.rstrip()
+    module_file = fname.replace(".tsv", ".modules.tsv")
     try:
         modules_df = pd.read_csv(module_file, sep="\t", index_col=0)
     except:
@@ -284,10 +270,10 @@ def run_WGCNA(
 
     # remove WGCNA input and output files
     try:
-        os.remove(fname)
         os.remove(module_file)
-    except:
-        pass
+        paths.clear_wgcna_tmp_files()
+    except Exception as e:
+        print("Failed to remove WGCNA temporary files: {}".format(e), file=sys.stderr)
 
     if verbose:
         print(
