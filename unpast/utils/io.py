@@ -1,6 +1,5 @@
 from datetime import datetime
 import os
-import sys
 import pandas as pd
 from typing import Optional, Tuple
 from pathlib import Path
@@ -174,7 +173,7 @@ def write_bic_table(
             )
 
         else:
-            print("Unknown 'clust_method'", clust_method, file=sys.stderr)
+            logger.error(f"Unknown 'clust_method': {clust_method}")
         metadata = metadata + "; merge=" + str(merge)
         with open(results_file_name, "w") as f:
             f.write(metadata + "\n")
@@ -183,7 +182,7 @@ def write_bic_table(
         write_mode = "w"
 
     if len(bics) == 0:
-        print("No biclusters found", file=sys.stderr)
+        logger.warning("No biclusters found")
     else:
         if to_str:
             bics["genes"] = bics["genes"].apply(lambda x: " ".join(map(str, sorted(x))))

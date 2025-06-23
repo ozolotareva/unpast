@@ -134,7 +134,7 @@ class TestPrepareInputMatrix:
         data_with_zeros.loc["zero_gene1"] = 5.0  # Constant value
         data_with_zeros.loc["zero_gene2"] = 10.0  # Another constant value
 
-        with caplog.at_level(LOG_LEVELS["INFO"]):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data_with_zeros, verbose=True)
 
         # Check that zero variance genes were dropped
@@ -143,7 +143,7 @@ class TestPrepareInputMatrix:
         assert result.shape[0] == self.test_data.shape[0]  # Original number of genes
 
         # Check verbose output
-        assert "Zero variance rows will be dropped" in caplog.text
+        assert "Zero variance rows will be dropped: 2" in caplog.text
 
     def test_prepare_input_matrix_with_missing_values(self, caplog):
         """Test handling of missing values."""
@@ -174,7 +174,7 @@ class TestPrepareInputMatrix:
             columns=["sample1", "sample2", "sample3"],
         )
 
-        with caplog.at_level(LOG_LEVELS["INFO"]):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
 
         # Check that values are capped at ceiling
@@ -182,7 +182,7 @@ class TestPrepareInputMatrix:
         assert np.all(result >= -2.0)
 
         # Check verbose output
-        assert "Standardized expressions will be limited to [-2.0,2.0]" in caplog.text
+        assert "Standardized expressions will be limited to [-2.0,2.0]:" in caplog.text
 
     def test_prepare_input_matrix_no_standardization(self):
         """Test with standardization disabled."""
@@ -202,7 +202,7 @@ class TestPrepareInputMatrix:
         data.iloc[0, 0] = np.nan
         data.iloc[1, 1] = np.nan
 
-        with caplog.at_level(LOG_LEVELS["INFO"]):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
 
         # Check that missing values were replaced with -ceiling
@@ -211,7 +211,7 @@ class TestPrepareInputMatrix:
         assert not result.isna().any().any()
 
         # Check verbose output
-        assert "Missing values will be replaced with -2.0" in caplog.text
+        assert "Missing values will be replaced with -2.0." in caplog.text
 
     def test_prepare_input_matrix_too_few_features(self, caplog):
         """Test behavior when too few features remain after filtering."""

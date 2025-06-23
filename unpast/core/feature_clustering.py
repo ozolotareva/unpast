@@ -1,6 +1,5 @@
 """Cluster binarized genes"""
 
-import sys
 import os
 import subprocess
 import pandas as pd
@@ -128,12 +127,11 @@ def run_WGCNA(
 
     deepSplit = int(deepSplit)
     if not deepSplit in [0, 1, 2, 3, 4]:
-        print("deepSplit must be 1,2,3 or 4. See WGCNA documentation.", file=sys.stderr)
+        logger.error("deepSplit must be 1,2,3 or 4. See WGCNA documentation.")
         return ([], [])
     if not 0 < detectCutHeight < 1:
-        print(
-            "detectCutHeight must be between 0 and 1. See WGCNA documentation.",
-            file=sys.stderr,
+        logger.error(
+            "detectCutHeight must be between 0 and 1. See WGCNA documentation."
         )
         return ([], [])
     logger.debug(f"\tRunning WGCNA for {fname} ...")
@@ -155,9 +153,8 @@ def run_WGCNA(
             if i in duplicated_feature_ndxs:
                 fn = str(fn) + "*" + str(i)
             new_feature_names.append(fn)
-        print(
-            "\t\t%s duplicated feature names detected." % len(duplicated_feature_ndxs),
-            file=sys.stdout,
+        logger.info(
+            f"\t\t{len(duplicated_feature_ndxs)} duplicated feature names detected."
         )
         dup_fn_mapping = dict(zip(new_feature_names, feature_names))
         binarized_expressions_.columns = new_feature_names
@@ -255,7 +252,7 @@ def run_WGCNA(
     )
     # print(stdout,file = sys.stdout)
     if len(stderr) > 0:
-        print(stderr, file=sys.stderr)
+        logger.error(stderr)
 
     return (modules, not_clustered)
 
@@ -286,7 +283,7 @@ def run_Louvain(
             - best_Q: best modularity score achieved
     """
     if similarity.shape[0] == 0:
-        print("no features to cluster", file=sys.stderr)
+        logger.error("no features to cluster")
         return [], [], None
 
     logger.debug("\tRunning Louvain ...")
@@ -302,7 +299,7 @@ def run_Louvain(
     except:
         from sknetwork.clustering import get_modularity
 
-        print("sknetwork version used:", sknetwork.__version__, file=sys.stderr)
+        logger.debug(f"sknetwork version used: {sknetwork.__version__}")
         old_sknetwork_version = False
     try:
         from scipy.sparse.csr import csr_matrix
@@ -376,13 +373,11 @@ def run_Louvain(
                 best_Q = kn.knee_y
                 labels = feature_clusters[best_cutoff]
             except:
-                print("Failed to identify similarity cutoff", file=sys.stderr)
-                print(
-                    "Similarity cutoff: set to ", similarity_cutoffs[0], file=sys.stdout
-                )
+                logger.error("Failed to identify similarity cutoff")
+                logger.info(f"Similarity cutoff: set to {similarity_cutoffs[0]}")
                 best_cutoff = similarity_cutoffs[0]
                 best_Q = np.nan
-                print("Modularity:", modularities, file=sys.stdout)
+                logger.info(f"Modularity: {modularities}")
                 if plot:
                     plt.plot(similarity_cutoffs, modularities, "bx-")
                     plt.xlabel("similarity cutoff")

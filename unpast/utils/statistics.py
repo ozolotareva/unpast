@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import pandas as pd
 import math
@@ -7,6 +6,10 @@ from time import time
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import statsmodels.api as sm
+
+from .logs import get_logger
+
+logger = get_logger(__name__)
 
 
 def calc_snr_per_row(s, N, exprs, exprs_sums, exprs_sq_sums):
@@ -105,16 +108,13 @@ def generate_null_dist(
     t0 = time()
 
     if verbose:
-        print(
-            "\tGenerate background distribuition of SNR depending on the bicluster size ...",
-            file=sys.stdout,
+        logger.info(
+            "\tGenerate background distribuition of SNR depending on the bicluster size ..."
         )
-        print(
-            "\t\ttotal samples: %s,\n\t\tnumber of samples in a bicluster: %s - %s,\n\t\tn_permutations: %s"
-            % (N, min(sizes), max(sizes), n_permutations),
-            file=sys.stdout,
+        logger.info(
+            f"\t\ttotal samples: {N},\n\t\tnumber of samples in a bicluster: {min(sizes)} - {max(sizes)},\n\t\tn_permutations: {n_permutations}"
         )
-        print("\t\tsnr pval threshold:", pval, file=sys.stdout)
+        logger.info(f"\t\tsnr pval threshold: {pval}")
 
     exprs = np.zeros((n_permutations, N))  # generate random expressions from st.normal
     # values = exprs.values.reshape(-1) # random samples from expression matrix
@@ -138,10 +138,7 @@ def generate_null_dist(
         )
 
     if verbose:
-        print(
-            "\tBackground ditribution generated in {:.2f} s".format(time() - t0),
-            file=sys.stdout,
-        )
+        logger.info(f"\tBackground ditribution generated in {time() - t0:.2f} s")
     return null_distribution
 
 

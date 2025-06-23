@@ -1,5 +1,9 @@
 """TODO: check and remove this file if not used anymore"""
 
+from .logs import get_logger
+
+logger = get_logger(__name__)
+
 TRY_USE_NUMBA = True
 
 
@@ -26,4 +30,6 @@ if TRY_USE_NUMBA:
 
         jit_if_available = jit()
     except:
-        print("Numba is not available. Install numba for a bit faster calculations")
+        logger.info(
+            "Numba is not available. Install numba for a bit faster calculations"
+        )
