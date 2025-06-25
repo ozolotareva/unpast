@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 RSCRIPTS_DIR = (Path(__file__).parent.parent / "rscripts").resolve()
 
 
-@log_function_duration(name="WGCNA Iterative")
+@log_function_duration(name="WGCNA Iterative feature clustering")
 def run_WGCNA_iterative(
     binarized_expressions,
     paths,
@@ -83,7 +83,7 @@ def run_WGCNA_iterative(
     return (modules, not_clustered)
 
 
-@log_function_duration(name="WGCNA")
+@log_function_duration(name="WGCNA feature clustering")
 def run_WGCNA(
     binarized_expressions,
     paths,
@@ -250,14 +250,19 @@ def run_WGCNA(
     logger.debug(
         f"\tmodules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
-    # print(stdout,file = sys.stdout)
+
+    if len(stdout) > 0:
+        if len(stdout) > 100:
+            stdout = stdout[:100] + b"... (truncated)"
+        logger.debug(f"\t\tWCGNA stdout: {stdout}")
+
     if len(stderr) > 0:
-        logger.error(stderr)
+        logger.error(f"\t\tWCGNA stderr: {stderr}")
 
     return (modules, not_clustered)
 
 
-@log_function_duration(name="Louvain")
+@log_function_duration(name="Louvain feature clustering")
 def run_Louvain(
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),

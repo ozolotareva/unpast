@@ -151,12 +151,12 @@ def unpast(
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["DEBUG"])
     else:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["INFO"])
-    write_args(locals(), paths.args)
+    write_args(locals(), paths.args, args_label="Run arguments")
 
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
     logger.info(f"Read input from {exprs_file}")
-    logger.debug(f"\t{exprs.shape[0]} features x {exprs.shape[1]} samples")
+    logger.info(f"\t{exprs.shape[0]} features x {exprs.shape[1]} samples")
     check_input_shape(exprs.shape, min_n_samples)
 
     e_dist_size = max(e_dist_size, int(1.0 / pval * 10))
@@ -175,7 +175,7 @@ def unpast(
     ######### binarization #########
 
     binarized_features, stats, null_distribution = binarize(
-        out_dir=out_dir,
+        out_dir=paths,
         exprs=exprs,
         method=bin_method,
         save=save,

@@ -247,13 +247,13 @@ def _save_binarization_files(
         None: Saves files to specified paths
     """
     binarized_data.to_csv(paths.binarization_res, sep="\t")
-    logger.debug(f"Binarized data saved to {paths.binarization_res}")
+    logger.debug(f"\tBinarized data saved to {paths.binarization_res}")
 
     stats.to_csv(paths.binarization_stats, sep="\t")
-    logger.debug(f"Statistics saved to {paths.binarization_stats}")
+    logger.debug(f"\tStatistics saved to {paths.binarization_stats}")
 
     null_distribution.to_csv(paths.binarization_bg, sep="\t")
-    logger.debug(f"Background distribution saved to {paths.binarization_bg}")
+    logger.debug(f"\tBackground distribution saved to {paths.binarization_bg}")
 
 
 def _generate_missing_null_distribution_sizes(
@@ -333,7 +333,7 @@ def binarize(
     """Main binarization function that creates binary expression profiles with significance testing.
 
     Args:
-        out_dir (str): basename for output binarized data files
+        out_dir (str | ProjectPaths): output directory or ProjectPaths object for saving results
         exprs (DataFrame): normalized expression matrix with features as rows and samples as columns
         method (str): binarization method to use ("GMM")
         save (bool): whether to save binarized data to files
@@ -354,8 +354,12 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    paths = ProjectPaths(out_dir)
-    write_args(locals(), paths.binarization_args)
+    logger.debug("\tBinarization started ...")
+    if isinstance(out_dir, ProjectPaths):
+        paths = out_dir
+    else:
+        paths = ProjectPaths(out_dir)
+    binarization_args = locals()  # for saving later
 
     binarized_data, stats, null_distribution = None, None, None
     if load:
@@ -411,6 +415,13 @@ def binarize(
     stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval, verbose)
 
     if save:
+        paths.create_binarization_paths()
+        write_args(
+            binarization_args,
+            paths.binarization_args,
+            args_label="\tBinarization arguments",
+        )
+
         null_distribution_full = null_distribution_full.sort_index()
         _save_binarization_files(
             paths,

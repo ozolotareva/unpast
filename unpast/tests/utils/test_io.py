@@ -75,11 +75,14 @@ def test_project_paths(tmp_path):
     paths = io.ProjectPaths(str(tmp_path))
     assert os.path.exists(paths.root)
     assert paths.res.endswith(".tsv")
-    assert os.path.exists(paths.bin_dir)
 
     root = paths.get_root_dir()
     new_paths = io.ProjectPaths(root)
     assert new_paths.get_root_dir() == root
+
+    assert not os.path.exists(paths.bin_dir)
+    paths.create_binarization_paths()
+    assert os.path.exists(paths.bin_dir)
 
 
 def test_write_and_read_args(tmp_path):

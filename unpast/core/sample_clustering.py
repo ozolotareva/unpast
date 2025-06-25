@@ -65,7 +65,7 @@ def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
     return bicluster
 
 
-@log_function_duration(name="modules2biclusters")
+@log_function_duration(name="Building biclusters from modules")
 def modules2biclusters(
     modules,
     data_to_cluster,
@@ -169,7 +169,7 @@ def update_bicluster_data(bicluster, data):
     return bicluster
 
 
-@log_function_duration(name="merge_biclusters")
+@log_function_duration(name="Bicluster merging")
 def merge_biclusters(
     biclusters, data, J=0.8, min_n_samples=5, seed=42, method="kmeans", verbose=True
 ):
@@ -238,7 +238,7 @@ def merge_biclusters(
     return merged_biclusters
 
 
-@log_function_duration(name="make_biclusters")
+@log_function_duration(name="Creating final biclusters")
 def make_biclusters(
     feature_clusters,
     binarized_data,

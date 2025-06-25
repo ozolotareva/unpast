@@ -270,9 +270,12 @@ class ProjectPaths:
 
         self.tmp_wgcna = self.root / "tmp_wgcna"
 
-        # mkdirs
-        for path in [self.bin_dir]:
-            Path(path).mkdir(exist_ok=True)
+    def create_binarization_paths(self) -> None:
+        """
+        Creates the binarization directory and ensures all binarization paths exist.
+        This method is called before saving binarization files.
+        """
+        Path(self.bin_dir).mkdir(parents=True, exist_ok=True)
 
     def get_root_dir(self) -> str:
         """
@@ -318,18 +321,22 @@ class ProjectPaths:
         return f"ProjectPaths(root='{self.root}')"
 
 
-def write_args(args: dict, file_path: str) -> None:
+def write_args(
+    args: dict, file_path: str, args_label: Optional[str] = "Arguments"
+) -> None:
     """
     Writes the arguments to a file in a tab-separated format.
 
     Args:
         args (dict): A dictionary of arguments to save.
         file_path (str): The path to the file where the arguments will be saved.
+        args_label (str, optional): The name of args, use None to skip logging.
     """
     assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
     df = pd.DataFrame(list(args.items()), columns=["arg", "value"])
     df.to_csv(file_path, sep="\t", index=False)
-    logger.debug(f"Arguments written to {file_path}")
+    if args_label:
+        logger.debug(f"{args_label} saved to {file_path}")
 
 
 def read_args(file_path: str) -> dict:
