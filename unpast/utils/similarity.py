@@ -56,7 +56,7 @@ def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
 
     results = pd.DataFrame(data=results, index=genes, columns=genes)
     logger.debug(
-        f"\tJaccard similarities for {binarized_data.shape[1]} features computed."
+        f"Jaccard similarities for {binarized_data.shape[1]} features computed."
     )
     return results
 

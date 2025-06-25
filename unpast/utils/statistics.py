@@ -107,14 +107,13 @@ def generate_null_dist(
     # returns a dataframe with the distribution of SNR for each bicluster size (sizes x n_permutations )
     t0 = time()
 
-    if verbose:
-        logger.info(
-            "\tGenerate background distribuition of SNR depending on the bicluster size ..."
-        )
-        logger.info(
-            f"\t\ttotal samples: {N},\n\t\tnumber of samples in a bicluster: {min(sizes)} - {max(sizes)},\n\t\tn_permutations: {n_permutations}"
-        )
-        logger.info(f"\t\tsnr pval threshold: {pval}")
+    logger.debug(
+        "Generate background distribuition of SNR depending on the bicluster size:"
+    )
+    logger.debug(f"- total samples: {N}")
+    logger.debug(f"- samples in a bicluster: {min(sizes)}-{max(sizes)}")
+    logger.debug(f"- tn_permutations: {n_permutations}")
+    logger.debug(f"- snr pval threshold: {pval}")
 
     exprs = np.zeros((n_permutations, N))  # generate random expressions from st.normal
     # values = exprs.values.reshape(-1) # random samples from expression matrix
@@ -138,7 +137,7 @@ def generate_null_dist(
         )
 
     if verbose:
-        logger.info(f"\tBackground ditribution generated in {time() - t0:.2f} s")
+        logger.info(f"Background ditribution generated in {time() - t0:.2f} s")
     return null_distribution
 
 
@@ -164,7 +163,7 @@ def get_trend(sizes, thresholds, plot=True, verbose=True):
     lowess = sm.nonparametric.lowess
     frac = max(1, min(math.floor(int(0.1 * len(sizes))), 15) / len(sizes))
     # if verbose:
-    #    print("\t\t\tLOWESS frac=",round(frac,2), file = sys.stdout)
+    #    print("LOWESS frac=",round(frac,2), file = sys.stdout)
     lowess_curve = lowess(
         thresholds, sizes, frac=frac, return_sorted=True, is_sorted=False
     )

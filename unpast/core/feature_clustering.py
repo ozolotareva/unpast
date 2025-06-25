@@ -71,13 +71,13 @@ def run_WGCNA_iterative(
             rpath=rpath,
         )
         logger.debug(
-            f"\t\t\tWGCNA iteration {i}, modules:{len(m)}, not clustered:{len(not_clustered)}"
+            f"WGCNA iteration {i}, modules:{len(m)}, not clustered:{len(not_clustered)}"
         )
         modules += m
         # stop when the number of not clustred samples does not change
         if len(m) == 0:
             stop_condition = True
-            logger.debug(f"\t\t\tWGCNA iterations terminated at step {i}")
+            logger.debug(f"WGCNA iterations terminated at step {i}")
 
         i += 1
     return (modules, not_clustered)
@@ -119,7 +119,7 @@ def run_WGCNA(
 
     fname = paths.get_wgcna_tmp_file()
 
-    logger.debug(f"\t\tWGCNA pre-clustering: {precluster}")
+    logger.debug(f"WGCNA pre-clustering: {precluster}")
     if precluster:
         precluster = "T"
     else:
@@ -134,7 +134,7 @@ def run_WGCNA(
             "detectCutHeight must be between 0 and 1. See WGCNA documentation."
         )
         return ([], [])
-    logger.debug(f"\tRunning WGCNA for {fname} ...")
+    logger.debug(f"Running WGCNA for {fname} ...")
     if not rscr_path:
         rscr_path = str(RSCRIPTS_DIR / "run_WGCNA.R")
 
@@ -154,7 +154,7 @@ def run_WGCNA(
                 fn = str(fn) + "*" + str(i)
             new_feature_names.append(fn)
         logger.info(
-            f"\t\t{len(duplicated_feature_ndxs)} duplicated feature names detected."
+            f"{len(duplicated_feature_ndxs)} duplicated feature names detected."
         )
         dup_fn_mapping = dict(zip(new_feature_names, feature_names))
         binarized_expressions_.columns = new_feature_names
@@ -165,7 +165,7 @@ def run_WGCNA(
     feature_names_with_space = [x for x in feature_names if " " in x]
     if len(feature_names_with_space) > 0:
         logger.debug(
-            f"\t\tfeature names containing spaces (will be replaced):{len(feature_names_with_space)}"
+            f"feature names containing spaces (will be replaced):{len(feature_names_with_space)}"
         )
         fn_mapping = {}
         fn_mapping_back = {}
@@ -195,8 +195,7 @@ def run_WGCNA(
         str(max_power),
         precluster,
     ]
-    logger.debug("\tR command line:")
-    logger.debug("\t" + " ".join(r_cmd_args))
+    logger.debug("R command line: '" + " ".join(r_cmd_args) + "'")
 
     process = subprocess.Popen(
         r_cmd_args,
@@ -248,16 +247,18 @@ def run_WGCNA(
         logger.debug(f"Failed to remove WGCNA temporary files: {e}")
 
     logger.debug(
-        f"\tmodules: {len(modules)}, not clustered features {len(not_clustered)} "
+        f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
 
     if len(stdout) > 0:
         if len(stdout) > 100:
-            stdout = stdout[:100] + b"... (truncated)"
-        logger.debug(f"\t\tWCGNA stdout: {stdout}")
+            stdout = str(stdout[:100] + b"...") + "truncated"
+        else:
+            stdout = str(stdout)
+        logger.debug(f"WCGNA stdout: {stdout}")
 
     if len(stderr) > 0:
-        logger.error(f"\t\tWCGNA stderr: {stderr}")
+        logger.warning(f"WCGNA stderr: {stderr}")
 
     return (modules, not_clustered)
 
@@ -291,8 +292,8 @@ def run_Louvain(
         logger.error("no features to cluster")
         return [], [], None
 
-    logger.debug("\tRunning Louvain ...")
-    logger.debug(f"\t\tmodularity: {modularity_measure}")
+    logger.debug("Running Louvain ...")
+    logger.debug(f"modularity: {modularity_measure}")
 
     from sknetwork.clustering import Louvain
     import sknetwork
@@ -364,7 +365,7 @@ def run_Louvain(
             curve_type = "increasing"
             if modularities[0] >= modularities[-1]:
                 curve_type = "decreasing"
-            logger.debug(f"\tcurve type: {curve_type}")
+            logger.debug(f"curve type: {curve_type}")
             # detect knee and choose the one with the highest modularity
             try:
                 kn = KneeLocator(
@@ -424,7 +425,8 @@ def run_Louvain(
         else:
             not_clustered.append(genes[0])
     logger.debug(
-        f"\tmodules: {len(modules)}, not clustered features {len(not_clustered)} "
+        f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
-    logger.debug(f"\t\tsimilarity cutoff: {best_cutoff:.2f} modularity: {best_Q:.3f}")
+    logger.debug(f"- similarity cutoff: {best_cutoff:.2f}")
+    logger.debug(f"- modularity: {best_Q:.3f}")
     return modules, not_clustered, best_cutoff

@@ -68,7 +68,7 @@ def check_input_shape(exprs_shape, min_n_samples):
 
     if min_n_samples < 5:
         logger.warning(
-            f"\tmin_n_samples is recommended to be >= 5, found {min_n_samples}"
+            f"min_n_samples is recommended to be >= 5, found {min_n_samples}"
         )
 
 
@@ -155,8 +155,8 @@ def unpast(
 
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
-    logger.info(f"Read input from {exprs_file}")
-    logger.info(f"\t{exprs.shape[0]} features x {exprs.shape[1]} samples")
+    logger.info(f"Loaded input from {exprs_file}")
+    logger.info(f"Input shape is {exprs.shape[0]} features x {exprs.shape[1]} samples")
     check_input_shape(exprs.shape, min_n_samples)
 
     e_dist_size = max(e_dist_size, int(1.0 / pval * 10))

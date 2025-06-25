@@ -125,7 +125,7 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         )
 
 
-@log_function_duration(name="\tBinarization")
+@log_function_duration(name="Binarization")
 def sklearn_binarization(
     exprs,
     min_n_samples,
@@ -181,7 +181,7 @@ def sklearn_binarization(
 
         # TODO: tqdm
         if i % 1000 == 0:
-            logger.debug(f"\t\tgenes processed: {i}")
+            logger.debug(f"processed {i}/{exprs.shape[0]} samples")
 
         if (plot and abs(snr) > plot_SNR_thr) or (gene in show_fits):
             plot_binarized_feature(row, direction, pos_mask, neg_mask, snr)
@@ -247,13 +247,13 @@ def _save_binarization_files(
         None: Saves files to specified paths
     """
     binarized_data.to_csv(paths.binarization_res, sep="\t")
-    logger.debug(f"\tBinarized data saved to {paths.binarization_res}")
+    logger.debug(f"Binarized data saved to {paths.binarization_res}")
 
     stats.to_csv(paths.binarization_stats, sep="\t")
-    logger.debug(f"\tStatistics saved to {paths.binarization_stats}")
+    logger.debug(f"Statistics saved to {paths.binarization_stats}")
 
     null_distribution.to_csv(paths.binarization_bg, sep="\t")
-    logger.debug(f"\tBackground distribution saved to {paths.binarization_bg}")
+    logger.debug(f"Background distribution saved to {paths.binarization_bg}")
 
 
 def _generate_missing_null_distribution_sizes(
@@ -313,7 +313,7 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
     return stats, size_snr_trend
 
 
-@log_function_duration(name="\tBinarization")
+@log_function_duration(name="Binarization")
 def binarize(
     out_dir,
     exprs,
@@ -354,7 +354,7 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    logger.debug("\tBinarization started ...")
+    logger.debug("Binarization started ...")
     if isinstance(out_dir, ProjectPaths):
         paths = out_dir
     else:
@@ -419,7 +419,7 @@ def binarize(
         write_args(
             binarization_args,
             paths.binarization_args,
-            args_label="\tBinarization arguments",
+            args_label="Binarization arguments",
         )
 
         null_distribution_full = null_distribution_full.sort_index()
@@ -436,12 +436,12 @@ def binarize(
     # passed = stats.loc[stats["pval_BH"]<pval,:]
 
     logger.debug(
-        f"\t\tUP-regulated features:\t{passed.loc[passed['direction'] == 'UP', :].shape[0]}"
+        f"UP-regulated features:\t{passed.loc[passed['direction'] == 'UP', :].shape[0]}"
     )
     logger.debug(
-        f"\t\tDOWN-regulated features:\t{passed.loc[passed['direction'] == 'DOWN', :].shape[0]}"
+        f"DOWN-regulated features:\t{passed.loc[passed['direction'] == 'DOWN', :].shape[0]}"
     )
-    # print("\t\tambiguous features:\t%s"%(passed.loc[passed["direction"]=="UP,DOWN",:].shape[0]),file = sys.stdout)
+    # print("ambiguous features:\t%s"%(passed.loc[passed["direction"]=="UP,DOWN",:].shape[0]),file = sys.stdout)
 
     # keep only binarized features
     binarized_data = binarized_data.loc[:, list(passed.index.values)]

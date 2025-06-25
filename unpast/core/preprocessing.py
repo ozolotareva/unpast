@@ -61,7 +61,7 @@ def prepare_input_matrix(
     # find zero variance rows
     zero_var = list(std[std == 0].index.values)
     if len(zero_var) > 0:
-        logger.debug(f"\tZero variance rows will be dropped: {len(zero_var)}")
+        logger.debug(f"Zero variance rows will be dropped: {len(zero_var)}")
         exprs = exprs.loc[std > 0]
         m = m[std > 0]
         std = std[std > 0]
@@ -74,37 +74,37 @@ def prepare_input_matrix(
     mean_passed = np.all(np.abs(m) < tol)
     std_passed = np.all(np.abs(std - 1) < tol)
     if not (mean_passed and std_passed):
-        logger.debug("\tInput is not standardized.")
+        logger.debug("Input is not standardized.")
         if standradize:
             exprs = zscore(exprs)
             if not mean_passed:
-                logger.debug("\tCentering mean to 0")
+                logger.debug("Centering mean to 0")
             if not std_passed:
-                logger.debug("\tScaling std to 1")
+                logger.debug("Scaling std to 1")
     if len(set(exprs.index.values)) < exprs.shape[0]:
-        logger.warning("\tRow names are not unique.")
+        logger.warning("Row names are not unique.")
     missing_values = exprs.isna().sum(axis=1)
     n_na = missing_values[missing_values > 0].shape[0]
     if n_na > 0:
         logger.warning(
-            f"\tMissing values detected in {missing_values[missing_values > 0].shape[0]} rows"
+            f"Missing values detected in {missing_values[missing_values > 0].shape[0]} rows"
         )
         keep_features = missing_values[
             missing_values <= exprs.shape[1] - min_n_samples
         ].index.values
         logger.warning(
-            f"\tFeatures with too few values (<{min_n_samples}) dropped: {exprs.shape[0] - len(keep_features)}"
+            f"Features with too few values (<{min_n_samples}) dropped: {exprs.shape[0] - len(keep_features)}"
         )
         exprs = exprs.loc[keep_features, :]
 
     if standradize:
         if ceiling > 0:
             logger.debug(
-                f"\tStandardized expressions will be limited to [-{ceiling},{ceiling}]:"
+                f"Standardized expressions will be limited to [-{ceiling},{ceiling}]:"
             )
             exprs[exprs > ceiling] = ceiling
             exprs[exprs < -ceiling] = -ceiling
             if n_na > 0:
                 exprs.fillna(-ceiling, inplace=True)
-                logger.debug(f"\tMissing values will be replaced with -{ceiling}.")
+                logger.debug(f"Missing values will be replaced with -{ceiling}.")
     return exprs

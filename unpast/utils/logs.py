@@ -75,8 +75,6 @@ def log_function_duration(name=None):
     Args:
         name (str, optional): Name to use in the log message.
         If not provided, the function's name will be used.
-
-
     """
 
     def decorator(func):
@@ -94,7 +92,7 @@ def log_function_duration(name=None):
             else:
                 step_name = func.__name__
 
-            func_logger.debug(f"{step_name} completed in: {duration:7.2f} seconds")
+            func_logger.debug(f"{step_name} completed in: {duration:.2f} seconds")
             return result
 
         return wrapper
