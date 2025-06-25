@@ -487,8 +487,6 @@ def main():
         logger.error(e)
         raise
 
-    return biclusters
-
 
 if __name__ == "__main__":
     main()
