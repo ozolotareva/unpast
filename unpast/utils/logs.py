@@ -34,28 +34,23 @@ def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.
     logger.handlers.clear()
 
     # Create formatter
-    # console_formatter = logging.Formatter(
-    #     "%(asctime)s  %(message)s", datefmt="%H:%M:%S"
-    # )
-    # file_formatter = logging.Formatter(
-    #     "%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
-    # )
-
-    # tmp compatible formatters untill enh:print->log everywhere
-    console_formatter = logging.Formatter("%(message)s", datefmt="%H:%M:%S")
-    file_formatter = logging.Formatter("%(message)s", datefmt="%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "%(asctime)s (%(relativeCreated)dms) %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%SUTC",
+    )
+    formatter.converter = time.gmtime  # Use UTC time for log timestamps
 
     # Create console handler
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setLevel(log_level)
-    console_handler.setFormatter(console_formatter)
+    console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
     # Create file handler if log_file is specified
     if log_file:
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(log_file_level)
-        file_handler.setFormatter(file_formatter)
+        file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
 
     logger = logging.getLogger(__name__)
