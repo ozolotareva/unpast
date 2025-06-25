@@ -1,13 +1,12 @@
 import numpy as np
 import pandas as pd
 import math
-from time import time
 
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 import statsmodels.api as sm
 
-from .logs import get_logger
+from .logs import get_logger, log_function_duration
 
 logger = get_logger(__name__)
 
@@ -86,6 +85,7 @@ def calc_SNR(ar1, ar2, pd_mode=False):
     return mean_diff / std_sum
 
 
+@log_function_duration(name="Background distribution generation")
 def generate_null_dist(
     N, sizes, n_permutations=10000, pval=0.001, seed=42, verbose=True
 ):
@@ -105,10 +105,8 @@ def generate_null_dist(
     # samples 'N' values from standard normal distribution, and split them into bicluster and background groups
     # 'sizes' defines bicluster sizes to test
     # returns a dataframe with the distribution of SNR for each bicluster size (sizes x n_permutations )
-    t0 = time()
-
     logger.debug(
-        "Generate background distribuition of SNR depending on the bicluster size:"
+        "Generate background distribution of SNR depending on the bicluster size:"
     )
     logger.debug(f"- total samples: {N}")
     logger.debug(f"- samples in a bicluster: {min(sizes)}-{max(sizes)}")
@@ -136,8 +134,6 @@ def generate_null_dist(
             s, N, exprs, exprs_sums, exprs_sq_sums
         )
 
-    if verbose:
-        logger.info(f"Background ditribution generated in {time() - t0:.2f} s")
     return null_distribution
 
 
