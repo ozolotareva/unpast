@@ -138,7 +138,7 @@ def update_bicluster_data(bicluster, data):
         assert "samples" in bicluster.keys(), (
             '"samples" or "sample_indexes" of a bicluster not specified"'
         )
-        sample_mask = np.isin(sample_names, bicluster["samples"])
+        sample_mask = np.isin(sample_names, list(bicluster["samples"]))
         bicluster["sample_indexes"] = set(np.where(sample_mask)[0])
 
     # ensure "samples" is present

@@ -42,7 +42,16 @@ def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame
         biclusters, metadata = read_bic_table('biclusters.tsv', parse_metadata=True)
     """
 
-    biclusters = pd.read_csv(file_name, sep="\t", index_col=0, comment="#")
+    biclusters = pd.read_csv(
+        file_name,
+        sep="\t",
+        index_col=0,
+        comment="#",
+        dtype={
+            "sample_indexes": str,
+            "gene_indexes": str,
+        },
+    )
     if len(biclusters) == 0:
         return pd.DataFrame()
     else:
