@@ -3,10 +3,9 @@
 import numpy as np
 import pandas as pd
 import pytest
-from io import StringIO
-from contextlib import redirect_stderr, redirect_stdout
 
 from unpast.core.preprocessing import zscore, prepare_input_matrix
+from unpast.utils.logs import LOG_LEVELS
 
 
 class TestZscore:
@@ -28,25 +27,23 @@ class TestZscore:
         stds = result.std(axis=1)
         assert np.allclose(stds, 1, atol=1e-10)
 
-    def test_zscore_zero_variance(self):
+    def test_zscore_zero_variance(self, caplog):
         """Test z-score normalization with zero variance genes."""
         # Create matrix with one zero-variance gene
         data = {"sample1": [1, 5, 5], "sample2": [2, 5, 5], "sample3": [3, 5, 5]}
         df = pd.DataFrame(data, index=["gene1", "gene2", "gene3"])
 
-        # Capture stderr to check the warning message
-        stderr_capture = StringIO()
-        with redirect_stderr(stderr_capture):
+        # Capture warning messages using caplog
+        with caplog.at_level(LOG_LEVELS["WARNING"]):
             result = zscore(df)
 
         # Check that zero variance genes are set to 0
         assert np.allclose(result.loc["gene2"], 0)
         assert np.allclose(result.loc["gene3"], 0)
 
-        # Check that warning was printed
-        stderr_output = stderr_capture.getvalue()
-        assert "zero variance rows detected" in stderr_output
-        assert "2" in stderr_output  # Should detect 2 zero variance rows
+        # Check that warning was logged
+        assert "zero variance rows detected" in caplog.text
+        assert "2" in caplog.text  # Should detect 2 zero variance rows
 
     def test_zscore_single_gene(self):
         """Test z-score normalization with single gene."""
@@ -119,28 +116,25 @@ class TestPrepareInputMatrix:
         assert all(isinstance(idx, str) for idx in result.index)
         assert all(isinstance(col, str) for col in result.columns)
 
-    def test_prepare_input_matrix_already_standardized(self):
+    def test_prepare_input_matrix_already_standardized(self, caplog):
         """Test with already standardized data."""
-        stdout_capture = StringIO()
-        with redirect_stdout(stdout_capture):
+        with caplog.at_level(LOG_LEVELS["INFO"]):
             result = prepare_input_matrix(self.standardized_data, verbose=True)
 
         # Should not print standardization message
-        stdout_output = stdout_capture.getvalue()
-        assert "Input is not standardized" not in stdout_output
+        assert "Input is not standardized" not in caplog.text
 
         # Result should be approximately the same as input
         assert np.allclose(result.values, self.standardized_data.values, atol=1e-10)
 
-    def test_prepare_input_matrix_zero_variance(self):
+    def test_prepare_input_matrix_zero_variance(self, caplog):
         """Test handling of zero variance genes."""
         # Add zero variance genes
         data_with_zeros = self.test_data.copy()
         data_with_zeros.loc["zero_gene1"] = 5.0  # Constant value
         data_with_zeros.loc["zero_gene2"] = 10.0  # Another constant value
 
-        stdout_capture = StringIO()
-        with redirect_stdout(stdout_capture):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data_with_zeros, verbose=True)
 
         # Check that zero variance genes were dropped
@@ -149,10 +143,9 @@ class TestPrepareInputMatrix:
         assert result.shape[0] == self.test_data.shape[0]  # Original number of genes
 
         # Check verbose output
-        stdout_output = stdout_capture.getvalue()
-        assert "Zero variance rows will be dropped" in stdout_output
+        assert "Zero variance rows will be dropped: 2" in caplog.text
 
-    def test_prepare_input_matrix_with_missing_values(self):
+    def test_prepare_input_matrix_with_missing_values(self, caplog):
         """Test handling of missing values."""
         # Add missing values
         data_with_na = self.test_data.copy()
@@ -161,8 +154,7 @@ class TestPrepareInputMatrix:
             np.nan
         )  # gene2 has 8 missing values (should be dropped)
 
-        stdout_capture = StringIO()
-        with redirect_stdout(stdout_capture):
+        with caplog.at_level(LOG_LEVELS["WARNING"]):
             result = prepare_input_matrix(data_with_na, min_n_samples=5, verbose=True)
 
         # gene2 should be dropped (only 2 valid samples, less than min_n_samples=5)
@@ -170,11 +162,10 @@ class TestPrepareInputMatrix:
         assert "gene1" in result.index  # gene1 should be kept (7 valid samples)
 
         # Check verbose output
-        stdout_output = stdout_capture.getvalue()
-        assert "Missing values detected" in stdout_output
-        assert "Features with too few values" in stdout_output
+        assert "Missing values detected" in caplog.text
+        assert "Features with too few values" in caplog.text
 
-    def test_prepare_input_matrix_with_ceiling(self):
+    def test_prepare_input_matrix_with_ceiling(self, caplog):
         """Test z-score ceiling functionality."""
         # Create data with extreme values
         data = pd.DataFrame(
@@ -183,8 +174,7 @@ class TestPrepareInputMatrix:
             columns=["sample1", "sample2", "sample3"],
         )
 
-        stdout_capture = StringIO()
-        with redirect_stdout(stdout_capture):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
 
         # Check that values are capped at ceiling
@@ -192,8 +182,7 @@ class TestPrepareInputMatrix:
         assert np.all(result >= -2.0)
 
         # Check verbose output
-        stdout_output = stdout_capture.getvalue()
-        assert "Standardized expressions will be limited to [-2.0,2.0]" in stdout_output
+        assert "Standardized expressions will be limited to [-2.0,2.0]:" in caplog.text
 
     def test_prepare_input_matrix_no_standardization(self):
         """Test with standardization disabled."""
@@ -206,15 +195,14 @@ class TestPrepareInputMatrix:
 
         pd.testing.assert_frame_equal(result, expected)
 
-    def test_prepare_input_matrix_missing_values_with_ceiling(self):
+    def test_prepare_input_matrix_missing_values_with_ceiling(self, caplog):
         """Test missing values replacement with ceiling."""
         # Create data with missing values
         data = self.test_data.copy()
         data.iloc[0, 0] = np.nan
         data.iloc[1, 1] = np.nan
 
-        stdout_capture = StringIO()
-        with redirect_stdout(stdout_capture):
+        with caplog.at_level(LOG_LEVELS["DEBUG"]):
             result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
 
         # Check that missing values were replaced with -ceiling
@@ -223,10 +211,9 @@ class TestPrepareInputMatrix:
         assert not result.isna().any().any()
 
         # Check verbose output
-        stdout_output = stdout_capture.getvalue()
-        assert "Missing values will be replaced with -2.0" in stdout_output
+        assert "Missing values will be replaced with -2.0." in caplog.text
 
-    def test_prepare_input_matrix_too_few_features(self):
+    def test_prepare_input_matrix_too_few_features(self, caplog):
         """Test behavior when too few features remain after filtering."""
         # Create data where most genes will be dropped
         data = pd.DataFrame(
@@ -238,28 +225,24 @@ class TestPrepareInputMatrix:
             columns=["sample1", "sample2", "sample3"],
         )
 
-        stderr_capture = StringIO()
-        with redirect_stderr(stderr_capture):
+        with caplog.at_level(LOG_LEVELS["WARNING"]):
             # This should trigger the warning about too few features
             _ = prepare_input_matrix(data, verbose=True)
 
         # The exact behavior may vary, but we should get a warning
-        stderr_output = stderr_capture.getvalue()
-        assert "less than 3 features (rows) remain" in stderr_output
+        assert "less than 3 features (rows) remain" in caplog.text
 
-    def test_prepare_input_matrix_duplicate_indices(self):
+    def test_prepare_input_matrix_duplicate_indices(self, caplog):
         """Test handling of non-unique row names."""
         # Create data with duplicate row names
         data = self.test_data.copy()
         data = data.reindex(["gene1", "gene1", "gene2", "gene2", "gene3"])  # Duplicates
 
-        stderr_capture = StringIO()
-        with redirect_stderr(stderr_capture):
+        with caplog.at_level(LOG_LEVELS["WARNING"]):
             _ = prepare_input_matrix(data)
 
         # Should print warning about non-unique row names
-        stderr_output = stderr_capture.getvalue()
-        assert "Row names are not unique" in stderr_output
+        assert "Row names are not unique" in caplog.text
 
     def test_prepare_input_matrix_tolerance(self):
         """Test the tolerance parameter for standardization check."""

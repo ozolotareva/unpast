@@ -5,7 +5,12 @@ import pandas as pd
 import numpy as np
 from time import time
 
+from unpast.utils.logs import get_logger, log_function_duration
 
+logger = get_logger(__name__)
+
+
+@log_function_duration(name="Jaccard Similarity")
 def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
     """Calculate Jaccard similarity matrix between features based on binary expression patterns.
 
@@ -16,7 +21,6 @@ def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
     Returns:
         DataFrame: symmetric similarity matrix with Jaccard coefficients between all feature pairs
     """
-    t0 = time()
     genes = binarized_data.columns.values
     n_samples = binarized_data.shape[0]
     size_threshold = int(min(0.45 * n_samples, (n_samples) / 2 - 10))
@@ -51,15 +55,13 @@ def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
             results[j, i] = jaccard
 
     results = pd.DataFrame(data=results, index=genes, columns=genes)
-    if verbose:
-        print(
-            "\tJaccard similarities for {} features computed in {:.2f} s.".format(
-                binarized_data.shape[1], time() - t0
-            ),
-            file=sys.stdout,
-        )
+    logger.debug(
+        f"Jaccard similarities for {binarized_data.shape[1]} features computed."
+    )
     return results
 
+
+# @log_function_duration(name="Pearson Similarity")
 
 # def get_similarity_corr(df, verbose=True):
 #     """Calculate correlation-based similarity matrix between features.
@@ -71,15 +73,7 @@ def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
 #     Returns:
 #         DataFrame: correlation similarity matrix with positive correlations only
 #     """
-#     t0 = time()
 #     corr = df.corr()  # .applymap(abs)
 #     corr = corr[corr > 0]  # to consider only direct correlations
 #     corr = corr.fillna(0)
-#     if verbose:
-#         print(
-#             "\tPearson's r similarities for {} features computed in {:.2f} s.".format(
-#                 df.shape[1], time() - t0
-#             ),
-#             file=sys.stdout,
-#         )
 #     return corr

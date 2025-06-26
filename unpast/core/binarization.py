@@ -14,6 +14,9 @@ from statsmodels.stats.multitest import fdrcorrection
 from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
 from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
 from unpast.utils.io import ProjectPaths, write_args
+from unpast.utils.logs import get_logger, log_function_duration
+
+logger = get_logger(__name__)
 
 
 def _fit_gmm_model(row, seed=42, prob_cutoff=0.5):
@@ -81,12 +84,10 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         labels = model.fit_predict(row2d) == 1
 
     else:
-        print(
+        raise NotImplementedError(
             f"wrong binarization method name {method},"
             " must be ['GMM', 'kmeans', 'ward']",
-            file=sys.stderr,
         )
-        raise NotImplementedError(f"method {method} is not implemented")
 
     assert labels.dtype is np.dtype(bool)
     assert len(labels) == len(row)
@@ -153,10 +154,6 @@ def sklearn_binarization(
             - binarized_expressions: dict mapping gene names to binary sample groups
             - stats: dict containing SNR and size statistics for each gene
     """
-    t0 = time()
-    if verbose:
-        print("\nBinarization started ....\n")
-
     binarized_expressions = {}
     stats = {}
     for i, (gene, row_) in enumerate(exprs.iterrows()):
@@ -181,26 +178,15 @@ def sklearn_binarization(
             "convergence": is_converged,
         }
 
-        # logging
         # TODO: tqdm
-        if verbose:
-            if i % 1000 == 0:
-                print("\t\tgenes processed:", i)
+        if i % 1000 == 0 and i > 0:
+            logger.debug(f"processed {i}/{exprs.shape[0]} samples")
 
         if (plot and abs(snr) > plot_SNR_thr) or (gene in show_fits):
             plot_binarized_feature(row, direction, pos_mask, neg_mask, snr)
 
     stats = pd.DataFrame.from_dict(stats).T
     binarized_expressions = pd.DataFrame.from_dict(binarized_expressions)
-
-    # logging
-    if verbose:
-        print(
-            "\tBinarization for {} features completed in {:.2f} s".format(
-                len(exprs), time() - t0
-            )
-        )
-
     return binarized_expressions, stats
 
 
@@ -218,56 +204,29 @@ def _try_loading_binarization_files(paths, verbose=True):
             - null_distribution: DataFrame with background distribution or None if failed
     """
     binarized_data, stats, null_distribution = None, None, None
-    if verbose:
-        print("Trying to load binarization files ...", file=sys.stdout)
+    logger.debug("Loading binarization files ...")
 
     # Try to load binarized data
     try:
-        if verbose:
-            print(
-                "Load binarized features from",
-                paths.binarization_res,
-                "\n",
-                file=sys.stdout,
-            )
+        logger.debug(f"Loading binarized features from {paths.binarization_res}")
         binarized_data = pd.read_csv(paths.binarization_res, sep="\t", index_col=0)
     except Exception as e:
-        print("Failed to load", paths.binarization_res, file=sys.stderr)
-        print("    Error:", e, file=sys.stderr)
+        logger.error(f"Failed to load {paths.binarization_res}, {e}")
 
     # Try to load stats
     try:
-        if verbose:
-            print(
-                "Loading statistics from",
-                paths.binarization_stats,
-                "\n",
-                file=sys.stdout,
-            )
+        logger.debug(f"Loading binarization statistics from {paths.binarization_stats}")
         stats = pd.read_csv(paths.binarization_stats, sep="\t", index_col=0)
     except Exception as e:
-        print("Failed to load", paths.binarization_stats, file=sys.stderr)
-        print("    Error:", e, file=sys.stderr)
+        logger.error(f"Failed to load {paths.binarization_stats}, {e}")
 
     # Try to load background distribution
     try:
-        if verbose:
-            print(
-                "Loading background distribution from",
-                paths.binarization_bg,
-                "\n",
-                file=sys.stdout,
-            )
+        logger.debug(f"Loading background distribution from {paths.binarization_bg}")
         null_distribution = pd.read_csv(paths.binarization_bg, sep="\t", index_col=0)
         null_distribution.columns = [int(x) for x in null_distribution.columns.values]
     except Exception as e:
-        print(
-            "Failed to load",
-            paths.binarization_bg,
-            file=sys.stderr,
-        )
-        print("    Error:", e, file=sys.stderr)
-
+        logger.error(f"Failed to load {paths.binarization_bg}, {e}")
     return binarized_data, stats, null_distribution
 
 
@@ -287,18 +246,13 @@ def _save_binarization_files(
         None: Saves files to specified paths
     """
     binarized_data.to_csv(paths.binarization_res, sep="\t")
-    if verbose:
-        print(f"Binarized data saved to {paths.binarization_res}", file=sys.stdout)
+    logger.debug(f"Binarized data saved to {paths.binarization_res}")
 
     stats.to_csv(paths.binarization_stats, sep="\t")
-    if verbose:
-        print(f"Statistics saved to {paths.binarization_stats}", file=sys.stdout)
+    logger.debug(f"Statistics saved to {paths.binarization_stats}")
 
     null_distribution.to_csv(paths.binarization_bg, sep="\t")
-    if verbose:
-        print(
-            f"Background distribution saved to {paths.binarization_bg}", file=sys.stdout
-        )
+    logger.debug(f"Background distribution saved to {paths.binarization_bg}")
 
 
 def _generate_missing_null_distribution_sizes(
@@ -358,6 +312,7 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
     return stats, size_snr_trend
 
 
+@log_function_duration(name="Binarization")
 def binarize(
     out_dir,
     exprs,
@@ -377,7 +332,7 @@ def binarize(
     """Main binarization function that creates binary expression profiles with significance testing.
 
     Args:
-        out_dir (str): basename for output binarized data files
+        out_dir (str | ProjectPaths): output directory or ProjectPaths object for saving results
         exprs (DataFrame): normalized expression matrix with features as rows and samples as columns
         method (str): binarization method to use ("GMM")
         save (bool): whether to save binarized data to files
@@ -398,8 +353,11 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    paths = ProjectPaths(out_dir)
-    write_args(locals(), paths.binarization_args)
+    if isinstance(out_dir, ProjectPaths):
+        paths = out_dir
+    else:
+        paths = ProjectPaths(out_dir)
+    binarization_args = locals()  # for saving later
 
     binarized_data, stats, null_distribution = None, None, None
     if load:
@@ -411,8 +369,7 @@ def binarize(
     # Calculate binarization data and statistics if not loaded
     if (binarized_data is None) or (stats is None):
         if exprs is None:
-            print("Provide either raw or binarized data.", file=sys.stderr)
-            return None  # maybe exception?
+            raise RuntimeError("Provide either raw or binarized data.")
 
         # binarize features
         binarized_data, stats = sklearn_binarization(
@@ -456,6 +413,13 @@ def binarize(
     stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval, verbose)
 
     if save:
+        paths.create_binarization_paths()
+        write_args(
+            binarization_args,
+            paths.binarization_args,
+            args_label="Binarization arguments",
+        )
+
         null_distribution_full = null_distribution_full.sort_index()
         _save_binarization_files(
             paths,
@@ -469,18 +433,13 @@ def binarize(
     passed = stats.loc[stats["SNR"] > stats["SNR_threshold"], :]
     # passed = stats.loc[stats["pval_BH"]<pval,:]
 
-    if verbose:
-        print(
-            "\t\tUP-regulated features:\t%s"
-            % (passed.loc[passed["direction"] == "UP", :].shape[0]),
-            file=sys.stdout,
-        )
-        print(
-            "\t\tDOWN-regulated features:\t%s"
-            % (passed.loc[passed["direction"] == "DOWN", :].shape[0]),
-            file=sys.stdout,
-        )
-        # print("\t\tambiguous features:\t%s"%(passed.loc[passed["direction"]=="UP,DOWN",:].shape[0]),file = sys.stdout)
+    logger.debug(
+        f"UP-regulated features:\t{passed.loc[passed['direction'] == 'UP', :].shape[0]}"
+    )
+    logger.debug(
+        f"DOWN-regulated features:\t{passed.loc[passed['direction'] == 'DOWN', :].shape[0]}"
+    )
+    # print("ambiguous features:\t%s"%(passed.loc[passed["direction"]=="UP,DOWN",:].shape[0]),file = sys.stdout)
 
     # keep only binarized features
     binarized_data = binarized_data.loc[:, list(passed.index.values)]

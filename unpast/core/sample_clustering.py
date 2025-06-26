@@ -1,8 +1,6 @@
 ######## Make biclusters #########
-import sys
 import pandas as pd
 import numpy as np
-from time import time
 
 from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans, AgglomerativeClustering
@@ -10,6 +8,9 @@ from sklearn.cluster import KMeans, AgglomerativeClustering
 from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.statistics import calc_SNR
 from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.logs import get_logger, log_function_duration
+
+logger = get_logger(__name__)
 
 
 def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
@@ -64,6 +65,7 @@ def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
     return bicluster
 
 
+@log_function_duration(name="Building biclusters from modules")
 def modules2biclusters(
     modules,
     data_to_cluster,
@@ -87,10 +89,7 @@ def modules2biclusters(
     Returns:
         dict: biclusters dictionary with bicluster IDs as keys and bicluster information as values
     """
-    t0 = time()
     biclusters = {}
-    wrong_sample_number = 0
-    low_SNR = 0
     i = 0
 
     for mid in range(0, len(modules)):
@@ -108,17 +107,10 @@ def modules2biclusters(
                 biclusters[i] = bicluster
                 i += 1
 
-    if verbose:
-        print(
-            "time:\tIdentified optimal sample sets for %s modules in %s s."
-            % (len(modules), round(time() - t0, 2))
-        )
-        print(
-            "Passed biclusters (>=%s genes, >= samples %s): %s"
-            % (min_n_genes, min_n_samples, i - 1),
-            file=sys.stdout,
-        )
-        print()
+    logger.debug(f"Identified optimal sample sets for {len(modules)} modules.")
+    logger.debug(
+        f"Passed biclusters (>={min_n_genes} genes, >= {min_n_samples} samples): {i - 1}"
+    )
 
     return biclusters
 
@@ -145,7 +137,7 @@ def update_bicluster_data(bicluster, data):
 
     bic_samples = sample_names[list(bicluster["sample_indexes"])]
     bic_genes = list(bicluster["genes"])
-    bg_samples = [x for x in sample_names if not x in bic_samples]
+    bg_samples = [x for x in sample_names if x not in bic_samples]
     bicluster["samples"] = set(bic_samples)
     bicluster["gene_indexes"] = set(
         [np.where(gene_names == x)[0][0] for x in bicluster["genes"]]
@@ -177,6 +169,7 @@ def update_bicluster_data(bicluster, data):
     return bicluster
 
 
+@log_function_duration(name="Bicluster merging")
 def merge_biclusters(
     biclusters, data, J=0.8, min_n_samples=5, seed=42, method="kmeans", verbose=True
 ):
@@ -211,8 +204,8 @@ def merge_biclusters(
     merged, not_merged, similarity_cutoff = run_Louvain(
         bic_similarity, verbose=False, plot=False, similarity_cutoffs=[J]
     )
-    if len(merged) == 0 and verbose:
-        print("No biclusters to merge", file=sys.stdout)
+    if len(merged) == 0:
+        logger.debug("No biclusters to merge")
         return biclusters
 
     merged_biclusters = {}
@@ -223,8 +216,7 @@ def merge_biclusters(
     # merge biclusters with overlapping sample sets
     for bic_group in merged:
         bic_group = sorted(bic_group)
-        if verbose:
-            print("merged biclustres", bic_group, file=sys.stderr)
+        logger.debug(f"merged biclusters {bic_group}")
         new_bicluster = biclusters[bic_group[0]]
         # update genes
         for bic_id in bic_group[1:]:
@@ -246,6 +238,7 @@ def merge_biclusters(
     return merged_biclusters
 
 
+@log_function_duration(name="Creating final biclusters")
 def make_biclusters(
     feature_clusters,
     binarized_data,
@@ -284,7 +277,7 @@ def make_biclusters(
         data_to_cluster = data.loc[binarized_data.columns.values, :]  # z-scores
 
     if len(feature_clusters) == 0:
-        print("No biclusters found.", file=sys.stderr)
+        logger.warning("No biclusters found.")
     else:
         biclusters = modules2biclusters(
             feature_clusters,

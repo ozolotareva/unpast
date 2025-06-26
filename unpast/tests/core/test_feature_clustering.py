@@ -233,7 +233,7 @@ class TestWGCNAFunctions:
             assert isinstance(modules, list)
             assert isinstance(not_clustered, (list, np.ndarray))
 
-    @pytest.mark.parametrize("method", ["WCGNA", "IterativeWGCNA"])
+    @pytest.mark.parametrize("method", ["WGCNA", "IterativeWGCNA"])
     def test_feature_name_handling(self, method, tmp_path):
         """Test handling of special characters in feature names."""
         from unpast.core.feature_clustering import run_WGCNA, run_WGCNA_iterative
@@ -261,14 +261,14 @@ class TestWGCNAFunctions:
             # Mock empty modules result
             mock_read_csv.side_effect = Exception("File not found")
 
-            wcgna_func = {
-                "WCGNA": run_WGCNA,
+            wgcna_func = {
+                "WGCNA": run_WGCNA,
                 "IterativeWGCNA": run_WGCNA_iterative,
             }[method]
 
             # Should handle name/index processing without crashing
             for d in data, data.T:
-                modules, not_clustered = wcgna_func(
+                modules, not_clustered = wgcna_func(
                     d,
                     paths=ProjectPaths(tmp_path),
                     verbose=True,
