@@ -129,7 +129,7 @@ def generate_exprs(
 
         # save ground truth
         bic_file_name = outdir + outfile_basename + ".true_biclusters.tsv.gz"
-        print("true bilusters:", bic_file_name)
+        print("true biclusters:", bic_file_name)
         write_bic_table(biclusters, bic_file_name)
 
     return exprs, biclusters_, coexpressed_modules
