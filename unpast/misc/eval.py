@@ -333,7 +333,7 @@ def calculate_perfromance(
         if adjust_pvals:
             if adjust_pvals == "B":
                 pvals = pvals * pvals.shape[0]
-                pvals = pvals.map(lambda x: min(x, 1))
+                pvals = pvals.applymap(lambda x: min(x, 1))
             elif adjust_pvals == "BH":
                 pvals = apply_bh(pvals, a=pval_cutoff)
         best_match_stats = {}
