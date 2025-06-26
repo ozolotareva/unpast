@@ -252,13 +252,13 @@ def run_WGCNA(
 
     if len(stdout) > 0:
         if len(stdout) > 100:
-            stdout = str(stdout[:100] + b"...") + "truncated"
+            stdout = str(stdout[:100] + b"...") + "(truncated)"
         else:
             stdout = str(stdout)
-        logger.debug(f"WCGNA stdout: {stdout}")
+        logger.debug(f"WGCNA stdout: {stdout}")
 
     if len(stderr) > 0:
-        logger.warning(f"WCGNA stderr: {stderr}")
+        logger.warning(f"WGCNA stderr: {stderr}")
 
     return (modules, not_clustered)
 

@@ -78,9 +78,9 @@ def prepare_input_matrix(
         if standradize:
             exprs = zscore(exprs)
             if not mean_passed:
-                logger.debug("Centering mean to 0")
+                logger.debug("- centering mean to 0")
             if not std_passed:
-                logger.debug("Scaling std to 1")
+                logger.debug("- scaling std to 1")
     if len(set(exprs.index.values)) < exprs.shape[0]:
         logger.warning("Row names are not unique.")
     missing_values = exprs.isna().sum(axis=1)

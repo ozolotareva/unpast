@@ -125,7 +125,6 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         )
 
 
-@log_function_duration(name="Binarization")
 def sklearn_binarization(
     exprs,
     min_n_samples,
@@ -180,7 +179,7 @@ def sklearn_binarization(
         }
 
         # TODO: tqdm
-        if i % 1000 == 0:
+        if i % 1000 == 0 and i > 0:
             logger.debug(f"processed {i}/{exprs.shape[0]} samples")
 
         if (plot and abs(snr) > plot_SNR_thr) or (gene in show_fits):
@@ -354,7 +353,6 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    logger.debug("Binarization started ...")
     if isinstance(out_dir, ProjectPaths):
         paths = out_dir
     else:

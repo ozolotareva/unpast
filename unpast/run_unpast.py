@@ -72,7 +72,7 @@ def check_input_shape(exprs_shape, min_n_samples):
         )
 
 
-@log_function_duration(name="UnPaSt")
+@log_function_duration(name="UnPaSt", indent="")
 def unpast(
     exprs_file: str,
     basename: str = "",
@@ -156,7 +156,7 @@ def unpast(
     # read inputs
     exprs = pd.read_csv(exprs_file, sep="\t", index_col=0)
     logger.info(f"Loaded input from {exprs_file}")
-    logger.info(f"Input shape is {exprs.shape[0]} features x {exprs.shape[1]} samples")
+    logger.info(f"- input shape = {exprs.shape[0]} features x {exprs.shape[1]} samples")
     check_input_shape(exprs.shape, min_n_samples)
 
     e_dist_size = max(e_dist_size, int(1.0 / pval * 10))
@@ -211,11 +211,11 @@ def unpast(
 
     ######### gene clustering #########
 
-    logger.debug("Clustering features ...")
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
 
     if clust_method == "Louvain":
         for d in directions:
+            logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
             if df.shape[0] > 1:
                 similarity = get_similarity_jaccard(df, verbose=verbose)
@@ -253,6 +253,7 @@ def unpast(
 
         for d in directions:
             # WGCNA tmp file prefix
+            logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
             if df.shape[0] > 1:
                 modules, single_features = WGCNA_func(
