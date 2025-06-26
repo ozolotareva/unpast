@@ -35,7 +35,8 @@ def test_read_write_bic_table(tmp_path):
 
 
 def test_read_bic_table_missing_file():
-    assert io.read_bic_table("nonexistent_file.tsv") is None
+    with pytest.raises(FileNotFoundError):
+        io.read_bic_table("nonexistent_file.tsv")
 
 
 def test_read_bic_table_empty(tmp_path):
