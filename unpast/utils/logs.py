@@ -1,8 +1,8 @@
 import logging
-from logging import getLogger
 import time
 from functools import wraps
 import sys
+from typing import Union
 
 LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL,
@@ -44,7 +44,12 @@ class PrefixLogger:
         self.logger.critical(f"{GLOBAL_PREFIX} {msg}", *args, **kwargs)
 
 
-def get_logger(name: str | None = None) -> PrefixLogger:
+def get_logger(name: Union[str, None] = None) -> PrefixLogger:
+    """Get a logger with the specified name.
+
+    Args:
+        name (str, optional): Name of the logger.
+    """
     return PrefixLogger(logging.getLogger(name))
 
 
