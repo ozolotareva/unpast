@@ -27,10 +27,13 @@ class TestGenerateExprs:
             bic_file_path = os.path.join(temp_dir, "test.true_biclusters.tsv.gz")
             biclusters_read = read_bic_table(bic_file_path)
 
-            biclusters_original.equals(biclusters_read)
-            # pd.testing.assert_frame_equal(b_o, b_r) - fails due to different .index:
-            #   Index(['bic_0.2', 'bic_0.3'], dtype='object')
-            #   Index(['bic_0.2', 'bic_0.3'], dtype='object', name='id')
+            pd.testing.assert_frame_equal(
+                biclusters_original, 
+                biclusters_read, 
+                check_names=False,  # index.name are diffferent
+                check_dtype=False,  # float vs np.float64
+            )
+
 
     @pytest.mark.slow
     def test_generate_real_smoke(self, tmp_path):
