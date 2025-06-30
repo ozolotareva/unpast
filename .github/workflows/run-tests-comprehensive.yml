@@ -13,8 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.9", "3.10"]
-    
-    env: 
+
+    env:
       TAG: test-${{ matrix.python-version }}
 
     steps:
@@ -25,7 +25,7 @@ jobs:
         run: docker build -t unpast:$TAG --build-arg PYTHON_VERSION=${{ matrix.python-version }} .
 
       - name: Run tests inside Docker container
-        run: | 
+        run: |
           docker run \
             --rm \
             --entrypoint "" \
@@ -34,4 +34,16 @@ jobs:
               poetry run pytest -m 'not slow' && \
               poetry run pytest \
             "
-     
+
+      - name: Run notebooks inside Docker container
+        run: |
+          docker run \
+            --rm \
+            --user root:root \
+            --entrypoint "" \
+            unpast:$TAG \
+            bash -c "\
+              cd /app/notebooks && \
+              pip3 install nbconvert ipykernel && \
+              python3 -m nbconvert --to notebook --execute *.ipynb \
+            "

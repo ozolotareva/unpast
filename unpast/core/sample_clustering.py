@@ -119,7 +119,7 @@ def update_bicluster_data(bicluster, data):
     """Update bicluster with additional metadata including up/down-regulated genes and z-scores.
 
     Args:
-        bicluster (dict): bicluster information containing "sample_indexes" and "genes"
+        bicluster (dict): bicluster dictionary containing "genes" and "samples" or "sample_indexes"
         data (DataFrame): complete expression data with all features (not just binarized)
 
     Returns:
@@ -128,20 +128,33 @@ def update_bicluster_data(bicluster, data):
             - "gene_indexes": gene indices
             - "genes_up": up-regulated genes
             - "genes_down": down-regulated genes
-            - "avg_zscore": average z-score of the bicluster
+            - "SNR": SNR for absolute average z-scores of all bicluster genes
     """
-
-    # add "samples" and "gene_indexes"
     sample_names = data.columns.values
     gene_names = data.index.values
 
-    bic_samples = sample_names[list(bicluster["sample_indexes"])]
-    bic_genes = list(bicluster["genes"])
-    bg_samples = [x for x in sample_names if x not in bic_samples]
-    bicluster["samples"] = set(bic_samples)
-    bicluster["gene_indexes"] = set(
-        [np.where(gene_names == x)[0][0] for x in bicluster["genes"]]
+    # ensure "sample_indexes" is present
+    if "sample_indexes" not in bicluster.keys():
+        assert "samples" in bicluster.keys(), (
+            '"samples" or "sample_indexes" of a bicluster not specified'
+        )
+        sample_mask = np.isin(sample_names, list(bicluster["samples"]))
+        bicluster["sample_indexes"] = set(np.where(sample_mask)[0])
+
+    # ensure "samples" is present
+    if "samples" not in bicluster.keys():
+        inds = list(bicluster["sample_indexes"])
+        bicluster["samples"] = set(sample_names[inds])
+
+    sample_mask = np.isin(
+        np.arange(len(sample_names)), list(bicluster["sample_indexes"])
     )
+    bic_samples = sample_names[sample_mask]
+    bg_samples = sample_names[~sample_mask]
+
+    gene_mask = np.isin(gene_names, list(bicluster["genes"]))
+    bic_genes = gene_names[gene_mask]
+    bicluster["gene_indexes"] = set(np.where(gene_mask)[0])
 
     # distinguish up- and down-regulated features
     m_bic = data.loc[bic_genes, bic_samples].mean(axis=1)
@@ -155,7 +168,7 @@ def update_bicluster_data(bicluster, data):
     genes_down = m_bic[m_bic < m_bg].index.values
 
     # calculate average z-score for each sample
-    if min(len(genes_up), len(genes_down)) > 0:  # take direction into account
+    if min(len(genes_up), len(genes_down)) > 0:  # take sign into account
         avg_zscore = (
             data.loc[genes_up, :].sum() - data.loc[genes_down, :].sum()
         ) / bicluster["n_genes"]

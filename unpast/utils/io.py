@@ -42,23 +42,31 @@ def read_bic_table(file_name: str, parse_metadata: bool = False) -> pd.DataFrame
         biclusters, metadata = read_bic_table('biclusters.tsv', parse_metadata=True)
     """
 
-    if not os.path.exists(file_name):
-        return
-    biclusters = pd.read_csv(file_name, sep="\t", index_col=0, comment="#")
+    biclusters = pd.read_csv(
+        file_name,
+        sep="\t",
+        index_col=0,
+        comment="#",
+        dtype={
+            "sample_indexes": str,
+            "gene_indexes": str,
+        },
+    )
     if len(biclusters) == 0:
         return pd.DataFrame()
     else:
-        biclusters.loc[:, ["genes_up", "genes_down"]] = biclusters.loc[
-            :, ["genes_up", "genes_down"]
-        ].fillna("")
         biclusters["genes"] = biclusters["genes"].apply(
             lambda x: set([g for g in x.split(" ") if not g == ""])
         )
-        biclusters["genes_up"] = biclusters["genes_up"].apply(
-            lambda x: set([g for g in x.split(" ") if not g == ""])
+        biclusters["genes_up"] = (
+            biclusters["genes_up"]
+            .fillna("")
+            .apply(lambda x: set([g for g in x.split(" ") if not g == ""]))
         )
-        biclusters["genes_down"] = biclusters["genes_down"].apply(
-            lambda x: set([g for g in x.split(" ") if not g == ""])
+        biclusters["genes_down"] = (
+            biclusters["genes_down"]
+            .fillna("")
+            .apply(lambda x: set([g for g in x.split(" ") if not g == ""]))
         )
         biclusters["samples"] = biclusters["samples"].apply(lambda x: set(x.split(" ")))
         if "gene_indexes" in biclusters.columns:
