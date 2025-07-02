@@ -139,8 +139,16 @@ python run_unpast.py -h
   [jupyter-notebook](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_examples.ipynb).
   
 ## Outputs
-`<basename>.[parameters].biclusters.tsv` - A `.tsv` file containing the identified biclusters with the following structure:
+The program creates a folder `runs/run_<timestamp>/` with the results of UnPaSt run, where `<timestamp>` is the date and time of the run in the format `YYYYMMDDTHHMMSS`.
 
+The folder contains the files
+```
+run_YYYYMMDDTHHMMSS
+├── args.tsv
+├── biclusters.tsv 
+└── unpast.log
+```
+The file `biclusters.tsv` contains the identified biclusters, with one bicluster per line. The format of this file is as follows:
 - * the first line starts with `#`, storing the parameters of UnPaSt
 - * the second line contains the column headers.
 - * each subsequent line represents a bicluster with the following columns:
@@ -154,11 +162,23 @@ python run_unpast.py -h
   - **gene_indexes**: 0-based index of the genes in the input matrix.
   - **sample_indexes**: 0-based index of the samples in the input matrix.
 
-Along with the biclustering result, UnPaSt creates three files with intermediate results in the output folder `out_dir`:
-  - `<basename>.[parameters].binarized.tsv` with binarized input data.
-  - `<basename>.[parameters].binarization_stats.tsv` provides binarization statistics for each processed feature.
-  - `<basename>.[parameters].background.tsv` stores background distributions of SNR values for each evaluated bicluster size.
-These files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
+The files `args.tsv` and `unpast.log` contain the parameters used for the run and the log of the run respectively. 
+
+Along with the biclustering result, if `save` mode is used, UnPaSt saves the intermediate results of feature binarization. The files are stored in the `binarization/` subfolder and include:
+```
+binarization
+├── bin_args.tsv
+├── bin_background.tsv
+├── bin_res.tsv
+└── bin_stats.tsv
+```
+with the files: 
+- `bin_args.tsv` contains the subset of parameters used for binarization.
+- `bin_background.tsv` contains background distributions of SNR values for each evaluated bicluster size.
+- `bin_res.tsv` contains binarized input data.
+- `bin_stats.tsv` provides binarization statistics for each processed feature.
+
+The binarization files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
 
 ## Versions
 UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip)
