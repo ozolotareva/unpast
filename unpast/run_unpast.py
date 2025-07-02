@@ -318,7 +318,17 @@ def unpast(
         merge=merge,
     )
 
+    # log results
     logger.info(f"Biclusters saved to {paths.res}")
+    shapes = [
+        (len(b["gene_indexes"]), len(b["sample_indexes"]))
+        for _, b in biclusters.iterrows()
+    ]
+    shapes = sorted(shapes, key=lambda x: (x[0] * x[1]), reverse=True)
+    log_str = ", ".join(f"{x}x{y}" for (x, y) in shapes[:10])
+    if len(shapes) > 10:
+        log_str += f"... and {len(shapes) - 10} more"
+    logger.info(f"- found {len(biclusters)} biclusters with shapes: {log_str}")
 
     return biclusters
 
