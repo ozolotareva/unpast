@@ -58,6 +58,7 @@ def test_smoke():
     run_unpast_on_file(
         filename="test_input/synthetic_clear_biclusters.tsv",
         basename="test_smoke",
+        clust_method="WGCNA",
     )
 
 
@@ -81,6 +82,7 @@ def test_clear_biclusters():
     res = run_unpast_on_file(
         filename="test_input/synthetic_clear_biclusters.tsv",
         basename="test_clear_biclusters",
+        clust_method="WGCNA",
     )
 
     found_correct_bicluster = False
@@ -98,6 +100,7 @@ def test_reproducible():
     res = run_unpast_on_file(
         filename="test_input/synthetic_noise.tsv",
         basename="test_reproducible",
+        clust_method="WGCNA",
     )
     reference = parse_answer(
         answer_dir=REFERENCE_OUTPUT_DIR,
