@@ -3,8 +3,6 @@ import argparse
 import numpy as np
 import pandas as pd
 import os
-import sys
-from time import time
 
 from unpast.core.preprocessing import prepare_input_matrix
 from unpast.core.binarization import binarize
@@ -75,10 +73,9 @@ def check_input_shape(exprs_shape, min_n_samples):
 @log_function_duration(name="UnPaSt", indent="")
 def unpast(
     exprs_file: str,
-    basename: str = "",
-    out_dir: str = "./",
-    save: bool = True,
-    load: bool = False,
+    out_dir: str = "runs/run_<timestamp>",
+    binary_dir: str = "<out_dir>/binarization",
+    no_binary_save: bool = False,
     ceiling: float = 3,
     bin_method: str = "kmeans",
     clust_method: str = "Louvain",
@@ -105,19 +102,18 @@ def unpast(
 
     Args:
         exprs_file (str): expression matrix with features as rows and samples as columns
-        basename (str): output files prefix (default: auto-generated timestamp)
-        out_dir (str): output directory path (default: "./")
-        save (bool): whether to save intermediate files (default: True)
-        load (bool): whether to load existing intermediate files (default: False)
+        out_dir (str): output directory path (default: "runs/run_<timestamp>")
+        binary_dir (str): directory to save/load binarization results (default: "<out_dir>/binarization")
+        no_binary_save (bool): if True, do not save binarization results (default: False)
         ceiling (float): absolute threshold for z-scores (default: 3)
         bin_method (str): binarization method - "kmeans", "ward", "GMM" (default: "kmeans")
-        clust_method (str): clustering method - "WGCNA", "iWGCNA", "Louvain" (default: "WGCNA")
+        clust_method (str): clustering method - "WGCNA", "iWGCNA", "Louvain" (default: "Louvain")
         min_n_samples (int): minimal number of samples in bicluster (default: 5)
         show_fits (list): features to show binarization plots for (default: [])
         pval (float): binarization p-value threshold (default: 0.01)
         directions (list): clustering directions - ["DOWN","UP"] or ["BOTH"] (default: ["DOWN","UP"])
         modularity (float): modularity parameter for Louvain clustering (default: 1/3)
-        similarity_cutoffs: similarity cutoffs for Louvain clustering (default: -1 for auto)
+        similarity_cutoffs (float or list): similarity cutoffs for Louvain clustering (default: -1 for auto)
         ds (int): deepSplit parameter for WGCNA (default: 3)
         dch (float): detectCutHeight parameter for WGCNA (default: 0.995)
         max_power (int): maximum power for WGCNA (default: 10)
@@ -128,25 +124,13 @@ def unpast(
         verbose (bool): whether to print progress messages (default: False)
         plot_all (bool): whether to show all plots (default: False)
         e_dist_size (int): size of empirical SNR distribution (default: 10000)
-        standradize (bool): whether to standardize input matrix (default: True)
+        standardize (bool): whether to standardize input matrix (default: True)
 
     Returns:
         pd.DataFrame: biclusters table with columns for genes, samples, SNR, etc.
     """
     np.random.seed(seed)  # todo: check if this is needed
-
-    # make sure that out_dir has '/' suffix
-    if out_dir[-1] != "/":
-        out_dir += "/"
-
-    if not basename:
-        basename = "."
-        # now = datetime.now()
-        # basename = "unpast_" + now.strftime("%y.%m.%d_%H:%M:%S")
-        # print("set output basename to", basename, file=sys.stdout)
-
-    out_dir = os.path.abspath(os.path.join(os.path.abspath(out_dir), basename))
-    paths = ProjectPaths(save_dir=out_dir)
+    paths = ProjectPaths(out_dir=out_dir, binary_dir=binary_dir)
     if verbose:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["DEBUG"])
     else:
@@ -175,11 +159,10 @@ def unpast(
     ######### binarization #########
 
     binarized_features, stats, null_distribution = binarize(
-        out_dir=paths,
+        paths=paths,
         exprs=exprs,
         method=bin_method,
-        save=save,
-        load=load,
+        no_binary_save=no_binary_save,
         min_n_samples=min_n_samples,
         pval=pval,
         plot_all=plot_all,
@@ -349,13 +332,19 @@ def parse_args():
         required=True,
         help=".tsv file with between-sample normalized input data matrix. The first column and row must contain unique feature and sample ids, respectively. At least 5 samples (columns) and at least 2 features (rows) are required.",
     )
-    parser.add_argument("--out_dir", metavar="./", default="./", help="output folder")
     parser.add_argument(
-        "--basename",
-        metavar="biclusters.tsv",
-        default=False,
-        type=str,
-        help='output files prefix. If not specified, will be set to "results_"yy.mm.dd_HH:MM:SS""',
+        "-o",
+        "--out_dir",
+        metavar="runs/run_<timestamp>",
+        default="runs/run_<timestamp>",
+        help="output folder",
+    )
+    parser.add_argument(
+        "-bd",
+        "--binary_dir",
+        metavar="<out_dir>/binarization",
+        default="<out_dir>/binarization",
+        help="folder to save/load binarization results.",
     )
     parser.add_argument(
         "--ceiling",
@@ -442,14 +431,9 @@ def parse_args():
     )
     # parser.add_argument('--merge', default=1, metavar="1", type=float,help = "Whether to merge biclustres similar in samples with Jaccard index not less than the specified.")
     parser.add_argument(
-        "--load_binary",
+        "--no_binary_save",
         action="store_true",
-        help="loads binarized features from <basename>.<bin_method>.seed=42.binarized.tsv, statistics from *.binarization_stats.tsv and the background SNR distribution from <basename>.<bin_method>.n=<e_dist_size>.seed=42.background.tsv",
-    )
-    parser.add_argument(
-        "--save_binary",
-        action="store_true",
-        help="saves binarized features to a file named as <basename>.<bin_method>.seed=42.binarized.tsv. When feature clustering method is WGCNA, binarized features will be always saved. Also, files *.binarization_stats.tsv and *.background.tsv with binarization statistincs and background SNR distributions respectively will be created",
+        help="don't save binarization results (load only)",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     # parser.add_argument('--plot', action='store_true', help = "show plots")
@@ -471,10 +455,9 @@ def main():
     try:
         biclusters = unpast(
             args.exprs,
-            args.basename,
             out_dir=args.out_dir,
-            save=args.save_binary,
-            load=args.load_binary,
+            binary_dir=args.binary_dir,
+            no_binary_save=args.no_binary_save,
             ceiling=args.ceiling,
             bin_method=args.binarization,
             clust_method=args.clustering,

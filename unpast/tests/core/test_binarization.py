@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from unpast.core import binarization
+from unpast.utils.io import ProjectPaths
 
 
 def test__select_pos_neg_gmm():
@@ -117,10 +118,9 @@ def test_binarize_minimal(monkeypatch, tmp_path):
     )
 
     binarized, stats, null_dist = binarization.binarize(
-        str(tmp_path / "testbin"),
+        ProjectPaths(str(tmp_path / "testbin")),
         exprs=data,
-        save=False,
-        load=False,
+        no_binary_save=True,
         plot_all=False,
         verbose=False,
         min_n_samples=3,
@@ -155,10 +155,8 @@ def test_binarize_save_load(tmp_path):
 
     # First run: save the results
     binarized1, stats1, null_dist1 = binarization.binarize(
-        prefix,
+        ProjectPaths(prefix),
         exprs=data,
-        save=True,
-        load=False,
         plot_all=False,
         verbose=True,
         min_n_samples=3,
@@ -181,10 +179,8 @@ def test_binarize_save_load(tmp_path):
 
     # Second run: load the results
     binarized2, stats2, null_dist2 = binarization.binarize(
-        prefix,
+        ProjectPaths(prefix),
         exprs=data,  # Still need to provide exprs for the function to work
-        save=False,
-        load=True,
         plot_all=False,
         verbose=True,
         min_n_samples=3,
@@ -222,10 +218,9 @@ def test_binarize_plot(monkeypatch, tmp_path):
     )
 
     binarized, stats, null_dist = binarization.binarize(
-        str(tmp_path / "testbin"),
+        ProjectPaths(str(tmp_path / "testbin")),
         exprs=data,
-        save=False,
-        load=False,
+        no_binary_save=True,
         plot_all=True,
         verbose=False,
         min_n_samples=3,

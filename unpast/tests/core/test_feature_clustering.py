@@ -106,7 +106,7 @@ class TestWGCNAFunctions:
         # Test invalid deepSplit parameter
         modules, not_clustered = run_WGCNA(
             data,
-            paths=ProjectPaths(tmp_path),
+            paths=ProjectPaths(str(tmp_path)),
             deepSplit=5,  # Invalid value
             verbose=False,
         )
@@ -118,7 +118,7 @@ class TestWGCNAFunctions:
         # Test invalid detectCutHeight parameter
         modules, not_clustered = run_WGCNA(
             data,
-            paths=ProjectPaths(tmp_path),
+            paths=ProjectPaths(str(tmp_path)),
             detectCutHeight=1.5,  # Invalid value
             verbose=False,
         )
@@ -157,7 +157,7 @@ class TestWGCNAFunctions:
 
         modules, not_clustered = run_WGCNA(
             data,
-            paths=ProjectPaths(tmp_path),
+            paths=ProjectPaths(str(tmp_path)),
             deepSplit=2,
             detectCutHeight=0.8,
             verbose=True,
@@ -192,7 +192,7 @@ class TestWGCNAFunctions:
             },
             index=["1", "2", "3", "4"],
         )
-        paths = ProjectPaths(tmp_path)
+        paths = ProjectPaths(str(tmp_path))
         modules, not_clustered = run_WGCNA(
             data,
             paths=paths,
@@ -203,7 +203,7 @@ class TestWGCNAFunctions:
         assert modules == []
         assert not_clustered == []
 
-    def test_run_wgcna_iterative_basic(self):
+    def test_run_wgcna_iterative_basic(self, tmp_path):
         """Test basic functionality of run_WGCNA_iterative."""
         from unpast.core.feature_clustering import run_WGCNA_iterative
 
@@ -223,7 +223,7 @@ class TestWGCNAFunctions:
             # Mock to return no modules (stop condition)
             mock_wgcna.return_value = ([], ["gene1", "gene2", "gene3"])
 
-            paths = ProjectPaths("/tmp")
+            paths = ProjectPaths(str(tmp_path))
             modules, not_clustered = run_WGCNA_iterative(
                 data, paths=paths, verbose=False
             )
@@ -270,7 +270,7 @@ class TestWGCNAFunctions:
             for d in data, data.T:
                 modules, not_clustered = wgcna_func(
                     d,
-                    paths=ProjectPaths(tmp_path),
+                    paths=ProjectPaths(str(tmp_path)),
                     verbose=True,
                 )
                 assert isinstance(modules, list)

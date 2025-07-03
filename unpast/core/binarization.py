@@ -314,11 +314,9 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
 
 @log_function_duration(name="Binarization")
 def binarize(
-    out_dir,
+    paths,
     exprs,
     method="GMM",
-    save=True,
-    load=False,
     min_n_samples=5,
     pval=0.001,
     plot_all=True,
@@ -328,6 +326,7 @@ def binarize(
     seed=42,
     prob_cutoff=0.5,
     n_permutations=10000,
+    no_binary_save=False,
 ):
     """Main binarization function that creates binary expression profiles with significance testing.
 
@@ -353,18 +352,13 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    if isinstance(out_dir, ProjectPaths):
-        paths = out_dir
-    else:
-        paths = ProjectPaths(out_dir)
     binarization_args = locals()  # for saving later
 
-    binarized_data, stats, null_distribution = None, None, None
-    if load:
-        # TODO: add _warn_diff_args(locals(), paths)
-        binarized_data, stats, null_distribution = _try_loading_binarization_files(
-            paths, verbose
-        )
+    # binarized_data, stats, null_distribution = None, None, None
+    # # TODO: add _warn_diff_args(locals(), paths)
+    binarized_data, stats, null_distribution = _try_loading_binarization_files(
+        paths, verbose
+    )
 
     # Calculate binarization data and statistics if not loaded
     if (binarized_data is None) or (stats is None):
@@ -412,7 +406,7 @@ def binarize(
 
     stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval, verbose)
 
-    if save:
+    if not no_binary_save:
         paths.create_binarization_paths()
         write_args(
             binarization_args,
