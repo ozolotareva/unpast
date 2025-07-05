@@ -36,7 +36,6 @@ class TestRunLouvain:
         modules, not_clustered, best_cutoff = run_Louvain(
             self.similarity_matrix,
             similarity_cutoffs=np.array([0.5]),
-            verbose=False,
             plot=False,
         )
 
@@ -54,7 +53,7 @@ class TestRunLouvain:
         empty_sim = pd.DataFrame({})
 
         modules, not_clustered, best_cutoff = run_Louvain(
-            empty_sim, similarity_cutoffs=np.array([0.5]), verbose=False, plot=False
+            empty_sim, similarity_cutoffs=np.array([0.5]), plot=False
         )
 
         # Should handle empty input gracefully
@@ -67,7 +66,6 @@ class TestRunLouvain:
         modules, not_clustered, best_cutoff = run_Louvain(
             self.similarity_matrix,
             similarity_cutoffs=np.array([0.7]),
-            verbose=True,
             plot=True,
         )
 
@@ -79,7 +77,6 @@ class TestRunLouvain:
         modules, not_clustered, best_cutoff = run_Louvain(
             self.similarity_matrix,
             similarity_cutoffs=np.array([0.3, 0.5, 0.7]),
-            verbose=False,
             plot=False,
         )
 
@@ -108,7 +105,6 @@ class TestWGCNAFunctions:
             data,
             paths=ProjectPaths(str(tmp_path)),
             deepSplit=5,  # Invalid value
-            verbose=False,
         )
 
         # Should return empty results for invalid parameters
@@ -120,7 +116,6 @@ class TestWGCNAFunctions:
             data,
             paths=ProjectPaths(str(tmp_path)),
             detectCutHeight=1.5,  # Invalid value
-            verbose=False,
         )
 
         # Should return empty results for invalid parameters
@@ -160,7 +155,6 @@ class TestWGCNAFunctions:
             paths=ProjectPaths(str(tmp_path)),
             deepSplit=2,
             detectCutHeight=0.8,
-            verbose=True,
         )
 
         # Verify subprocess was called
@@ -196,7 +190,6 @@ class TestWGCNAFunctions:
         modules, not_clustered = run_WGCNA(
             data,
             paths=paths,
-            verbose=False,
         )
 
         # Should handle file read errors gracefully
@@ -224,9 +217,7 @@ class TestWGCNAFunctions:
             mock_wgcna.return_value = ([], ["gene1", "gene2", "gene3"])
 
             paths = ProjectPaths(str(tmp_path))
-            modules, not_clustered = run_WGCNA_iterative(
-                data, paths=paths, verbose=False
-            )
+            modules, not_clustered = run_WGCNA_iterative(data, paths=paths)
 
             # Should call run_WGCNA at least once
             assert mock_wgcna.called
@@ -271,7 +262,6 @@ class TestWGCNAFunctions:
                 modules, not_clustered = wgcna_func(
                     d,
                     paths=ProjectPaths(str(tmp_path)),
-                    verbose=True,
                 )
                 assert isinstance(modules, list)
                 assert isinstance(not_clustered, list)
@@ -294,13 +284,12 @@ class TestIntegrationFeatureClustering:
         )
 
         # Calculate similarity
-        similarity = get_similarity_jaccard(data, verbose=False)
+        similarity = get_similarity_jaccard(data)
 
         # Run clustering
         modules, not_clustered, best_cutoff = run_Louvain(
             similarity,
             similarity_cutoffs=np.array([0.3, 0.5]),
-            verbose=False,
             plot=False,
         )
 

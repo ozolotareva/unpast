@@ -11,12 +11,11 @@ logger = get_logger(__name__)
 
 
 @log_function_duration(name="Jaccard Similarity")
-def get_similarity_jaccard(binarized_data, verbose=True):  # ,J=0.5
+def get_similarity_jaccard(binarized_data):  # ,J=0.5
     """Calculate Jaccard similarity matrix between features based on binary expression patterns.
 
     Args:
         binarized_data (DataFrame): binary expression matrix with samples as rows and features as columns
-        verbose (bool): whether to print progress information
 
     Returns:
         DataFrame: symmetric similarity matrix with Jaccard coefficients between all feature pairs

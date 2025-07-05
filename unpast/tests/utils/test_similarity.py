@@ -21,7 +21,7 @@ class TestGetSimilarityJaccard:
             index=["s1", "s2", "s3", "s4", "s5"],
         )
 
-        result = get_similarity_jaccard(data, verbose=False)
+        result = get_similarity_jaccard(data)
 
         # Check that it's symmetric
         assert result.shape == (4, 4)
@@ -48,7 +48,7 @@ class TestGetSimilarityJaccard:
             index=["s1", "s2", "s3", "s4", "s5"],
         )
 
-        result = get_similarity_jaccard(data, verbose=False)
+        result = get_similarity_jaccard(data)
 
         # Should detect complement matching
         similarity_value = result.iloc[0, 1]  # Use iloc for numeric access
@@ -63,7 +63,7 @@ class TestGetSimilarityJaccard:
             index=["s1", "s2", "s3", "s4", "s5"],
         )
 
-        result = get_similarity_jaccard(data, verbose=False)
+        result = get_similarity_jaccard(data)
 
         assert result.shape == (1, 1)
         assert result.iloc[0, 0] == 1.0
@@ -78,7 +78,7 @@ class TestGetSimilarityJaccard:
             index=["s1", "s2", "s3", "s4", "s5"],
         )
 
-        result = get_similarity_jaccard(data, verbose=False)
+        result = get_similarity_jaccard(data)
 
         # Should handle edge cases gracefully
         assert result.shape == (2, 2)

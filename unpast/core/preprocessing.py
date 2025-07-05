@@ -38,7 +38,6 @@ def prepare_input_matrix(
     tol: float = 0.01,
     standradize: bool = True,
     ceiling: float = 0,  # if float>0, limit z-scores to [-x,x]
-    verbose: bool = False,
 ):
     """Prepare and standardize input expression matrix for biclustering analysis.
 
@@ -48,7 +47,6 @@ def prepare_input_matrix(
         tol (float): tolerance for checking if data is already standardized
         standradize (bool): whether to perform z-score standardization
         ceiling (float): if >0, limit z-scores to [-ceiling, ceiling] range
-        verbose (bool): whether to print processing information
 
     Returns:
         DataFrame: processed and standardized expression matrix

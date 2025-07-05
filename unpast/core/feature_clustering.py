@@ -25,7 +25,6 @@ def run_WGCNA_iterative(
     nt="signed_hybrid",  # see WGCNA documentation
     max_power=10,
     precluster=False,
-    verbose=False,
     rscr_path=False,
     rpath="",
 ):
@@ -39,7 +38,6 @@ def run_WGCNA_iterative(
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
         max_power (int): maximum soft thresholding power to test in WGCNA
         precluster (bool): whether to perform pre-clustering before WGCNA
-        verbose (bool): whether to print progress information
         rscr_path (bool): whether to use custom R script path
         rpath (str): path to R installation
 
@@ -66,7 +64,6 @@ def run_WGCNA_iterative(
             nt=nt,
             max_power=max_power,
             precluster=precluster,
-            verbose=verbose,
             rscr_path=rscr_path,
             rpath=rpath,
         )
@@ -92,7 +89,6 @@ def run_WGCNA(
     nt="signed_hybrid",  # see WGCNA documentation
     max_power=10,
     precluster=False,
-    verbose=False,
     rscr_path=False,
     rpath="",
 ):
@@ -106,7 +102,6 @@ def run_WGCNA(
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
         max_power (int): maximum soft thresholding power to test in WGCNA
         precluster (bool): whether to perform pre-clustering before WGCNA
-        verbose (bool): whether to print progress information
         rscr_path (bool): whether to use custom R script path
         rpath (str): path to R installation
 
@@ -268,7 +263,6 @@ def run_Louvain(
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
     m=False,
-    verbose=True,
     plot=False,
     modularity_measure="newman",
 ):
@@ -278,7 +272,6 @@ def run_Louvain(
         similarity (DataFrame): feature similarity matrix
         similarity_cutoffs (array): range of similarity thresholds to test for clustering
         m (bool): whether to return additional modularity information
-        verbose (bool): whether to print progress information
         plot (bool): whether to generate plots of modularity vs cutoffs
         modularity_measure (str): modularity measure to use ("newman", "dugue")
 

@@ -70,7 +70,7 @@ def test_sklearn_binarization_basic():
         index=["geneA", "geneB"],
     )
     binarized, stats = binarization.sklearn_binarization(
-        data, min_n_samples=2, verbose=False, plot=False
+        data, min_n_samples=2, plot=False
     )
     assert set(binarized.columns) == {"geneA", "geneB"}
     assert binarized.shape == (6, 2)
@@ -90,9 +90,7 @@ def test_sklearn_binarization_direction():
         },
         index=["geneA", "geneB"],
     )
-    _, stats = binarization.sklearn_binarization(
-        data, min_n_samples=2, verbose=False, plot=False
-    )
+    _, stats = binarization.sklearn_binarization(data, min_n_samples=2, plot=False)
     assert set(stats["direction"]) <= {"UP", "DOWN"}
 
 
@@ -122,7 +120,6 @@ def test_binarize_minimal(monkeypatch, tmp_path):
         exprs=data,
         no_binary_save=True,
         plot_all=False,
-        verbose=False,
         min_n_samples=3,
         n_permutations=100,
     )
@@ -158,7 +155,6 @@ def test_binarize_save_load(tmp_path):
         ProjectPaths(prefix),
         exprs=data,
         plot_all=False,
-        verbose=True,
         min_n_samples=3,
         n_permutations=100,
         method="GMM",
@@ -182,7 +178,6 @@ def test_binarize_save_load(tmp_path):
         ProjectPaths(prefix),
         exprs=data,  # Still need to provide exprs for the function to work
         plot_all=False,
-        verbose=True,
         min_n_samples=3,
         n_permutations=100,
         method="GMM",
@@ -222,7 +217,6 @@ def test_binarize_plot(monkeypatch, tmp_path):
         exprs=data,
         no_binary_save=True,
         plot_all=True,
-        verbose=False,
         min_n_samples=3,
         n_permutations=100,
         show_fits=["geneA", "geneB"],

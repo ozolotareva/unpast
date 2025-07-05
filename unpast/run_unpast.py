@@ -2,7 +2,6 @@
 import argparse
 import numpy as np
 import pandas as pd
-import os
 
 from unpast.core.preprocessing import prepare_input_matrix
 from unpast.core.binarization import binarize
@@ -153,7 +152,6 @@ def unpast(
         min_n_samples=min_n_samples,
         standradize=standradize,
         ceiling=ceiling,
-        verbose=verbose,
     )
 
     ######### binarization #########
@@ -167,7 +165,6 @@ def unpast(
         pval=pval,
         plot_all=plot_all,
         show_fits=show_fits,
-        verbose=verbose,
         seed=seed,
         prob_cutoff=0.5,
         n_permutations=e_dist_size,
@@ -201,7 +198,7 @@ def unpast(
             logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
             if df.shape[0] > 1:
-                similarity = get_similarity_jaccard(df, verbose=verbose)
+                similarity = get_similarity_jaccard(df)
                 # similarity = get_similarity_corr(df,verbose = verbose)
 
                 if similarity_cutoffs == -1:  # guess from the data
@@ -218,7 +215,6 @@ def unpast(
                     similarity,
                     similarity_cutoffs=similarity_cutoffs,
                     m=modularity,
-                    verbose=verbose,
                 )
                 used_similarity_cutoffs.append(similarity_cutoff)
                 feature_clusters += modules
@@ -247,7 +243,6 @@ def unpast(
                     nt="signed_hybrid",
                     max_power=max_power,
                     precluster=precluster,
-                    verbose=verbose,
                     rpath=rpath,
                 )
                 feature_clusters += modules
@@ -273,7 +268,6 @@ def unpast(
         min_n_genes=2,
         seed=seed,
         cluster_binary=False,
-        verbose=verbose,
     )
 
     ######### save biclusters #########

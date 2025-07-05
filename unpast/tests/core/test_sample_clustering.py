@@ -100,7 +100,7 @@ class TestModules2Biclusters:
     def test_modules2biclusters_basic(self):
         """Test basic module to bicluster conversion."""
         biclusters = modules2biclusters(
-            self.modules, self.data, min_n_samples=2, min_n_genes=2, verbose=False
+            self.modules, self.data, min_n_samples=2, min_n_genes=2
         )
 
         # Should create 2 biclusters (single gene module filtered out)
@@ -123,7 +123,6 @@ class TestModules2Biclusters:
             self.data,
             min_n_samples=2,
             min_n_genes=3,  # Higher threshold
-            verbose=False,
         )
 
         # Should create 0 biclusters (all modules have < 3 genes)
@@ -136,7 +135,6 @@ class TestModules2Biclusters:
             self.data,
             min_n_samples=10,  # Higher than available samples
             min_n_genes=2,
-            verbose=False,
         )
 
         # Should create 0 biclusters (not enough samples)
@@ -228,7 +226,6 @@ class TestMakeBiclusters:
             merge=1,  # No merging
             min_n_samples=2,
             min_n_genes=1,
-            verbose=False,
         )
 
         # Should create a DataFrame with biclusters
@@ -252,7 +249,6 @@ class TestMakeBiclusters:
                 merge=1,
                 min_n_samples=2,
                 min_n_genes=1,
-                verbose=False,
             )
 
     def test_make_biclusters_direction(self):
@@ -264,7 +260,6 @@ class TestMakeBiclusters:
             merge=1,
             min_n_samples=2,
             min_n_genes=1,
-            verbose=False,
         )
 
         # Check that direction is assigned
@@ -299,7 +294,6 @@ class TestMakeBiclusters:
             merge=1,
             min_n_samples=2,
             min_n_genes=1,
-            verbose=False,
         )
 
         if len(biclusters) > 1:
@@ -375,7 +369,6 @@ class TestMergeBiclusters:
                 self.data,
                 J=0.9,  # High threshold
                 min_n_samples=2,
-                verbose=False,
             )
 
             # Should return similar number of biclusters (no merging)
@@ -415,7 +408,6 @@ class TestMergeBiclusters:
                 self.data,
                 J=0.1,  # Low threshold
                 min_n_samples=2,
-                verbose=False,
             )
 
             # Should potentially merge some biclusters

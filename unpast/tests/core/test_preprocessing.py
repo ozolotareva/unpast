@@ -119,7 +119,7 @@ class TestPrepareInputMatrix:
     def test_prepare_input_matrix_already_standardized(self, caplog):
         """Test with already standardized data."""
         with caplog.at_level(LOG_LEVELS["INFO"]):
-            result = prepare_input_matrix(self.standardized_data, verbose=True)
+            result = prepare_input_matrix(self.standardized_data)
 
         # Should not print standardization message
         assert "Input is not standardized" not in caplog.text
@@ -135,7 +135,7 @@ class TestPrepareInputMatrix:
         data_with_zeros.loc["zero_gene2"] = 10.0  # Another constant value
 
         with caplog.at_level(LOG_LEVELS["DEBUG"]):
-            result = prepare_input_matrix(data_with_zeros, verbose=True)
+            result = prepare_input_matrix(data_with_zeros)
 
         # Check that zero variance genes were dropped
         assert "zero_gene1" not in result.index
@@ -155,7 +155,7 @@ class TestPrepareInputMatrix:
         )  # gene2 has 8 missing values (should be dropped)
 
         with caplog.at_level(LOG_LEVELS["WARNING"]):
-            result = prepare_input_matrix(data_with_na, min_n_samples=5, verbose=True)
+            result = prepare_input_matrix(data_with_na, min_n_samples=5)
 
         # gene2 should be dropped (only 2 valid samples, less than min_n_samples=5)
         assert "gene2" not in result.index
@@ -175,7 +175,7 @@ class TestPrepareInputMatrix:
         )
 
         with caplog.at_level(LOG_LEVELS["DEBUG"]):
-            result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
+            result = prepare_input_matrix(data, ceiling=2.0)
 
         # Check that values are capped at ceiling
         assert np.all(result <= 2.0)
@@ -203,7 +203,7 @@ class TestPrepareInputMatrix:
         data.iloc[1, 1] = np.nan
 
         with caplog.at_level(LOG_LEVELS["DEBUG"]):
-            result = prepare_input_matrix(data, ceiling=2.0, verbose=True)
+            result = prepare_input_matrix(data, ceiling=2.0)
 
         # Check that missing values were replaced with -ceiling
         # Note: After standardization, the exact values will be different,
@@ -227,7 +227,7 @@ class TestPrepareInputMatrix:
 
         with caplog.at_level(LOG_LEVELS["WARNING"]):
             # This should trigger the warning about too few features
-            _ = prepare_input_matrix(data, verbose=True)
+            _ = prepare_input_matrix(data)
 
         # The exact behavior may vary, but we should get a warning
         assert "less than 3 features (rows) remain" in caplog.text

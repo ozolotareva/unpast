@@ -128,7 +128,6 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
 def sklearn_binarization(
     exprs,
     min_n_samples,
-    verbose=True,
     plot=True,
     plot_SNR_thr=2.0,
     show_fits=[],
@@ -141,7 +140,6 @@ def sklearn_binarization(
     Args:
         exprs (DataFrame): expression matrix with genes as rows and samples as columns
         min_n_samples (int): minimum number of samples required for each group
-        verbose (bool): whether to print progress information
         plot (bool): whether to generate plots for binarization
         plot_SNR_thr (float): SNR threshold above which to generate plots
         show_fits (list): specific gene names for which to show fitting plots
@@ -190,12 +188,11 @@ def sklearn_binarization(
     return binarized_expressions, stats
 
 
-def _try_loading_binarization_files(paths, verbose=True):
+def _try_loading_binarization_files(paths: ProjectPaths):
     """Try to load existing binarization files.
 
     Args:
         paths (ProjectPaths): Object containing file paths for binarization files
-        verbose (bool): Whether to print progress information
 
     Returns:
         tuple: (binarized_data, stats, null_distribution) where
@@ -203,6 +200,18 @@ def _try_loading_binarization_files(paths, verbose=True):
             - stats: DataFrame with binarization statistics or None if failed
             - null_distribution: DataFrame with background distribution or None if failed
     """
+    if paths.bin_dir.exists():
+        logger.info(
+            f"Binarization directory {paths.bin_dir} already exist,"
+            " trying to load precalculated binarization files."
+        )
+    else:
+        logger.debug(
+            f"Binarization directory {paths.bin_dir} does not exist yet,"
+            " skipping loading precalculated binarization files."
+        )
+        return None, None, None
+
     binarized_data, stats, null_distribution = None, None, None
     logger.debug("Loading binarization files ...")
 
@@ -230,9 +239,7 @@ def _try_loading_binarization_files(paths, verbose=True):
     return binarized_data, stats, null_distribution
 
 
-def _save_binarization_files(
-    paths, binarized_data, stats, null_distribution, verbose=True
-):
+def _save_binarization_files(paths, binarized_data, stats, null_distribution):
     """Save binarization results to files.
 
     Args:
@@ -240,7 +247,6 @@ def _save_binarization_files(
         binarized_data (DataFrame): DataFrame with binary expression profiles
         stats (DataFrame): DataFrame with binarization statistics
         null_distribution (DataFrame): DataFrame with background distribution
-        verbose (bool): Whether to print progress information
 
     Returns:
         None: Saves files to specified paths
@@ -256,7 +262,7 @@ def _save_binarization_files(
 
 
 def _generate_missing_null_distribution_sizes(
-    null_distribution, N, sizes, pval, n_permutations, seed, verbose
+    null_distribution, N, sizes, pval, n_permutations, seed
 ):
     """Ensure that the null distribution contains all required sizes."""
     if null_distribution is None:
@@ -272,7 +278,6 @@ def _generate_missing_null_distribution_sizes(
             pval=pval,
             n_permutations=n_permutations,
             seed=seed,
-            verbose=verbose,
         )
         null_distribution2.columns = [int(x) for x in null_distribution2.columns.values]
 
@@ -290,13 +295,12 @@ def _generate_missing_null_distribution_sizes(
     return null_distribution
 
 
-def _add_snrs(stats, null_distribution, sizes, pval, verbose):
+def _add_snrs(stats, null_distribution, sizes, pval):
     """Calculate SNR p-values and thresholds based on null distribution.
 
     Args:
         stats (DataFrame): DataFrame with statistics including 'SNR' and 'size'
         null_distribution (DataFrame): DataFrame with empirical null distribution
-        verbose (bool): Whether to print progress information
     """
     stats = stats.dropna(subset=["size"])
     stats["pval"] = stats.apply(
@@ -307,7 +311,7 @@ def _add_snrs(stats, null_distribution, sizes, pval, verbose):
 
     # find SNR threshold
     thresholds = np.quantile(null_distribution.loc[sizes, :].values, q=1 - pval, axis=1)
-    size_snr_trend = get_trend(sizes, thresholds, plot=False, verbose=verbose)
+    size_snr_trend = get_trend(sizes, thresholds, plot=False)
     stats["SNR_threshold"] = stats["size"].apply(lambda x: size_snr_trend(x))
     return stats, size_snr_trend
 
@@ -322,7 +326,6 @@ def binarize(
     plot_all=True,
     plot_SNR_thr=np.inf,
     show_fits=[],
-    verbose=True,
     seed=42,
     prob_cutoff=0.5,
     n_permutations=10000,
@@ -341,7 +344,6 @@ def binarize(
         plot_all (bool): whether to generate plots for all features
         plot_SNR_thr (float): SNR threshold above which to generate plots
         show_fits (list): specific feature names for which to show fitting plots
-        verbose (bool): whether to print progress information
         seed (int): random seed for reproducible results
         prob_cutoff (float): probability threshold for group assignment
         n_permutations (int): number of permutations for null distribution generation
@@ -356,9 +358,7 @@ def binarize(
 
     # binarized_data, stats, null_distribution = None, None, None
     # # TODO: add _warn_diff_args(locals(), paths)
-    binarized_data, stats, null_distribution = _try_loading_binarization_files(
-        paths, verbose
-    )
+    binarized_data, stats, null_distribution = _try_loading_binarization_files(paths)
 
     # Calculate binarization data and statistics if not loaded
     if (binarized_data is None) or (stats is None):
@@ -373,7 +373,6 @@ def binarize(
             plot_SNR_thr=plot_SNR_thr,
             prob_cutoff=prob_cutoff,
             show_fits=show_fits,
-            verbose=verbose,
             seed=seed,
             method=method,
         )
@@ -397,14 +396,14 @@ def binarize(
 
     # If null distribution was loaded, ensure all required sizes
     null_distribution = _generate_missing_null_distribution_sizes(
-        null_distribution, N, sizes, pval, n_permutations, seed, verbose
+        null_distribution, N, sizes, pval, n_permutations, seed
     )
 
     # remove data for processing
     null_distribution_full = null_distribution
     null_distribution = null_distribution.loc[sizes, :]
 
-    stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval, verbose)
+    stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval)
 
     if not no_binary_save:
         paths.create_binarization_paths()
@@ -420,7 +419,6 @@ def binarize(
             binarized_data,
             stats,
             null_distribution_full,  # save even not-used distributions
-            verbose=verbose,
         )
 
     ### keep features passed binarization
