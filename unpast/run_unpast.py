@@ -17,6 +17,7 @@ from unpast.utils.logs import (
     LOG_LEVELS,
     log_function_duration,
 )
+from unpast import __version__
 
 logger = get_logger(__name__)
 
@@ -130,10 +131,14 @@ def unpast(
     """
     np.random.seed(seed)  # todo: check if this is needed
     paths = ProjectPaths(out_dir=out_dir, binary_dir=binary_dir)
+
+    # prepare logging and save args
     if verbose:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["DEBUG"])
     else:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["INFO"])
+    version = __version__
+    logger.debug(f"Running UnPaSt v. {version}")
     write_args(locals(), paths.args, args_label="Run arguments")
 
     # read inputs
@@ -317,7 +322,8 @@ def parse_args():
         Namespace: parsed command line arguments
     """
     parser = argparse.ArgumentParser(
-        "UnPaSt identifies differentially expressed biclusters in a 2-dimensional matrix."
+        "UnPaSt identifies differentially expressed biclusters"
+        f" in a 2-dimensional matrix. (version {__version__})"
     )
     parser.add_argument("--seed", metavar=42, default=42, type=int, help="random seed")
     parser.add_argument(

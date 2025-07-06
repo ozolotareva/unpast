@@ -15,6 +15,7 @@ from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, cal
 from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
 from unpast.utils.io import ProjectPaths, write_args, read_args
 from unpast.utils.logs import get_logger, log_function_duration
+from unpast import __version__
 
 logger = get_logger(__name__)
 
@@ -200,6 +201,7 @@ def _make_saveable_args(args: dict):
     args["exprs_hash"] = pd.util.hash_pandas_object(exprs).sum()
     del args["exprs"]  # remove large DataFrame from saving
 
+    args["version"] = __version__  # save version of the code
     return args
 
 
