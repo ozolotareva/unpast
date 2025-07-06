@@ -365,5 +365,4 @@ def read_args(file_path: str) -> dict:
     assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
     df = pd.read_csv(file_path, sep="\t")
     args = dict(zip(df["arg"], df["value"]))
-    logger.debug(f"Arguments loaded from {file_path}")
     return args

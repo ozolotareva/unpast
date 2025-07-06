@@ -13,7 +13,7 @@ from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
 from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
-from unpast.utils.io import ProjectPaths, write_args
+from unpast.utils.io import ProjectPaths, write_args, read_args
 from unpast.utils.logs import get_logger, log_function_duration
 
 logger = get_logger(__name__)
@@ -188,11 +188,58 @@ def sklearn_binarization(
     return binarized_expressions, stats
 
 
-def _try_loading_binarization_files(paths: ProjectPaths):
+def _make_saveable_args(args: dict):
+    """Prepare local variables for saving to file.
+    Args:
+        args (dict): Dictionary of arguments to prepare for saving
+    Returns:
+        dict: Prepared dictionary with only relevant keys for saving
+    """
+    args = args.copy()  # avoid modifying the original dictionary
+    exprs = args["exprs"]
+    args["exprs_hash"] = pd.util.hash_pandas_object(exprs).sum()
+    del args["exprs"]  # remove large DataFrame from saving
+
+    return args
+
+
+def _check_same_args(paths: ProjectPaths, check_args: dict):
+    """Check if the arguments match the saved binarization arguments.
+
+    Args:
+        paths (ProjectPaths): Object containing file paths for binarization files
+        check_args (dict): Dictionary of arguments to match with saved files
+
+    Returns:
+        bool: True if arguments match, False otherwise
+    """
+    try:
+        args = read_args(paths.binarization_args)
+        args_str = {k: str(v) for k, v in args.items()}
+        check_args_str = {k: str(v) for k, v in check_args.items()}
+
+        # remove paths from comparison
+        del args_str["paths"]
+        del check_args_str["paths"]
+
+        if args_str != check_args_str:
+            diff = set(args_str.items()) ^ set(check_args_str.items())
+            logger.warning(f"Cached binarization arguments differ: {diff}")
+            return False
+
+    except Exception:
+        logger.exception(f"Failed to check cached arguments {paths.binarization_args}")
+        return False
+
+    return True
+
+
+def _try_loading_binarization_files(paths: ProjectPaths, check_args: dict):
     """Try to load existing binarization files.
 
     Args:
         paths (ProjectPaths): Object containing file paths for binarization files
+        check_args (dict): Dictionary of arguments to match with saved files
 
     Returns:
         tuple: (binarized_data, stats, null_distribution) where
@@ -210,6 +257,11 @@ def _try_loading_binarization_files(paths: ProjectPaths):
             f"Binarization directory {paths.bin_dir} does not exist yet,"
             " skipping loading precalculated binarization files."
         )
+        return None, None, None
+
+    # Check if the arguments match
+    if not _check_same_args(paths, check_args):
+        logger.warning(f"Ignoring cached binarization {paths}")
         return None, None, None
 
     binarized_data, stats, null_distribution = None, None, None
@@ -239,7 +291,9 @@ def _try_loading_binarization_files(paths: ProjectPaths):
     return binarized_data, stats, null_distribution
 
 
-def _save_binarization_files(paths, binarized_data, stats, null_distribution):
+def _save_binarization_files(
+    paths, args_saveable, binarized_data, stats, null_distribution
+):
     """Save binarization results to files.
 
     Args:
@@ -251,12 +305,20 @@ def _save_binarization_files(paths, binarized_data, stats, null_distribution):
     Returns:
         None: Saves files to specified paths
     """
+    paths.create_binarization_paths()
+    write_args(
+        args_saveable,
+        paths.binarization_args,
+        args_label="Binarization arguments",
+    )
+
     binarized_data.to_csv(paths.binarization_res, sep="\t")
     logger.debug(f"Binarized data saved to {paths.binarization_res}")
 
     stats.to_csv(paths.binarization_stats, sep="\t")
     logger.debug(f"Statistics saved to {paths.binarization_stats}")
 
+    null_distribution = null_distribution.sort_index()
     null_distribution.to_csv(paths.binarization_bg, sep="\t")
     logger.debug(f"Background distribution saved to {paths.binarization_bg}")
 
@@ -354,16 +416,16 @@ def binarize(
             - stats: DataFrame with binarization statistics (SNR, size, direction)
             - null_distribution: DataFrame containing empirical null distribution for significance testing
     """
-    binarization_args = locals()  # for saving later
-
-    # binarized_data, stats, null_distribution = None, None, None
-    # # TODO: add _warn_diff_args(locals(), paths)
-    binarized_data, stats, null_distribution = _try_loading_binarization_files(paths)
+    args_saveable = _make_saveable_args(locals())
+    binarized_data, stats, null_distribution = _try_loading_binarization_files(
+        paths, check_args=args_saveable
+    )
 
     # Calculate binarization data and statistics if not loaded
     if (binarized_data is None) or (stats is None):
-        if exprs is None:
-            raise RuntimeError("Provide either raw or binarized data.")
+        assert exprs is not None, (
+            "No exprs provided and failed to load cached binarization data."
+        )
 
         # binarize features
         binarized_data, stats = sklearn_binarization(
@@ -405,22 +467,6 @@ def binarize(
 
     stats, size_snr_trend = _add_snrs(stats, null_distribution, sizes, pval)
 
-    if not no_binary_save:
-        paths.create_binarization_paths()
-        write_args(
-            binarization_args,
-            paths.binarization_args,
-            args_label="Binarization arguments",
-        )
-
-        null_distribution_full = null_distribution_full.sort_index()
-        _save_binarization_files(
-            paths,
-            binarized_data,
-            stats,
-            null_distribution_full,  # save even not-used distributions
-        )
-
     ### keep features passed binarization
     passed = stats.loc[stats["SNR"] > stats["SNR_threshold"], :]
     # passed = stats.loc[stats["pval_BH"]<pval,:]
@@ -437,6 +483,15 @@ def binarize(
     binarized_data = binarized_data.loc[:, list(passed.index.values)]
     # add sample names
     binarized_data.index = exprs.columns.values
+
+    if not no_binary_save:
+        _save_binarization_files(
+            paths,
+            args_saveable,
+            binarized_data,
+            stats,
+            null_distribution_full,  # save even not-used distributions
+        )
 
     if plot_all:
         plot_binarization_results(stats, size_snr_trend, sizes, pval)

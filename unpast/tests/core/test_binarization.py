@@ -3,8 +3,9 @@
 import numpy as np
 import pandas as pd
 import pytest
+from pathlib import Path
 from unpast.core import binarization
-from unpast.utils.io import ProjectPaths
+from unpast.utils.io import ProjectPaths, read_args
 
 
 def test__select_pos_neg_gmm():
@@ -128,8 +129,82 @@ def test_binarize_minimal(monkeypatch, tmp_path):
     assert null_dist is not None
 
 
-def test_binarize_save_load(tmp_path):
-    """Test the save and load functionality of binarize function."""
+def test_binarize_save_load_simple(tmp_path):
+    """Test simple save and load functionality using internal save/load functions directly."""
+    # Create simple test data
+    binarized_data = pd.DataFrame(
+        {
+            "geneA": [1, 0, 1, 0],
+            "geneB": [0, 1, 0, 1],
+        },
+        index=["s1", "s2", "s3", "s4"],
+    )
+
+    stats = pd.DataFrame(
+        {
+            "SNR": [2.5, 3.0],
+            "size": [2, 2],
+            "direction": ["UP", "DOWN"],
+            "pval": [0.01, 0.005],
+        },
+        index=["geneA", "geneB"],
+    )
+
+    null_dist = pd.DataFrame(
+        {
+            2: [1.0, 1.2, 1.5],
+            3: [1.1, 1.3, 1.6],
+        },
+        index=[0, 1, 2],
+    )
+
+    paths = ProjectPaths(str(tmp_path / "simple_test"))
+    args_saveable = {
+        "min_n_samples": 3,
+        "paths": "1234",
+    }
+
+    # 1. Save - use internal save function
+    binarization._save_binarization_files(
+        paths, args_saveable, binarized_data, stats, null_dist
+    )
+
+    # Verify save worked by checking files exist
+    assert Path(paths.binarization_res).exists()
+    assert Path(paths.binarization_stats).exists()
+    assert Path(paths.binarization_bg).exists()
+    assert Path(paths.binarization_args).exists()
+
+    # 2. Load - use internal load function to load saved files
+    args_saveable["paths"] = "should be ignored"
+    binarized2, stats2, null_dist2 = binarization._try_loading_binarization_files(
+        paths, args_saveable
+    )
+
+    # Results should be identical when loaded from cache
+    assert binarized2 is not None
+    assert stats2 is not None
+    assert null_dist2 is not None
+    pd.testing.assert_frame_equal(binarized_data, binarized2, check_dtype=False)
+    pd.testing.assert_frame_equal(stats, stats2, check_dtype=False)
+    pd.testing.assert_frame_equal(null_dist, null_dist2, check_dtype=False)
+
+    # 3. Load with changed args - should return None values (no cache hit)
+    changed_args = args_saveable.copy()
+    changed_args["min_n_samples"] = 4  # Different arg
+
+    binarized3, stats3, null_dist3 = binarization._try_loading_binarization_files(
+        paths, changed_args
+    )
+
+    # Should return None because args don't match
+    assert binarized3 is None
+    assert stats3 is None
+    assert null_dist3 is None
+
+
+def test_binarize_save_load_comprehensive(tmp_path):
+    """Test comprehensive save and load functionality with file verification."""
     # Create test data with clear separation
     data = pd.DataFrame(
         {
@@ -147,47 +222,65 @@ def test_binarize_save_load(tmp_path):
         index=["geneA", "geneB", "geneC"],
     )
 
-    # Create a unique prefix for this test
-    prefix = str(tmp_path / "subdir" / "test_saveload")
+    paths = ProjectPaths(str(tmp_path / "comprehensive_test"))
 
-    # First run: save the results
+    # 1. Run binarization (first time - should save files)
     binarized1, stats1, null_dist1 = binarization.binarize(
-        ProjectPaths(prefix),
         exprs=data,
         plot_all=False,
+        paths=paths,
         min_n_samples=3,
         n_permutations=100,
         method="GMM",
         seed=42,
     )
 
-    # Check what files were actually created (search recursively)
+    # Verify that files were created
     created_files = list(tmp_path.rglob("*.tsv"))
-    assert len(created_files) >= 2, (
-        f"Expected at least 2 files, got {len(created_files)}: {[f.name for f in created_files]}"
+    assert len(created_files) >= 4, (
+        f"Expected at least 4 files, got {len(created_files)}: {[f.name for f in created_files]}"
     )
 
-    # Find the background file (it may have different n_permutations due to adjustment)
-    background_files = [f for f in created_files if "background" in f.name]
-    assert len(background_files) == 1, (
-        f"Expected 1 background file, got {len(background_files)}"
+    # Check specific files exist
+    expected_files = [
+        "bin_args.tsv",
+        "bin_res.tsv",
+        "bin_stats.tsv",
+        "bin_background.tsv",
+    ]
+    actual_file_names = [f.name for f in created_files]
+    for expected_file in expected_files:
+        assert expected_file in actual_file_names, f"Missing file: {expected_file}"
+
+    # 2. Try load files (should load from cached files)
+    args_saveable = read_args(paths.binarization_args)
+    binarized2, stats2, null_dist2 = binarization._try_loading_binarization_files(
+        paths, args_saveable
     )
 
-    # Second run: load the results
-    binarized2, stats2, null_dist2 = binarization.binarize(
-        ProjectPaths(prefix),
-        exprs=data,  # Still need to provide exprs for the function to work
-        plot_all=False,
-        min_n_samples=3,
-        n_permutations=100,
-        method="GMM",
-        seed=42,
-    )
+    # Results should be identical when loaded from cache
+    assert binarized2 is not None
+    assert stats2 is not None
+    assert null_dist2 is not None
 
-    # Compare results - they should be identical
     pd.testing.assert_frame_equal(binarized1, binarized2, check_dtype=False)
     pd.testing.assert_frame_equal(stats1, stats2, check_dtype=False)
     pd.testing.assert_frame_equal(null_dist1, null_dist2, check_dtype=False)
+
+    # 3. Try load files with changed args (should return None values)
+    changed_args = args_saveable.copy()
+    changed_args["min_n_samples"] = 4  # Changed argument
+    changed_args["n_permutations"] = 50  # Changed argument
+    changed_args["method"] = "kmeans"  # Changed argument
+
+    binarized3, stats3, null_dist3 = binarization._try_loading_binarization_files(
+        paths, changed_args
+    )
+
+    # Should return None because args don't match
+    assert binarized3 is None
+    assert stats3 is None
+    assert null_dist3 is None
 
 
 @pytest.mark.plot
