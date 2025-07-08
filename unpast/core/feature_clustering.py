@@ -198,17 +198,28 @@ def run_WGCNA(
         stderr=subprocess.PIPE,
     )
     stdout, stderr = process.communicate()
-    # stdout = stdout.decode('utf-8')
+
+    # log stdout and stderr
+    if len(stdout) > 0:
+        if len(stdout) > 100:
+            stdout = str(stdout[:100] + b"...") + "(truncated)"
+        else:
+            stdout = str(stdout)
+        logger.debug(f"WGCNA stdout: {stdout}")
+    if len(stderr) > 0:
+        logger.warning(f"WGCNA stderr: {stderr}")
+
     module_file = fname.replace(".tsv", ".modules.tsv")
     try:
         modules_df = pd.read_csv(module_file, sep="\t", index_col=0)
-    except:
-        # print("WGCNA output:", stdout, file = sys.stdout)
-        stderr = stderr.decode("utf-8")
-        logger.debug(f"WGCNA error: {stderr}")
+    except Exception as e:
+        logger.warning(f"Failed to read output WGCNA file {module_file}, error: {e}")
+        logger.warning(
+            "- that may be ok on some inputs. But if you don't have R and WGCNA installed,"
+            " please use the default -c Louvain method instead of -c WGCNA."
+        )
         modules_df = pd.DataFrame.from_dict({})
-        # raise
-        # TODO: raise + test "no bicluster in output is ok"
+        # TODO: avoid error in case of small error
 
     # read WGCNA output
     modules = []
@@ -244,16 +255,6 @@ def run_WGCNA(
     logger.debug(
         f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
-
-    if len(stdout) > 0:
-        if len(stdout) > 100:
-            stdout = str(stdout[:100] + b"...") + "(truncated)"
-        else:
-            stdout = str(stdout)
-        logger.debug(f"WGCNA stdout: {stdout}")
-
-    if len(stderr) > 0:
-        logger.warning(f"WGCNA stderr: {stderr}")
 
     return (modules, not_clustered)
 
