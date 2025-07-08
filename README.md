@@ -12,63 +12,84 @@ UnPaSt is a novel method for identification of differentially expressed bicluste
 <img src="https://github.com/ozolotareva/unpast_paper/blob/main/docs/UnPaSt_workflow_v7_method.png">
 
 ## Cite
-UnPaSt preprint [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
+UnPaSt preprint: [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
 
 Code: [https://github.com/ozolotareva/unpast_paper/](https://github.com/ozolotareva/unpast_paper/)
 
-## Web server
+## Quick Start
+
+### Using UnPaSt online
+
 [Run UnPaSt at CoSy.Bio server](https://apps.cosy.bio/unpast/)
 
-## Install
+### Local installation
 
-### Install via pip
-
-UnPaSt is available on PyPI and can be installed using pip:
+UnPaSt is available on [PyPI](https://pypi.org/project/unpast/) and can be installed using pip
 
 ```bash
 pip install unpast
-```
-Do not forget to install necessary R packages (see below).
 
-You can run UnPaSt from the command line using the `unpast` command.
-
-```bash
-unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500
+wget https://github.com/ozolotareva/unpast/raw/refs/heads/main/unpast/tests/test_input/synthetic_clear_biclusters.tsv
+unpast --exprs synthetic_clear_biclusters.tsv
 ```
 
-### Docker Environment
+To use --clustering WGCNA method instead of default one, you would also need to install the necessary R packages (see Requirements below).
 
-UnPaSt is also available as a Docker image. To pull the Docker Image:
+### Running in Docker
+
+UnPaSt is also available as a Docker image, preinstalled R packages included. To pull the Docker image:
 
 ```bash
-docker pull freddsle/unpast:latest
+# load image and example data
+docker pull freddsle/unpast
+wget https://github.com/ozolotareva/unpast/raw/refs/heads/main/unpast/tests/test_input/synthetic_clear_biclusters.tsv
+
+# run UnPaSt in a Docker environment with current directory and user
+docker run --rm -it -u $(id -u):$(id -g) -v "$(pwd)":/data \
+  freddsle/unpast \
+    --exprs /data/synthetic_clear_biclusters.tsv \
+    --out_dir /data/results/synthetic_clear_biclusters 
 ```
 
-Replace `latest` with a specific version tag if desired (for version before 10.2024 - v0.1.8).
+To use some previous docker version, replace `freddsle/unpast` with `freddsle/unpast:<version>` with a specific version tag, see available tags [here](https://hub.docker.com/r/freddsle/unpast/tags).
 
-#### Run UnPaSt using Docker
+### Development setup
+
+Developer mode allows you to run modified UnPaSt code. This is useful for local updates or contributing to the project.
+
+<details>
+  <summary> Docker development environment </summary>
+
+To run UnPaSt in a Docker container with the latest code from the repository, you can use the following command:
 
 ```bash
-# Clone the repository to get example data
+# Clone the repository to get code
 git clone https://github.com/ozolotareva/unpast.git
 cd unpast
-mkdir -p results
 
-# Define the command to run UnPaSt
-command="unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
+# Define the command to run UnPaSt 
+# using unpast.run_unpast to surpass pre-insalled version from the Docker image
+command="python -m unpast.run_unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --verbose"
 
 # Run UnPaSt using Docker
-
-docker run --rm -it -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash freddsle/unpast -c "cd /data && PYTHONPATH=/data $command"
+docker run --rm -it -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash freddsle/unpast -c "cd /data && $command"
 ```
+
+</details>
 
 ### Requirements
 
 UnPaSt requires Python 3.9 or 3.10 and certain Python and R packages.
 
+<details>
+  <summary>Python and R dependencies</summary>
+
 #### Python Dependencies
 
-The Python dependencies are installed automatically when installing via pip (or you can use requirements.txt). They include (with recommended versions):
+The Python dependencies are installed automatically when installing via pip (see pyproject.toml). 
+
+
+They include (with recommended versions):
 
 ```
 fisher = ">=0.1.9,<=0.1.14"
@@ -87,14 +108,16 @@ kneed = "0.8.1"
 
 #### R Dependencies
 
+For the WGCNA clustering method, UnPaSt requires R and specific R packages.
+
 UnPaSt utilizes R packages for certain analyses. Ensure that you have R installed with the following packages:
 
 - `WGCNA` (version 1.70-3 or higher)
 - `limma` (version 3.42.2 or higher)
 
-### Installation Tips
+### Installing R
 
-#### Installing R Dependencies
+Ensure that R (version 4.3.1 or higher) is installed on your system. You can download R from [CRAN](https://cran.r-project.org/).
 
 It is recommended to use `BiocManager` for installing R packages:
 
@@ -104,12 +127,11 @@ BiocManager::install("WGCNA")
 BiocManager::install("limma")
 ```
 
-#### Installing R
+</details>
 
-Ensure that R (version 4.3.1 or higher) is installed on your system. You can download R from [CRAN](https://cran.r-project.org/).
+## API Reference 
 
-
-## Input
+### Input
 UnPaSt requires a tab-separated file with features (e.g. genes) in rows, and samples in columns.
 * Feature and sample names must be unique.
 * At least 2 features and 5 samples are required.
@@ -118,27 +140,27 @@ UnPaSt requires a tab-separated file with features (e.g. genes) in rows, and sam
 ### Recommendations: 
 * It is recommended that UnPaSt be applied to datasets with 20+ samples.
 * If the cohort is not large (<20 samples), reducing the minimal number of samples in a bicluster (`min_n_samples`) to 2 is recommended. 
-* If the number of features is small, using Louvain method for feature clustering instead of WGCNA and/or disabling feature selection by setting the binarization p-value (`p-val`) to 1 might be helpful.
+* If the number of features is small, using the Louvain method for feature clustering instead of WGCNA and/or disabling feature selection by setting the binarization p-value (`p-val`) to 1 might be helpful.
 
-## Examples
-* Simulated data example. Biclustering of a matrix with 10000 rows (features) and 200 columns (samples) with four implanted biclusters consisting of 500 features and 10-100 samples each. For more details, see figure 3 and Methods [here](https://arxiv.org/abs/2408.00200).
+### Examples
+* **Simulated data example**: Biclustering of a matrix with 10 000 rows (features) and 200 columns (samples) with four implanted biclusters consisting of 500 features and 10-100 samples each. For more details, see Figure 3 and Methods [here](https://arxiv.org/abs/2408.00200).
   
 ```bash
 mkdir -p results;
 
 # running UnPaSt with default parameters and example data
-python -m unpast.run_unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500
+unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500
 
 # with different binarization and clustering methods
-python -m unpast.run_unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --binarization ward --clustering Louvain
+unpast --exprs unpast/tests/scenario_B500.exprs.tsv.gz --basename results/scenario_B500 --binarization ward --clustering Louvain
 
 # help
-python run_unpast.py -h
+unpast -h
 ```
 * Real data example. Analysis of a subset of 200 samples randomly chosen from TCGA-BRCA dataset, including consensus biclustering and visualization:
   [jupyter-notebook](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_examples.ipynb).
   
-## Outputs
+### Outputs
 The program creates a folder `runs/run_<timestamp>/` with the results of UnPaSt run, where `<timestamp>` is the date and time of the run in the format `YYYYMMDDTHHMMSS`.
 
 The folder contains the files
