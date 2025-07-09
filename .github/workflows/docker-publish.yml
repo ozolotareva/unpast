@@ -56,17 +56,18 @@ jobs:
 
       - name: Run unpast command inside Docker container
         run: |
+          wget https://github.com/ozolotareva/unpast/raw/refs/heads/main/unpast/tests/test_input/synthetic_clear_biclusters.tsv
           docker run \
             --rm \
-            -v "${{ github.workspace }}/results":/app/results \
+            -v "${{ github.workspace }}":/data \
             unpast:$TAG \
-              --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
-              --verbose
+              --exprs /data/synthetic_clear_biclusters.tsv \
+              --out_dir /data/results/synthetic_clear_biclusters 
 
       - name: Verify Output
         run: |
           ls -l results
-          OUTPUT_FILE=$(ls results/scenario_B500/runs/run_*/biclusters.tsv)
+          OUTPUT_FILE=$(ls results/synthetic_clear_biclusters/biclusters.tsv)
           if [ ! -s "$OUTPUT_FILE" ]; then
             echo "Test failed: Output file is missing or empty"
             exit 1

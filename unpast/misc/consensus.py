@@ -148,7 +148,6 @@ def make_consensus_biclusters(
         J_heatmap,
         similarity_cutoffs=np.arange(min_similarity, max_similarity, 0.05),
         m=False,
-        verbose=verbose,
         plot=plot,
         modularity_measure=modularity_measure,
     )
