@@ -227,8 +227,8 @@ class ProjectPaths:
         Initialize root and bin_root directories
 
         Args:
-            runs_dir (str, optional): The base directory for runs. Defaults to "runs/run_<timestamp>".
-            binary_dir (str, optional): The directory for binarization results. Defaults to "<runs_dir>/binarization".
+            out_dir (str, optional): The base directory for runs. Defaults to "runs/run_<timestamp>".
+            binary_dir (str, optional): The directory for binarization results. Defaults to "<out_dir>/binarization".
 
         Returns:
             Path: The calculated root directory path.

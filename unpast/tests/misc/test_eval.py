@@ -52,8 +52,7 @@ class TestGenerateExprs:
         sc_name = "C"
         params = {
             "C": {
-                "add_coexpressed": [500]
-                * 4,  # 4 co-expression modules of 500 genes each
+                "add_coexpressed": [500] * 4,
                 "g_overlap": False,
                 "s_overlap": True,
             }
@@ -111,8 +110,7 @@ class TestCalculatePerformance:
         sc_name = "C"
         params = {
             "C": {
-                "add_coexpressed": [50]
-                * 4,  # 4 co-expression modules of 500 genes each
+                "add_coexpressed": [50] * 4,
                 "g_overlap": False,
                 "s_overlap": True,
             }
