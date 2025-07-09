@@ -61,7 +61,6 @@ jobs:
             -v "${{ github.workspace }}/results":/app/results \
             unpast:$TAG \
               --exprs unpast/tests/scenario_B500.exprs.tsv.gz \
-              --basename results/scenario_B500 \
               --verbose
 
       - name: Verify Output
