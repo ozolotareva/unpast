@@ -7,7 +7,7 @@ import pytest
 def test_get_trend_single_point():
     sizes = [10]
     thresholds = [2.5]
-    min_snr = get_trend(sizes, thresholds, plot=False, verbose=False)
+    min_snr = get_trend(sizes, thresholds, plot=False)
     assert min_snr(10) == 2.5
 
 
@@ -15,14 +15,14 @@ def test_get_trend_single_point():
 def test_get_trend_multiple_points():
     sizes = [10, 20, 30, 40, 50]
     thresholds = [2.5, 3.0, 3.5, 4.0, 4.5]
-    min_snr = get_trend(sizes, thresholds, plot=True, verbose=False)
+    min_snr = get_trend(sizes, thresholds, plot=True)
     assert np.allclose(min_snr(sizes), thresholds)
 
 
 def test_get_trend_noisy():
     sizes = [1] * 100 + [2] * 100
     thresholds = np.linspace(0, 1, 200)
-    min_snr = get_trend(sizes, thresholds, plot=False, verbose=False)
+    min_snr = get_trend(sizes, thresholds, plot=False)
     # 0.1 tolerance, as set of used points may be not very big
     assert np.allclose(min_snr([1, 1.5, 2]), [0.25, 0.5, 0.75], atol=0.1)
 

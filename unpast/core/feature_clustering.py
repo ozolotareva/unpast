@@ -25,7 +25,6 @@ def run_WGCNA_iterative(
     nt="signed_hybrid",  # see WGCNA documentation
     max_power=10,
     precluster=False,
-    verbose=False,
     rscr_path=False,
     rpath="",
 ):
@@ -39,7 +38,6 @@ def run_WGCNA_iterative(
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
         max_power (int): maximum soft thresholding power to test in WGCNA
         precluster (bool): whether to perform pre-clustering before WGCNA
-        verbose (bool): whether to print progress information
         rscr_path (bool): whether to use custom R script path
         rpath (str): path to R installation
 
@@ -66,7 +64,6 @@ def run_WGCNA_iterative(
             nt=nt,
             max_power=max_power,
             precluster=precluster,
-            verbose=verbose,
             rscr_path=rscr_path,
             rpath=rpath,
         )
@@ -92,7 +89,6 @@ def run_WGCNA(
     nt="signed_hybrid",  # see WGCNA documentation
     max_power=10,
     precluster=False,
-    verbose=False,
     rscr_path=False,
     rpath="",
 ):
@@ -106,7 +102,6 @@ def run_WGCNA(
         nt (str): WGCNA network type ("signed_hybrid", "signed", "unsigned")
         max_power (int): maximum soft thresholding power to test in WGCNA
         precluster (bool): whether to perform pre-clustering before WGCNA
-        verbose (bool): whether to print progress information
         rscr_path (bool): whether to use custom R script path
         rpath (str): path to R installation
 
@@ -203,17 +198,28 @@ def run_WGCNA(
         stderr=subprocess.PIPE,
     )
     stdout, stderr = process.communicate()
-    # stdout = stdout.decode('utf-8')
+
+    # log stdout and stderr
+    if len(stdout) > 0:
+        if len(stdout) > 100:
+            stdout = str(stdout[:100] + b"...") + "(truncated)"
+        else:
+            stdout = str(stdout)
+        logger.debug(f"WGCNA stdout: {stdout}")
+    if len(stderr) > 0:
+        logger.warning(f"WGCNA stderr: {stderr}")
+
     module_file = fname.replace(".tsv", ".modules.tsv")
     try:
         modules_df = pd.read_csv(module_file, sep="\t", index_col=0)
-    except:
-        # print("WGCNA output:", stdout, file = sys.stdout)
-        stderr = stderr.decode("utf-8")
-        logger.debug(f"WGCNA error: {stderr}")
+    except Exception as e:
+        logger.warning(f"Failed to read output WGCNA file {module_file}, error: {e}")
+        logger.warning(
+            "- that may be ok on some inputs. But if you don't have R and WGCNA installed,"
+            " please use the default -c Louvain method instead of -c WGCNA."
+        )
         modules_df = pd.DataFrame.from_dict({})
-        # raise
-        # TODO: raise + test "no bicluster in output is ok"
+        # TODO: avoid error in case of small error
 
     # read WGCNA output
     modules = []
@@ -250,16 +256,6 @@ def run_WGCNA(
         f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
 
-    if len(stdout) > 0:
-        if len(stdout) > 100:
-            stdout = str(stdout[:100] + b"...") + "(truncated)"
-        else:
-            stdout = str(stdout)
-        logger.debug(f"WGCNA stdout: {stdout}")
-
-    if len(stderr) > 0:
-        logger.warning(f"WGCNA stderr: {stderr}")
-
     return (modules, not_clustered)
 
 
@@ -268,7 +264,6 @@ def run_Louvain(
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
     m=False,
-    verbose=True,
     plot=False,
     modularity_measure="newman",
 ):
@@ -278,7 +273,6 @@ def run_Louvain(
         similarity (DataFrame): feature similarity matrix
         similarity_cutoffs (array): range of similarity thresholds to test for clustering
         m (bool): whether to return additional modularity information
-        verbose (bool): whether to print progress information
         plot (bool): whether to generate plots of modularity vs cutoffs
         modularity_measure (str): modularity measure to use ("newman", "dugue")
 

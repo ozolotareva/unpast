@@ -19,15 +19,15 @@ from unpast.run_unpast import unpast
 
 
 def run_unpast_on_file(filename, basename, *args, **kwargs):
+    out_dir = os.path.join(RESULTS_DIR, f"runs/run_{basename}")
     unpast(
         os.path.join(TEST_DIR, filename),
-        out_dir=os.path.join(RESULTS_DIR, "runs"),
-        basename=f"run_{basename}",
+        out_dir=out_dir,
         verbose=True,  # use pytest -s ... to see the output
         *args,
         **kwargs,
     )
-    return parse_answer(os.path.join(RESULTS_DIR, f"runs/run_{basename}"))
+    return parse_answer(out_dir)
 
 
 def parse_answer(answer_dir, startswith=""):
@@ -58,6 +58,7 @@ def test_smoke():
     run_unpast_on_file(
         filename="test_input/synthetic_clear_biclusters.tsv",
         basename="test_smoke",
+        clust_method="WGCNA",
     )
 
 
@@ -81,6 +82,7 @@ def test_clear_biclusters():
     res = run_unpast_on_file(
         filename="test_input/synthetic_clear_biclusters.tsv",
         basename="test_clear_biclusters",
+        clust_method="WGCNA",
     )
 
     found_correct_bicluster = False
@@ -98,6 +100,7 @@ def test_reproducible():
     res = run_unpast_on_file(
         filename="test_input/synthetic_noise.tsv",
         basename="test_reproducible",
+        clust_method="WGCNA",
     )
     reference = parse_answer(
         answer_dir=REFERENCE_OUTPUT_DIR,

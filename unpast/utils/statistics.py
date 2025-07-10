@@ -86,9 +86,7 @@ def calc_SNR(ar1, ar2, pd_mode=False):
 
 
 @log_function_duration(name="Background distribution generation")
-def generate_null_dist(
-    N, sizes, n_permutations=10000, pval=0.001, seed=42, verbose=True
-):
+def generate_null_dist(N, sizes, n_permutations=10000, pval=0.001, seed=42):
     """Generate null distribution of SNR values for statistical testing.
 
     Args:
@@ -97,7 +95,6 @@ def generate_null_dist(
         n_permutations (int): number of permutations for empirical distribution
         pval (float): p-value threshold for background distribution
         seed (int): random seed for reproducibility
-        verbose (bool): whether to print progress information
 
     Returns:
         DataFrame: null distribution matrix with sizes as rows and permutations as columns
@@ -137,7 +134,7 @@ def generate_null_dist(
     return null_distribution
 
 
-def get_trend(sizes, thresholds, plot=True, verbose=True):
+def get_trend(sizes, thresholds, plot=True):
     """Smoothen the trend and return a function min_SNR(size; p-val cutoff).
 
     Given a set of points (x_i, y_i), returns a function f(x) that interpolates
@@ -147,7 +144,6 @@ def get_trend(sizes, thresholds, plot=True, verbose=True):
         sizes (array): values of x_i (bicluster sizes)
         thresholds (array): values of y_i (SNR thresholds)
         plot (bool): if True, plots the trend
-        verbose (bool): if True, prints the LOWESS frac
 
     Returns:
         function: get_min_snr function that returns the minimal SNR for a given size
@@ -158,8 +154,6 @@ def get_trend(sizes, thresholds, plot=True, verbose=True):
 
     lowess = sm.nonparametric.lowess
     frac = max(1, min(math.floor(int(0.1 * len(sizes))), 15) / len(sizes))
-    # if verbose:
-    #    print("LOWESS frac=",round(frac,2), file = sys.stdout)
     lowess_curve = lowess(
         thresholds, sizes, frac=frac, return_sorted=True, is_sorted=False
     )

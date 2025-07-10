@@ -43,6 +43,10 @@ class PrefixLogger:
         """Log a critical message with the global prefix"""
         self.logger.critical(f"{GLOBAL_PREFIX} {msg}", *args, **kwargs)
 
+    def exception(self, msg, *args, **kwargs):
+        """Log an exception message with the global prefix"""
+        self.logger.exception(f"{GLOBAL_PREFIX} {msg}", *args, **kwargs)
+
 
 def get_logger(name: Union[str, None] = None) -> PrefixLogger:
     """Get a logger with the specified name.

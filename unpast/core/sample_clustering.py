@@ -73,7 +73,6 @@ def modules2biclusters(
     min_n_samples=5,
     min_n_genes=2,
     seed=0,
-    verbose=True,
 ):
     """Convert feature modules to biclusters by identifying optimal sample sets for each module.
 
@@ -84,7 +83,6 @@ def modules2biclusters(
         min_n_samples (int): minimum number of samples required for each bicluster
         min_n_genes (int): minimum number of genes required for each bicluster
         seed (int): random seed for reproducible clustering
-        verbose (bool): whether to print progress information
 
     Returns:
         dict: biclusters dictionary with bicluster IDs as keys and bicluster information as values
@@ -184,7 +182,7 @@ def update_bicluster_data(bicluster, data):
 
 @log_function_duration(name="Bicluster merging")
 def merge_biclusters(
-    biclusters, data, J=0.8, min_n_samples=5, seed=42, method="kmeans", verbose=True
+    biclusters, data, J=0.8, min_n_samples=5, seed=42, method="kmeans"
 ):
     """Merge biclusters with similar sample sets based on Jaccard similarity.
 
@@ -195,7 +193,6 @@ def merge_biclusters(
         min_n_samples (int): minimum number of samples required for merged biclusters
         seed (int): random seed for reproducible clustering
         method (str): clustering method for sample grouping
-        verbose (bool): whether to print progress information
 
     Returns:
         dict: merged biclusters dictionary with reduced redundancy
@@ -210,12 +207,12 @@ def merge_biclusters(
         binary_representation[i] = b
     binary_representation = pd.DataFrame.from_dict(binary_representation)
     binary_representation.index = data.columns.values
-    bic_similarity = get_similarity_jaccard(binary_representation, verbose=verbose)
+    bic_similarity = get_similarity_jaccard(binary_representation)
     # bic_similarity[bic_similarity >= J] = 1
     # bic_similarity[bic_similarity < J] = 0
     # find groups of biclusters including the same sample sets
     merged, not_merged, similarity_cutoff = run_Louvain(
-        bic_similarity, verbose=False, plot=False, similarity_cutoffs=[J]
+        bic_similarity, plot=False, similarity_cutoffs=[J]
     )
     if len(merged) == 0:
         logger.debug("No biclusters to merge")
@@ -262,7 +259,6 @@ def make_biclusters(
     method="kmeans",
     seed=42,
     cluster_binary=False,
-    verbose=True,
 ):
     """Create final biclusters from feature clusters by adding sample information and performing merging.
 
@@ -276,7 +272,6 @@ def make_biclusters(
         method (str): sample clustering method ("kmeans", "ward", "GMM")
         seed (int): random seed for reproducible clustering
         cluster_binary (bool): whether to cluster on binary data (True) or z-scores (False)
-        verbose (bool): whether to print progress information
 
     Returns:
         DataFrame: final biclusters with metadata including genes, samples, SNR, and z-scores
@@ -298,7 +293,6 @@ def make_biclusters(
             method=method,
             min_n_samples=min_n_samples,
             min_n_genes=min_n_genes,
-            verbose=False,
             seed=seed,
         )
 
@@ -311,7 +305,6 @@ def make_biclusters(
                 J=merge,
                 min_n_samples=min_n_samples,
                 seed=seed,
-                verbose=verbose,
             )
 
         for i in list(biclusters.keys()):

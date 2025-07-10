@@ -28,12 +28,11 @@ class TestGenerateExprs:
             biclusters_read = read_bic_table(bic_file_path)
 
             pd.testing.assert_frame_equal(
-                biclusters_original, 
-                biclusters_read, 
+                biclusters_original,
+                biclusters_read,
                 check_names=False,  # index.name are diffferent
                 check_dtype=False,  # float vs np.float64
             )
-
 
     @pytest.mark.slow
     def test_generate_real_smoke(self, tmp_path):
@@ -53,7 +52,7 @@ class TestGenerateExprs:
         sc_name = "C"
         params = {
             "C": {
-                "add_coexpressed": [500] * 4,  # 4 co-expression modules of 500 genes each
+                "add_coexpressed": [500] * 4,
                 "g_overlap": False,
                 "s_overlap": True,
             }
@@ -111,7 +110,7 @@ class TestCalculatePerformance:
         sc_name = "C"
         params = {
             "C": {
-                "add_coexpressed": [50] * 4,  # 4 co-expression modules of 500 genes each
+                "add_coexpressed": [50] * 4,
                 "g_overlap": False,
                 "s_overlap": True,
             }
@@ -138,47 +137,53 @@ class TestCalculatePerformance:
         assert data is not None
         assert ground_truth is not None
         assert coexpressed_modules is not None
-        
-        true_biclusters = list(tmp_path.glob('*true_biclusters*'))
+
+        true_biclusters = list(tmp_path.glob("*true_biclusters*"))
         assert len(true_biclusters) == 1
         gt = read_bic_table(true_biclusters[0])
-        
+
         # Use the ground truth biclusters as our sample_clusters for testing
         sample_clusters = gt.copy()
-        
+
         # check gt versus gt (should give perfect performance):
         all_samples = set(data.columns)
-        
+
         # Create known_groups based on the actual ground truth biclusters
-        gt_known_groups = {
-            "ground_truth": {}
-        }
+        gt_known_groups = {"ground_truth": {}}
         for idx, row in gt.iterrows():
             gt_known_groups["ground_truth"][f"bic_{idx}"] = row["samples"]
-        
+
         # Test ground truth vs ground truth - should give perfect performance
         gt_performances, gt_best_matches = calculate_perfromance(
             sample_clusters_=sample_clusters,
             known_groups=gt_known_groups,
             all_samples=all_samples,
         )
-        
+
         # Assert perfect performance when comparing ground truth to itself
-        assert isinstance(gt_performances, pd.Series), "gt_performances should be a Series"
-        assert "ground_truth" in gt_performances.index, "Should have ground_truth performance"
+        assert isinstance(gt_performances, pd.Series), (
+            "gt_performances should be a Series"
+        )
+        assert "ground_truth" in gt_performances.index, (
+            "Should have ground_truth performance"
+        )
         gt_score = gt_performances.iloc[0]  # Get first (and should be only) value
         # Convert to float if needed and check if it's close to 1.0
         if isinstance(gt_score, (int, float)):
-            assert abs(float(gt_score) - 1.0) < 1e-10, f"GT vs GT should give perfect score (1.0), got {gt_score}"
+            assert abs(float(gt_score) - 1.0) < 1e-10, (
+                f"GT vs GT should give perfect score (1.0), got {gt_score}"
+            )
         else:
             # Just verify we got some result (might be different type than expected)
-            assert gt_score is not None, f"GT vs GT should give a non-null result, got {gt_score}"
-        
+            assert gt_score is not None, (
+                f"GT vs GT should give a non-null result, got {gt_score}"
+            )
+
         # check some arbitrary diff
         all_samples = set(data.columns)
         sample_list = list(all_samples)
         mid_point = len(sample_list) // 2
-        
+
         known_groups = {
             "test_classification": {
                 "group1": set(sample_list[:mid_point]),
@@ -195,15 +200,19 @@ class TestCalculatePerformance:
 
         # Basic checks that it returns expected types
         assert isinstance(performances, pd.Series), "performances should be a Series"
-        assert isinstance(best_matches, pd.DataFrame), "best_matches should be a DataFrame"
-        
+        assert isinstance(best_matches, pd.DataFrame), (
+            "best_matches should be a DataFrame"
+        )
+
         # Verify that we got results for our test classification
-        assert "test_classification" in performances.index, "Should have performance for test_classification"
-        
+        assert "test_classification" in performances.index, (
+            "Should have performance for test_classification"
+        )
+
         # Verify best_matches has expected columns
         expected_columns = ["classification", "Jaccard", "weight"]
         for col in expected_columns:
             if col in best_matches.columns:
-                assert col in best_matches.columns, f"best_matches should have {col} column"
-
-
+                assert col in best_matches.columns, (
+                    f"best_matches should have {col} column"
+                )

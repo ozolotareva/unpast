@@ -1,7 +1,7 @@
 from datetime import datetime
 import os
 import pandas as pd
-from typing import Optional, Tuple
+from typing import Optional
 from pathlib import Path
 from .logs import get_logger
 
@@ -222,46 +222,52 @@ class ProjectPaths:
     A class to manage project paths for input and output files.
     """
 
-    def _build_root(self, save_dir: Optional[str] = ".") -> Tuple[Path, bool]:
+    def _init_roots(self, out_dir: str, binary_dir: str) -> tuple[Path, Path, bool]:
         """
-        Calculates the root directory
-            ./runs/run_YYMMDDTHHMMSS by default
+        Initialize root and bin_root directories
 
         Args:
-            runs_dir (str, optional): The base directory for runs. Defaults to "./runs".
-            continue_run (str, optional): If provided, it will be used as the directory name.
+            out_dir (str, optional): The base directory for runs. Defaults to "runs/run_<timestamp>".
+            binary_dir (str, optional): The directory for binarization results. Defaults to "<out_dir>/binarization".
 
         Returns:
             Path: The calculated root directory path.
+            Path: The calculated binary directory path.
             created = False if the directory already exists, True otherwise.
         """
+        now_str = f"{datetime.now():%Y%m%dT%H%M%S}"
+        out_dir = out_dir.replace("<timestamp>", now_str)
+        binary_dir = binary_dir.replace("<timestamp>", now_str)
+        binary_dir = binary_dir.replace("<out_dir>", out_dir)
 
-        if save_dir is None:
-            save_dir = DEFAULT_SAVE_DIR
-        path = Path(save_dir).resolve()
+        root = Path(out_dir).resolve()
+        bin_dir = Path(binary_dir).resolve()
 
-        # add runs/run_{now}
-        #   if not added beforehand (for continue run)
-        if "runs/run_" not in str(path.parent / path.name):
-            path = path / f"runs/run_{datetime.now():%Y%m%dT%H%M%S}"
-
+        # Create output directory if it doesn't exist
         created = False
-        if not path.exists():
-            path.mkdir(parents=True, exist_ok=True)
+        if not root.exists():
+            root.mkdir(parents=True, exist_ok=True)
             created = True
 
-        return path, created
+        return root, bin_dir, created
 
-    def __init__(self, save_dir: Optional[str] = DEFAULT_SAVE_DIR) -> None:
+    def __init__(
+        self,
+        out_dir: str = "runs/run_<timestamp>",
+        binary_dir: str = "<out_dir>/binarization",
+    ) -> None:
         """
-        Initializes the ProjectPaths with the given directory
-            If save_dir is None, it defaults to the current directory
+        Initializes the ProjectPaths with the given directories.
 
         Args:
-
+            out_dir (str): Output directory path.
+            binary_dir (str): Directory to save/load binarization results.
         """
-        self.root, created = self._build_root(save_dir)
-        using = "Created new" if created else "Using existsing"
+        # replace placeholders
+        root, bin_dir, created = self._init_roots(out_dir, binary_dir)
+        self.root = root
+        self.bin_dir = bin_dir
+        using = "Created new" if created else "Using existing"
         logger.debug(f"{using} directory for outputs: {self.root}")
 
         # Main output files
@@ -269,12 +275,11 @@ class ProjectPaths:
         self.res = str(self.root / "biclusters.tsv")
         self.log = str(self.root / "unpast.log")
 
-        # Binarization
-        self.bin_dir = str(self.root / "binarization")
-        self.binarization_args = str(self.root / "binarization/bin_args.tsv")
-        self.binarization_res = str(self.root / "binarization/bin_res.tsv")
-        self.binarization_stats = str(self.root / "binarization/bin_stats.tsv")
-        self.binarization_bg = str(self.root / "binarization/bin_background.tsv")
+        # Set default binary_dir if not provided
+        self.binarization_args = str(self.bin_dir / "bin_args.tsv")
+        self.binarization_res = str(self.bin_dir / "bin_res.tsv")
+        self.binarization_stats = str(self.bin_dir / "bin_stats.tsv")
+        self.binarization_bg = str(self.bin_dir / "bin_background.tsv")
 
         self.tmp_wgcna = self.root / "tmp_wgcna"
 
@@ -360,5 +365,4 @@ def read_args(file_path: str) -> dict:
     assert file_path.endswith(".tsv"), "File for args must end with '.tsv'. "
     df = pd.read_csv(file_path, sep="\t")
     args = dict(zip(df["arg"], df["value"]))
-    logger.debug(f"Arguments loaded from {file_path}")
     return args
