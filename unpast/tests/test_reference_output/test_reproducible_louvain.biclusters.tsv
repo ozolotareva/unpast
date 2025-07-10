@@ -1,0 +1,6 @@
+#seed=42; pval=0.01; min_n_samples=5; b=kmeans; c=Louvain; directions=DOWN-UP; simiarity_cutoff=0.5,0.5; modularity=0.3333333333333333; merge=1
+id	SNR	n_genes	n_samples	genes	samples	direction	genes_up	genes_down	gene_indexes	sample_indexes
+0	1.853691664679063	2	9	feature_28 feature_41	sample_0 sample_1 sample_10 sample_11 sample_14 sample_16 sample_17 sample_3 sample_9	BOTH	feature_28	feature_41	28 41	0 1 3 9 10 11 14 16 17
+1	1.6105005420540595	3	9	feature_25 feature_33 feature_45	sample_0 sample_10 sample_16 sample_17 sample_18 sample_2 sample_3 sample_6 sample_8	BOTH	feature_33	feature_25 feature_45	25 33 45	0 2 3 6 8 10 16 17 18
+2	1.6059076417883626	4	9	feature_12 feature_19 feature_35 feature_38	sample_1 sample_10 sample_13 sample_14 sample_15 sample_17 sample_18 sample_4 sample_7	BOTH	feature_38	feature_12 feature_19 feature_35	12 19 35 38	1 4 7 10 13 14 15 17 18
+3	1.5093116537445062	3	9	feature_18 feature_2 feature_7	sample_1 sample_11 sample_14 sample_15 sample_16 sample_17 sample_3 sample_6 sample_8	DOWN		feature_18 feature_2 feature_7	2 7 18	1 3 6 8 11 14 15 16 17
