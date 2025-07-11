@@ -1,9 +1,10 @@
 """Cluster binarized genes"""
 
 import sys
-import pandas as pd
-import numpy as np
 from time import time
+
+import numpy as np
+import pandas as pd
 
 from unpast.utils.logs import get_logger, log_function_duration
 

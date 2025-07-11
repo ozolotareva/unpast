@@ -1,14 +1,13 @@
 ######## Make biclusters #########
-import pandas as pd
 import numpy as np
-
+import pandas as pd
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans, AgglomerativeClustering
 
 from unpast.core.feature_clustering import run_Louvain
-from unpast.utils.statistics import calc_SNR
-from unpast.utils.similarity import get_similarity_jaccard
 from unpast.utils.logs import get_logger, log_function_duration
+from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.statistics import calc_SNR
 
 logger = get_logger(__name__)
 

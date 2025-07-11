@@ -1,7 +1,9 @@
-import numpy as np
 import warnings
-from unpast.utils.statistics import calc_SNR, get_trend
+
+import numpy as np
 import pytest
+
+from unpast.utils.statistics import calc_SNR, get_trend
 
 
 def test_get_trend_single_point():

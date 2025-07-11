@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from unpast.core.preprocessing import zscore, prepare_input_matrix
+from unpast.core.preprocessing import prepare_input_matrix, zscore
 from unpast.utils.logs import LOG_LEVELS
 
 

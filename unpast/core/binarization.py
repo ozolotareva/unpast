@@ -2,20 +2,19 @@
 
 import sys
 import warnings
-import pandas as pd
-import numpy as np
 from time import time
 
+import numpy as np
+import pandas as pd
+from sklearn.cluster import AgglomerativeClustering, KMeans
 from sklearn.mixture import GaussianMixture
-from sklearn.cluster import KMeans, AgglomerativeClustering
-
 from statsmodels.stats.multitest import fdrcorrection
 
-from unpast.utils.statistics import calc_SNR, generate_null_dist, get_trend, calc_e_pval
-from unpast.utils.visualization import plot_binarized_feature, plot_binarization_results
-from unpast.utils.io import ProjectPaths, write_args, read_args
-from unpast.utils.logs import get_logger, log_function_duration
 from unpast import __version__
+from unpast.utils.io import ProjectPaths, read_args, write_args
+from unpast.utils.logs import get_logger, log_function_duration
+from unpast.utils.statistics import calc_e_pval, calc_SNR, generate_null_dist, get_trend
+from unpast.utils.visualization import plot_binarization_results, plot_binarized_feature
 
 logger = get_logger(__name__)
 

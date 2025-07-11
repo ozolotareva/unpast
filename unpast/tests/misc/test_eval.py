@@ -1,11 +1,12 @@
 """Tests for eval module."""
 
-import tempfile
 import os
+import tempfile
+
 import pandas as pd
 import pytest
 
-from unpast.misc.eval import generate_exprs, calculate_perfromance
+from unpast.misc.eval import calculate_perfromance, generate_exprs
 from unpast.utils.io import read_bic_table
 
 

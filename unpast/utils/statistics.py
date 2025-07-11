@@ -1,10 +1,10 @@
-import numpy as np
-import pandas as pd
 import math
 
 import matplotlib.pyplot as plt
-from scipy.interpolate import interp1d
+import numpy as np
+import pandas as pd
 import statsmodels.api as sm
+from scipy.interpolate import interp1d
 
 from .logs import get_logger, log_function_duration
 

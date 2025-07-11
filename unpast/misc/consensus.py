@@ -1,13 +1,12 @@
-import sys
 import random
-import pandas as pd
-import numpy as np
+import sys
 from time import time
 
-from scipy.stats import chi2_contingency
-from fisher import pvalue
-
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from fisher import pvalue
+from scipy.stats import chi2_contingency
 
 from unpast.core.feature_clustering import run_Louvain
 from unpast.core.sample_clustering import cluster_samples, update_bicluster_data

@@ -2,12 +2,12 @@
 
 import os
 import subprocess
-import pandas as pd
-import numpy as np
-from time import time
 from pathlib import Path
+from time import time
 
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 from unpast.utils.logs import get_logger, log_function_duration
 
@@ -289,8 +289,8 @@ def run_Louvain(
     logger.debug("Running Louvain ...")
     logger.debug(f"modularity: {modularity_measure}")
 
-    from sknetwork.clustering import Louvain
     import sknetwork
+    from sknetwork.clustering import Louvain
 
     try:
         from sknetwork.clustering import modularity

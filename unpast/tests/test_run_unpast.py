@@ -2,6 +2,7 @@
 
 import os
 import sys
+
 import pandas as pd
 import pytest
 
@@ -13,7 +14,6 @@ if not os.access(RESULTS_DIR, os.W_OK):
 REFERENCE_OUTPUT_DIR = os.path.join(TEST_DIR, "test_reference_output")
 
 from unpast.run_unpast import unpast
-
 
 ### Helper functions ###
 

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 from unpast.utils.similarity import get_similarity_jaccard
+
 # from unpast.utils.similarity import get_similarity_corr
 
 

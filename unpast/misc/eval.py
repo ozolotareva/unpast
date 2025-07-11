@@ -1,16 +1,16 @@
 import sys
+
 import numpy as np
 import pandas as pd
 from fisher import pvalue
+from lifelines import CoxPHFitter
+from lifelines.statistics import logrank_test
 from scipy.stats import chi2_contingency
 from statsmodels.stats.multitest import fdrcorrection
 
 from unpast.core.preprocessing import zscore
-from unpast.utils.io import write_bic_table
 from unpast.core.sample_clustering import update_bicluster_data
-
-from lifelines import CoxPHFitter
-from lifelines.statistics import logrank_test
+from unpast.utils.io import write_bic_table
 
 
 def generate_exprs(

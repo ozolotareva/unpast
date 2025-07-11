@@ -1,13 +1,15 @@
 """Tests for feature_clustering module."""
 
+import os
+from unittest.mock import MagicMock, patch
+
 import numpy as np
 import pandas as pd
 import pytest
-import os
-from unittest.mock import patch, MagicMock
+
 from unpast.core.feature_clustering import run_Louvain
-from unpast.utils.similarity import get_similarity_jaccard
 from unpast.utils.io import ProjectPaths
+from unpast.utils.similarity import get_similarity_jaccard
 
 TMP_DIR = os.path.join(os.path.dirname(__file__), "tmp_results")
 if not os.access(TMP_DIR, os.W_OK):

@@ -1,7 +1,7 @@
 import logging
+import sys
 import time
 from functools import wraps
-import sys
 from typing import Union
 
 LOG_LEVELS = {

@@ -1,9 +1,11 @@
 """Tests for binarization module."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
-from pathlib import Path
+
 from unpast.core import binarization
 from unpast.utils.io import ProjectPaths, read_args
 

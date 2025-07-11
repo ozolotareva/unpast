@@ -1,15 +1,17 @@
 """Tests for sample_clustering module."""
 
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
 import pytest
-from unittest.mock import patch
+
 from unpast.core.sample_clustering import (
     cluster_samples,
-    modules2biclusters,
-    update_bicluster_data,
     make_biclusters,
     merge_biclusters,
+    modules2biclusters,
+    update_bicluster_data,
 )
 
 
