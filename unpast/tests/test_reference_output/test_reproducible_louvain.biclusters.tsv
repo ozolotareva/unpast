@@ -1,4 +1,4 @@
-#seed=42; pval=0.01; min_n_samples=5; b=kmeans; c=Louvain; directions=DOWN-UP; simiarity_cutoff=0.5,0.5; modularity=0.3333333333333333; merge=1
+#seed=42; pval=0.01; min_n_samples=5; b=kmeans; c=Louvain; directions=DOWN-UP; similarity_cutoff=0.5,0.5; modularity=0.3333333333333333; merge=1
 id	SNR	n_genes	n_samples	genes	samples	direction	genes_up	genes_down	gene_indexes	sample_indexes
 0	1.989963715959883	2	7	feature_11 feature_35	sample_1 sample_13 sample_15 sample_18 sample_4 sample_5 sample_7	DOWN		feature_11 feature_35	11 35	1 4 5 7 13 15 18
 1	1.6215703538142396	2	9	feature_19 feature_38	sample_1 sample_13 sample_14 sample_15 sample_17 sample_18 sample_4 sample_5 sample_7	BOTH	feature_38	feature_19	19 38	1 4 5 7 13 14 15 17 18
