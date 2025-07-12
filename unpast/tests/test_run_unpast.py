@@ -94,7 +94,7 @@ def test_clear_biclusters():
     assert found_correct_bicluster
 
 
-@pytest.mark.skip(reason="tmp disabled, TODO: return before merging")
+@pytest.mark.slow
 def test_reproducible_wgcna():
     """Check that the same data is found on a complicated input with no clear answer."""
     res = run_unpast_on_file(
@@ -109,7 +109,7 @@ def test_reproducible_wgcna():
     )
     assert res.equals(reference), "The results are not reproducible"
 
-@pytest.mark.skip(reason="tmp disabled, TODO: return before merging")
+
 def test_reproducible_louvain():
     """Check that the same data is found on a complicated input with no clear answer."""
     res = run_unpast_on_file(
