@@ -95,15 +95,31 @@ def test_clear_biclusters():
 
 
 @pytest.mark.slow
-def test_reproducible():
+def test_reproducible_wgcna():
     """Check that the same data is found on a complicated input with no clear answer."""
     res = run_unpast_on_file(
         filename="test_input/synthetic_noise.tsv",
-        basename="test_reproducible",
+        basename="test_reproducible_wgcna",
         clust_method="WGCNA",
+        dch=0.999,  # no biclusters found in noise otherwise
     )
     reference = parse_answer(
         answer_dir=REFERENCE_OUTPUT_DIR,
-        startswith="test_reproducible",
+        startswith="test_reproducible_wgcna",
+    )
+    assert res.equals(reference), "The results are not reproducible"
+
+
+def test_reproducible_louvain():
+    """Check that the same data is found on a complicated input with no clear answer."""
+    res = run_unpast_on_file(
+        filename="test_input/synthetic_noise.tsv",
+        basename="test_reproducible_louvain",
+        clust_method="Louvain",
+        similarity_cutoffs=[0.5],  # no biclusters found in noise otherwise
+    )
+    reference = parse_answer(
+        answer_dir=REFERENCE_OUTPUT_DIR,
+        startswith="test_reproducible_louvain",
     )
     assert res.equals(reference), "The results are not reproducible"

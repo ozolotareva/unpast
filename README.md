@@ -1,5 +1,5 @@
 # UnPaSt
-<!-- [![Python Versions](https://img.shields.io/pypi/pyversions/unpast.svg)](https://pypi.org/project/unpast/) [3.8 not working] -->
+[![Python Versions](https://img.shields.io/pypi/pyversions/unpast.svg)](https://pypi.org/project/unpast/)
 [![Tests status](https://github.com/ozolotareva/unpast/actions/workflows/run-tests.yml/badge.svg)](https://github.com/ozolotareva/unpast/actions/workflows/run-tests.yml)
 [![PyPI version](https://badge.fury.io/py/unpast.svg)](https://badge.fury.io/py/unpast)
 [![Docker Build Status](https://github.com/ozolotareva/unpast/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/ozolotareva/unpast/actions/workflows/docker-publish.yml)
