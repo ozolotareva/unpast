@@ -164,7 +164,7 @@ def write_bic_table(
         if clust_method == "Louvain":
             metadata = (
                 metadata
-                + "simiarity_cutoff="
+                + "similarity_cutoff="
                 + str(similarity_cutoff)
                 + "; modularity="
                 + str(m)

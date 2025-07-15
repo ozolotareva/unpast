@@ -1,0 +1,4 @@
+#seed=42; pval=0.01; min_n_samples=5; b=kmeans; c=WGCNA; directions=DOWN-UP; ds=3; dch=0.999; max_power=10; precluster=True; merge=1
+id	SNR	n_genes	n_samples	genes	samples	direction	genes_up	genes_down	gene_indexes	sample_indexes
+0	1.6938311949897296	2	10	feature_18 feature_2	sample_0 sample_10 sample_12 sample_13 sample_18 sample_19 sample_2 sample_5 sample_7 sample_9	UP	feature_18 feature_2		2 18	0 2 5 7 9 10 12 13 18 19
+1	1.603113465550402	2	9	feature_25 feature_45	sample_11 sample_13 sample_15 sample_19 sample_3 sample_4 sample_5 sample_7 sample_9	UP	feature_25 feature_45		25 45	3 4 5 7 9 11 13 15 19
