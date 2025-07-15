@@ -79,7 +79,7 @@ docker run --rm -it -u $(id -u):$(id -g) -v "$(pwd)":/data --entrypoint bash fre
 
 ### Requirements
 
-UnPaSt requires Python 3.9 or 3.10 and certain Python and R packages.
+UnPaSt requires Python 3.9-3.11 and certain Python and R packages.
 
 <details>
   <summary>Python and R dependencies</summary>
