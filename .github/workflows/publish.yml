@@ -27,9 +27,9 @@ jobs:
         with:
           r-version: '4.4'  # Specify the R version you need
       
-      - name: Install libcurl on Linux
+      - name: Install libs on Linux
         if: runner.os == 'Linux'
-        run: sudo apt-get update -y && sudo apt-get install -y libcurl4-openssl-dev
+        run: sudo apt-get update -y && sudo apt-get install -y libcurl4-openssl-dev libpng-dev
 
       - name: Install R packages
         run: |
