@@ -367,7 +367,7 @@ def parse_args():
         metavar="kmeans",
         default="kmeans",
         type=str,
-        choices=["kmeans", "ward", "GMM"],
+        choices=["kmeans", "ward", "GMM", "jenks"],
         help="binarization method",
     )
     parser.add_argument(
