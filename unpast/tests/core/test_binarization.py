@@ -9,6 +9,13 @@ import pytest
 from unpast.core import binarization
 from unpast.utils.io import ProjectPaths, read_args
 
+try:
+    from jenkspy import jenks_breaks
+
+    jenks_loaded = True
+except ImportError:
+    jenks_loaded = False
+
 
 def test__select_pos_neg_gmm():
     # Two clear clusters
@@ -21,6 +28,38 @@ def test__select_pos_neg_gmm():
     assert mask_neg.sum() == 3
     assert snr > 0
     assert size == 3
+
+
+def test__min_intraclass_variance_split_simple():
+    for n_zeros, n_ones in [
+        [1, 5],
+        [2, 4],
+        [3, 3],
+        [4, 2],
+        [5, 1],
+        [10**5, 10**5],
+    ]:
+        row = np.array([0] * n_zeros + [1] * n_ones)
+        labels = binarization._min_intraclass_variance_split(row)
+        assert np.array_equal(labels, row > 0.5) or np.array_equal(labels, row < 0.5)
+
+
+@pytest.mark.skipif(not jenks_loaded, reason="jenks breaks not installed")
+def test__min_intraclass_variance_split_jenks():
+    # Test with jenks breaks
+    np.random.seed(42)
+    for _ in range(100):
+        row = np.random.normal(size=100)
+        breaks = jenks_breaks(row, 2)
+        assert len(breaks) == 3, "Jenks breaks should return 3 values"
+        labels_jenks = row > breaks[1]  # True for samples above the first break
+
+        labels_min_var = binarization._min_intraclass_variance_split(row)
+        assert np.array_equal(labels_jenks, labels_min_var) or np.array_equal(
+            labels_jenks, ~labels_min_var
+        ), (
+            "Jenks breaks and min intraclass split should yield the same labels for 2 classes"
+        )
 
 
 def test__select_pos_neg_kmeans():
