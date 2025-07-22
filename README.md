@@ -9,7 +9,7 @@
 
 UnPaSt is a novel method for identification of differentially expressed biclusters.
 
-<img src="https://github.com/ozolotareva/unpast_paper/blob/main/docs/UnPaSt_workflow_v7_method.png">
+<img src="https://raw.githubusercontent.com/ozolotareva/unpast_paper/main/docs/UnPaSt_workflow_v7_method.png">
 
 ## Cite
 UnPaSt preprint: [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
