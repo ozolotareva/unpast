@@ -137,7 +137,7 @@ def unpast(
     else:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["INFO"])
     version = __version__
-    logger.debug(f"Running UnPaSt v. {version}")
+    logger.debug(f"Running UnPaSt v.{version}")
     write_args(locals(), paths.args, args_label="Run arguments")
 
     # read inputs
