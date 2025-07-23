@@ -11,10 +11,14 @@ UnPaSt is a novel method for identification of differentially expressed bicluste
 
 <img src="https://raw.githubusercontent.com/ozolotareva/unpast_paper/main/docs/UnPaSt_workflow_v7_method.png">
 
-## Cite
-UnPaSt preprint: [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
+### Cite and related code versions
 
-Code: [https://github.com/ozolotareva/unpast_paper/](https://github.com/ozolotareva/unpast_paper/)
+If you use UnPaSt in your research, please cite one of the following papers. The table below provides links to the papers and the corresponding code versions used in the publications for reproducibility.
+
+| Paper | Corresponding code version | 
+|-------|------------------------------|
+| UnPaSt preprint: https://arxiv.org/abs/2408.00200 | [UnPaSt paper repository](https://github.com/ozolotareva/unpast_paper) |
+| PathoPlex paper: https://www.nature.com/articles/s41586-025-09225-2 | [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip) |
 
 ## Quick Start
 
@@ -201,6 +205,3 @@ with the files:
 - `bin_stats.tsv` provides binarization statistics for each processed feature.
 
 The binarization files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
-
-## Versions
-UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip)
