@@ -45,5 +45,6 @@ jobs:
             bash -c "\
               cd /app/notebooks && \
               pip3 install nbconvert ipykernel && \
-              python3 -m nbconvert --to notebook --execute *.ipynb \
+              python3 -m nbconvert --to notebook --execute *.ipynb && \
+              cat performances.tsv \
             "

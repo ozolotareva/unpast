@@ -1,5 +1,7 @@
 notebooks/TCGA200_example/
 notebooks/test_data_TCGA200/
+notebooks/test_data_sim/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
