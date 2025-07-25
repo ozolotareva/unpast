@@ -179,6 +179,9 @@ def generate_exprs(
     return exprs, biclusters, coexpressed_modules
 
 
+"""
+# Disabling Unused Code: make_ref_groups, make_known_groups, and compare_gene_clusters
+
 def make_ref_groups(subtypes, annotation, exprs):
     import copy
     from collections import OrderedDict
@@ -313,6 +316,7 @@ def compare_gene_clusters(bics1, bics2, N):
         clust_similarity["avg_bm_J_2"] = bm2.loc[:, "J"].mean()
 
     return clust_similarity, bm, bm2
+"""
 
 from sklearn.metrics import adjusted_rand_score
 
