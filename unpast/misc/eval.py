@@ -13,6 +13,111 @@ from unpast.core.sample_clustering import update_bicluster_data
 from unpast.utils.io import write_bic_table
 
 
+def generate_biclusters_common(
+    data_sizes,
+    g_size=5,
+    frac_samples=[0.05, 0.1, 0.25, 0.5],
+    m=2.0,
+    std=1,
+    g_overlap=False,
+    s_overlap=True,
+    seed=42,
+) -> tuple[pd.DataFrame, dict]:
+    assert len(set(frac_samples)) == len(frac_samples), (
+        f"fraction samples must be unique, got {frac_samples}"
+    )
+    assert len(data_sizes) == 2, (
+        f"data_sizes must be a tuple of two integers, got {data_sizes}"
+    )
+
+    # data_sizes = genes_amount, samples_amount
+    np.random.seed(seed)
+    exprs = np.random.normal(loc=0, scale=1.0, size=data_sizes)
+    exprs = pd.DataFrame(exprs)
+    exprs.columns = ["s_" + str(x) for x in exprs.columns.values]
+    exprs.index = ["g_" + str(x) for x in exprs.index.values]
+
+    # implant bicluster
+    bg_g = set(exprs.index.values)
+    bg_s = set(exprs.columns.values)
+
+    np.random.seed(seed)
+    seeds = np.random.choice(range(0, 1000000), size=len(frac_samples), replace=False)
+    biclusters = {}
+    for s_frac, cur_seed in zip(frac_samples, seeds):
+        s_size = int(s_frac * data_sizes[1])
+
+        # select random sets of samples and genes from the background
+        np.random.seed(cur_seed)
+        bic_genes = sorted(np.random.choice(sorted(bg_g), size=g_size, replace=False))
+
+        np.random.seed(cur_seed)
+        bic_samples = sorted(np.random.choice(sorted(bg_s), size=s_size, replace=False))
+
+        np.random.seed(cur_seed)
+        exprs.loc[bic_genes, bic_samples] += np.random.normal(
+            loc=m, scale=std, size=(g_size, s_size)
+        )
+
+        # identify samples outside the bicluster
+        if not g_overlap:
+            bg_g -= set(bic_genes)
+
+        if not s_overlap:
+            bg_s -= set(bic_samples)
+
+        # generate and implant bicluster
+        # save bicluster genes
+        biclusters["bic_" + str(s_frac)] = {
+            "genes": set(bic_genes),
+            "samples": set(bic_samples),
+            "frac": s_frac,
+        }
+
+    return exprs, biclusters
+
+
+def _standard_add_modules(
+    exprs,
+    ignore_genes,
+    seed,
+    add_coexpressed=[],
+):
+    """Add co-expressed modules to the expression matrix."""
+    bg_g = set(exprs.index.values).difference(set(ignore_genes))
+    mix_coef = 0.5
+    store_coef = np.sqrt(1 - mix_coef**2)
+
+    coexpressed_modules = []
+    np.random.seed(seed + 1)
+    seeds = np.random.choice(
+        range(0, 1000000), size=len(add_coexpressed), replace=False
+    )
+
+    for module_size, cur_seed in zip(add_coexpressed, seeds):
+        np.random.seed(cur_seed)
+        module_genes = sorted(
+            np.random.choice(sorted(bg_g), size=module_size, replace=False)
+        )
+
+        exprs_0 = exprs.loc[module_genes[0], :]
+        for gen_ind in module_genes[1:]:
+            exprs.loc[gen_ind, :] *= store_coef
+            exprs.loc[gen_ind, :] += mix_coef * exprs_0
+
+        coexpressed_modules.append(module_genes)
+
+        avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module_size) / (
+            module_size**2 / 2 - module_size
+        )
+        print(
+            "\tco-exprs. module %s features, avg. pairwise r=%.2f"
+            % (module_size, avg_r)
+        )
+
+    return exprs, coexpressed_modules
+
+
 def generate_exprs(
     data_sizes,
     g_size=5,
@@ -27,87 +132,24 @@ def generate_exprs(
     seed=42,
     add_coexpressed=[],
 ):
-    n_genes, N = data_sizes
-    biclusters = {}
-    coexpressed_modules = []
+    exprs, biclusters = generate_biclusters_common(
+        data_sizes,
+        g_size=g_size,
+        frac_samples=frac_samples,
+        m=m,
+        std=std,
+        g_overlap=g_overlap,
+        s_overlap=s_overlap,
+        seed=seed,
+    )
 
-    # generate background model
-    np.random.seed(seed)
-    exprs = np.random.normal(loc=0, scale=1.0, size=(n_genes, N))
-    exprs = pd.DataFrame(exprs)
-    exprs.columns = ["s_" + str(x) for x in exprs.columns.values]
-    exprs.index = ["g_" + str(x) for x in exprs.index.values]
-
-    # implant bicluster
-    N = exprs.shape[1]
-    bic_g = []
-    bic_s = []
-    bg_g = set(exprs.index.values).difference(set(bic_g))
-    bg_s = set(exprs.columns.values).difference(set(bic_s))
-    bicluster_genes = []
-    np.random.seed(seed)
-    seeds = np.random.choice(range(0, 1000000), size=len(frac_samples), replace=False)
-    # print("bicluster seeds:",seeds)
-    for i in range(len(frac_samples)):
-        s_frac = frac_samples[i]
-        s_size = int(s_frac * N)
-        # select random sets of samples and genes from the background
-        np.random.seed(seeds[i])
-        bic_genes = np.random.choice(sorted(bg_g), size=g_size, replace=False)
-        bic_genes = sorted(bic_genes)
-        np.random.seed(seeds[i])
-        bic_samples = np.random.choice(sorted(bg_s), size=s_size, replace=False)
-        bic_samples = sorted(bic_samples)
-        bic_g += bic_genes
-        bic_s += bic_samples
-        # identify samples outside the bicluster
-        if not g_overlap:
-            bg_g = bg_g.difference(set(bic_g))
-        if not s_overlap:
-            bg_s = bg_s.difference(set(bic_s))
-
-        # generate and implant bicluster
-        np.random.seed(seeds[i])
-        bic_exprs = np.random.normal(loc=m, scale=std, size=(g_size, s_size))
-        exprs.loc[bic_genes, bic_samples] += bic_exprs
-        # save bicluster genes
-        bicluster_genes += bic_genes
-        # store bicluster
-        bicluster = {
-            "genes": set(bic_genes),
-            "samples": set(bic_samples),
-            "frac": s_frac,
-            "n_genes": len(bic_genes),
-            "n_samples": len(bic_samples),
-        }
-        biclusters["bic_" + str(s_frac)] = bicluster
-
-    # add modules of co-expressed genes
-    bg_g = set(exprs.index.values).difference(set(bicluster_genes))
-    r = 0.5
-
-    if len(add_coexpressed) > 0:
-        np.random.seed(seed + 1)
-        seeds = np.random.choice(
-            range(0, 1000000), size=len(add_coexpressed), replace=False
-        )
-        # print("co-expression seeds:",seeds)
-        for i in range(len(add_coexpressed)):
-            module = add_coexpressed[i]
-            np.random.seed(seeds[i])
-            module_genes = np.random.choice(sorted(bg_g), size=module, replace=False)
-            module_genes = sorted(module_genes)
-            n = exprs.loc[module_genes[0], :]
-            for i in range(1, module):
-                n_i = n * r + np.sqrt(1 - r**2) * exprs.loc[module_genes[i], :]
-                exprs.loc[module_genes[i], :] = n_i
-            avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module) / (
-                module**2 / 2 - module
-            )
-            print(
-                "\tco-exprs. module %s features, avg. pairwise r=%.2f" % (module, avg_r)
-            )
-            coexpressed_modules.append(module_genes)
+    bicluster_genes = set.union(*[b["genes"] for b in biclusters.values()])
+    exprs, coexpressed_modules = _standard_add_modules(
+        exprs,
+        ignore_genes=bicluster_genes,
+        seed=seed,
+        add_coexpressed=add_coexpressed,
+    )
 
     if z:
         # center to 0 and scale std to 1
@@ -115,12 +157,14 @@ def generate_exprs(
 
     # calculate bicluster SNR
     # distinguish up- and down-regulated genes
+    for b in biclusters.values():
+        b["n_genes"] = len(b["genes"])
+        b["n_samples"] = len(b["samples"])
     for bic_id in biclusters.keys():
         biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
 
     biclusters = pd.DataFrame.from_dict(biclusters).T
     # biclusters.set_index("frac",inplace = True,drop=True)
-    biclusters_ = biclusters.copy()
 
     if outfile_basename:
         exprs_file = outdir + outfile_basename + ".data.tsv.gz"
@@ -132,7 +176,7 @@ def generate_exprs(
         print("true biclusters:", bic_file_name)
         write_bic_table(biclusters, bic_file_name)
 
-    return exprs, biclusters_, coexpressed_modules
+    return exprs, biclusters, coexpressed_modules
 
 
 def make_ref_groups(subtypes, annotation, exprs):
@@ -227,7 +271,6 @@ def make_known_groups(annot, exprs, target_col="genefu_z", verbose=False):
                 )
     return known_groups
 
-
 def compare_gene_clusters(bics1, bics2, N):
     # N - total number of genes
     # finds best matched B1 -> B2 and B2 -> B1
@@ -270,7 +313,6 @@ def compare_gene_clusters(bics1, bics2, N):
         clust_similarity["avg_bm_J_2"] = bm2.loc[:, "J"].mean()
 
     return clust_similarity, bm, bm2
-
 
 from sklearn.metrics import adjusted_rand_score
 
