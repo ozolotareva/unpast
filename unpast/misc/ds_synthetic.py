@@ -8,15 +8,15 @@ from unpast.core.sample_clustering import update_bicluster_data
 from unpast.utils.io import write_bic_table
 
 
-def generate_biclusters_common(
-    data_sizes,
-    g_size=5,
-    frac_samples=[0.05, 0.1, 0.25, 0.5],
-    m=2.0,
-    std=1,
-    g_overlap=False,
-    s_overlap=True,
-    seed=42,
+def _scenario_generate_biclusters(
+    data_sizes: tuple[int, int],
+    g_size: int = 5,
+    frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+    m: float = 2.0,
+    std: float = 1.0,
+    g_overlap: bool = False,
+    s_overlap: bool = True,
+    seed: int = 42,
 ) -> tuple[pd.DataFrame, dict]:
     assert len(set(frac_samples)) == len(frac_samples), (
         f"fraction samples must be unique, got {frac_samples}"
@@ -72,12 +72,12 @@ def generate_biclusters_common(
     return exprs, biclusters
 
 
-def _standard_add_modules(
-    exprs,
-    ignore_genes,
-    seed,
-    add_coexpressed=[],
-):
+def _scenario_add_modules(
+    exprs: pd.DataFrame,
+    ignore_genes: set[str | int],
+    seed: int,
+    add_coexpressed: list[int] = [],
+) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """Add co-expressed modules to the expression matrix."""
     bg_g = set(exprs.index.values).difference(set(ignore_genes))
     mix_coef = 0.5
@@ -113,21 +113,63 @@ def _standard_add_modules(
     return exprs, coexpressed_modules
 
 
+def _rename_rows_cols(
+    exprs: pd.DataFrame, biclusters: dict, coexpressed_modules: list | None = None
+) -> tuple[pd.DataFrame, dict, list]:
+    """Rename rows and columns of the exprs."""
+    renaming_rows = {i: f"g_{i}" for i in exprs.index.values}
+    renaming_cols = {i: f"s_{i}" for i in exprs.columns.values}
+    exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
+
+    new_biclusters = {}
+    for bic_id, bic_data in biclusters.items():
+        new_biclusters[bic_id] = {
+            "genes": {renaming_rows[g] for g in bic_data["genes"]},
+            "samples": {renaming_cols[s] for s in bic_data["samples"]},
+            "frac": bic_data["frac"],
+        }
+
+    # Update coexpressed_modules with new gene names
+    new_coexpressed_modules = []
+    if coexpressed_modules:
+        for module in coexpressed_modules:
+            new_module = [renaming_rows[gene] for gene in module]
+            new_coexpressed_modules.append(sorted(new_module))
+
+    return exprs, new_biclusters, new_coexpressed_modules
+
+
+def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
+    """Add statistics to the biclusters."""
+    new_biclusters = {}
+    for bic_id, bic_data in biclusters.items():
+        bic_data["n_genes"] = len(bic_data["genes"])
+        bic_data["n_samples"] = len(bic_data["samples"])
+        new_biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
+
+    bicluster_df = pd.DataFrame.from_dict(new_biclusters).T
+
+    # bicluster_df.set_index("frac",inplace = True,drop=True)
+    return bicluster_df
+
+
 def generate_exprs(
-    data_sizes,
-    g_size=5,
-    frac_samples=[0.05, 0.1, 0.25, 0.5],
-    m=2.0,
-    std=1,
-    z=True,
-    outdir="./",
-    outfile_basename="",
-    g_overlap=False,
-    s_overlap=True,
-    seed=42,
-    add_coexpressed=[],
+    data_sizes: tuple[int, int],
+    g_size: int = 5,
+    frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+    m: float = 2.0,
+    std: float = 1.0,
+    z: bool = True,
+    outdir: str = "./",
+    outfile_basename: str = "",
+    g_overlap: bool = False,
+    s_overlap: bool = True,
+    seed: int = 42,
+    add_coexpressed: list[int] = [],
 ):
-    exprs, biclusters = generate_biclusters_common(
+    """Generate synthetic expression data with biclusters."""
+
+    exprs, bicluster_dict = _scenario_generate_biclusters(
         data_sizes,
         g_size=g_size,
         frac_samples=frac_samples,
@@ -138,28 +180,21 @@ def generate_exprs(
         seed=seed,
     )
 
-    bicluster_genes = set.union(*[b["genes"] for b in biclusters.values()])
-    exprs, coexpressed_modules = _standard_add_modules(
+    bicluster_genes = set.union(*[b["genes"] for b in bicluster_dict.values()])
+    exprs, coexpressed_modules = _scenario_add_modules(
         exprs,
         ignore_genes=bicluster_genes,
         seed=seed,
         add_coexpressed=add_coexpressed,
     )
 
+    # center to 0 and scale std to 1
     if z:
-        # center to 0 and scale std to 1
         exprs = zscore(exprs)
 
-    # calculate bicluster SNR
-    # distinguish up- and down-regulated genes
-    for b in biclusters.values():
-        b["n_genes"] = len(b["genes"])
-        b["n_samples"] = len(b["samples"])
-    for bic_id in biclusters.keys():
-        biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
-
-    biclusters = pd.DataFrame.from_dict(biclusters).T
-    # biclusters.set_index("frac",inplace = True,drop=True)
+    # rename rows and columns to g_ and s_, add SNRs
+    # exprs, bicluster_dict, coexpressed_modules = _rename_rows_cols(exprs, bicluster_dict, coexpressed_modules)
+    bicluster_df = _build_bicluster_table(exprs, bicluster_dict)
 
     if outfile_basename:
         exprs_file = outdir + outfile_basename + ".data.tsv.gz"
@@ -169,6 +204,33 @@ def generate_exprs(
         # save ground truth
         bic_file_name = outdir + outfile_basename + ".true_biclusters.tsv.gz"
         print("true biclusters:", bic_file_name)
-        write_bic_table(biclusters, bic_file_name)
+        write_bic_table(bicluster_df, bic_file_name)
 
-    return exprs, biclusters, coexpressed_modules
+    return exprs, bicluster_df, coexpressed_modules
+
+
+class SyntheticBiclusterGeneratorABC:
+    """Class to generate synthetic biclusters."""
+
+    def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+        """Build synthetic biclusters and expression data."""
+        raise NotImplementedError("This method should be implemented in subclasses.")
+
+    def get_args(self) -> dict:
+        """Describe the scenario."""
+        raise NotImplementedError("This method should be implemented in subclasses.")
+
+
+class ScenarioBiclusterGenerator:
+    """Base class for generating synthetic biclusters."""
+
+    def __init__(self, scenario_args: dict, generic_args: dict, other_args: dict):
+        pass
+
+    def build(self, seed) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+        """Build biclusters for a specific scenario."""
+        raise NotImplementedError("This method should be implemented in subclasses.")
+
+    def get_args(self) -> dict:
+        """Describe the scenario."""
+        raise NotImplementedError("This method should be implemented in subclasses.")

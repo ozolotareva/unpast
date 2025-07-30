@@ -44,7 +44,6 @@ class TestGenerateExprs:
         assert len(modules) > 0
         assert hash_table(pd.DataFrame(modules)) == 6483552165326287867
 
-
     def test_generate_exprs_biclusters_write_read_roundtrip(self):
         """Test that created true biclusters can be written and read correctly."""
 
