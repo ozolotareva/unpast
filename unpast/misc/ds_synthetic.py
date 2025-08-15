@@ -113,32 +113,6 @@ def _scenario_add_modules(
     return exprs, coexpressed_modules
 
 
-def _rename_rows_cols(
-    exprs: pd.DataFrame, biclusters: dict, coexpressed_modules: list | None = None
-) -> tuple[pd.DataFrame, dict, list]:
-    """Rename rows and columns of the exprs."""
-    renaming_rows = {i: f"g_{i}" for i in exprs.index.values}
-    renaming_cols = {i: f"s_{i}" for i in exprs.columns.values}
-    exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
-
-    new_biclusters = {}
-    for bic_id, bic_data in biclusters.items():
-        new_biclusters[bic_id] = {
-            "genes": {renaming_rows[g] for g in bic_data["genes"]},
-            "samples": {renaming_cols[s] for s in bic_data["samples"]},
-            "frac": bic_data["frac"],
-        }
-
-    # Update coexpressed_modules with new gene names
-    new_coexpressed_modules = []
-    if coexpressed_modules:
-        for module in coexpressed_modules:
-            new_module = [renaming_rows[gene] for gene in module]
-            new_coexpressed_modules.append(sorted(new_module))
-
-    return exprs, new_biclusters, new_coexpressed_modules
-
-
 def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
     """Add statistics to the biclusters."""
     new_biclusters = {}
@@ -207,30 +181,3 @@ def generate_exprs(
         write_bic_table(bicluster_df, bic_file_name)
 
     return exprs, bicluster_df, coexpressed_modules
-
-
-class SyntheticBiclusterGeneratorABC:
-    """Class to generate synthetic biclusters."""
-
-    def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-        """Build synthetic biclusters and expression data."""
-        raise NotImplementedError("This method should be implemented in subclasses.")
-
-    def get_args(self) -> dict:
-        """Describe the scenario."""
-        raise NotImplementedError("This method should be implemented in subclasses.")
-
-
-class ScenarioBiclusterGenerator:
-    """Base class for generating synthetic biclusters."""
-
-    def __init__(self, scenario_args: dict, generic_args: dict, other_args: dict):
-        pass
-
-    def build(self, seed) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-        """Build biclusters for a specific scenario."""
-        raise NotImplementedError("This method should be implemented in subclasses.")
-
-    def get_args(self) -> dict:
-        """Describe the scenario."""
-        raise NotImplementedError("This method should be implemented in subclasses.")

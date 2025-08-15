@@ -11,6 +11,7 @@ from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.io import ProjectPaths
 from unpast.utils.similarity import get_similarity_jaccard
 
+
 class TestRunLouvain:
     """Test cases for run_Louvain function."""
 
