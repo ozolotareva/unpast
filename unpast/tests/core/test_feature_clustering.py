@@ -11,12 +11,6 @@ from unpast.core.feature_clustering import run_Louvain
 from unpast.utils.io import ProjectPaths
 from unpast.utils.similarity import get_similarity_jaccard
 
-TMP_DIR = os.path.join(os.path.dirname(__file__), "tmp_results")
-if not os.access(TMP_DIR, os.W_OK):
-    # repo dir is currently read-only during the testing stage in github-action
-    TMP_DIR = "/tmp/unpast/tmp_results"
-
-
 class TestRunLouvain:
     """Test cases for run_Louvain function."""
 
