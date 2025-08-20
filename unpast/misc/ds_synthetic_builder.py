@@ -1,8 +1,9 @@
 import os
 import random
+import warnings
 from collections import namedtuple
 from pathlib import Path
-from typing import Mapping
+from typing import Mapping, Optional
 
 import numpy as np
 import pandas as pd
@@ -58,7 +59,17 @@ def build_simple_biclusters(
 
 
 def shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
-    """Shuffle the expression data."""
+    """Shuffle the expression data.
+        preserves index-value correspondence
+        i.e. changes only iloc, not loc
+
+    Args:
+        exprs (pd.DataFrame): Expression data.
+        rand (np.random.RandomState): Random state for shuffling.
+
+    Returns:
+        pd.DataFrame: Shuffled expression data.
+    """
     new_index = rand.permutation(exprs.index)
     new_columns = rand.permutation(exprs.columns)
     return pd.DataFrame(
@@ -67,14 +78,42 @@ def shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFr
 
 
 def _rename_rows_cols(
-    exprs: pd.DataFrame, biclusters: dict, coexpressed_modules: list | None = None
-) -> tuple[pd.DataFrame, dict, list]:
-    """Rename rows and columns of the exprs."""
+    exprs: pd.DataFrame, biclusters: dict, extra_info: dict = {}
+) -> tuple[pd.DataFrame, dict, dict]:
+    """Rename rows and columns of the exprs.
+        preserves exprs values positions
+        i.e. changes only loc, not iloc
+
+    Args:
+        exprs (pd.DataFrame): Expression data.
+        biclusters (dict): Biclusters information.
+        extra_info (dict): Additional information.
+
+    Returns:
+        tuple[pd.DataFrame, dict, dict]: Renamed expression data, biclusters, and extra information.
+    """
+    # exprs
     renaming_rows = {name: f"g_{ind}" for (ind, name) in enumerate(exprs.index.values)}
     renaming_cols = {
         name: f"s_{ind}" for (ind, name) in enumerate(exprs.columns.values)
     }
     exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
+
+    genes_in_bics = {
+        gene: [gene in bic for bic in bics["genes"].values] for gene in exprs.index
+    }
+    genes_sorted = sorted(
+        exprs.index, key=lambda item: genes_in_bics[item], reverse=True
+    )
+
+    samples_in_bics = {
+        sample: [sample in bic for bic in bics["samples"].values]
+        for sample in exprs.columns
+    }
+    # samples_sorted = sorted(exprs.columns, key=lambda item: [not x for x in samples_in_bics[item]], reverse=True)
+    samples_sorted = sorted(
+        exprs.columns, key=lambda item: samples_in_bics[item], reverse=True
+    )
 
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
@@ -88,21 +127,81 @@ def _rename_rows_cols(
             samples={renaming_cols[s] for s in bic_data.samples},
         )
 
-    # Update coexpressed_modules with new gene names
-    new_coexpressed_modules = []
-    if coexpressed_modules:
-        for module in coexpressed_modules:
-            new_module = [renaming_rows[gene] for gene in module]
-            new_coexpressed_modules.append(sorted(new_module))
+    new_extra_info = {}
+    if "coexpressed_modules" in extra_info:
+        coexpressed_modules = extra_info["coexpressed_modules"]
 
-    return exprs, new_biclusters, new_coexpressed_modules
+        # Update coexpressed_modules with new gene names
+        new_coexpressed_modules = []
+        if coexpressed_modules:
+            for module in coexpressed_modules:
+                new_module = [renaming_rows[gene] for gene in module]
+                new_coexpressed_modules.append(sorted(new_module))
+
+        new_extra_info["coexpressed_modules"] = new_coexpressed_modules
+
+    assert extra_info.keys() == new_extra_info.keys(), (
+        "Missing logic for renaming logic for some keys."
+    )
+    return exprs, new_biclusters, new_extra_info
+
+
+class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
+    """Class to generate synthetic biclusters.
+
+    TODO: remove, tmp class during changing the logic
+    """
+
+    def __init__(
+        self,
+        data_sizes: tuple[int, int],
+        g_size: int = 5,
+        frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+        m: float = 2.0,
+        std: float = 1.0,
+        z: bool = True,
+        outdir: str = "./",
+        outfile_basename: str = "",
+        g_overlap: bool = False,
+        s_overlap: bool = True,
+        seed: int = 42,
+        add_coexpressed: list[int] = [],
+    ):
+        assert outfile_basename is "", "Output directory must be not specified."
+
+        self.kwargs = {
+            "data_sizes": data_sizes,
+            "g_size": g_size,
+            "frac_samples": frac_samples,
+            "m": m,
+            "std": std,
+            "z": z,
+            "outdir": outdir,
+            "outfile_basename": outfile_basename,
+            "g_overlap": g_overlap,
+            "s_overlap": s_overlap,
+            "seed": seed,
+            "add_coexpressed": add_coexpressed,
+        }
+
+    def build(self, seed: int):
+        """Generate synthetic biclusters."""
+        warnings.warn(f"seed {seed} currently ignored")
+
+        # rand = np.random.RandomState(self.seed)
+        exprs, bic_dict, modules = generate_exprs(**self.kwargs)
+
+        return exprs, bic_dict, {"coexpressed_modules": modules}
+
+    def get_args(self) -> dict:
+        return self.kwargs
 
 
 class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
     """Class to generate synthetic biclusters."""
 
     SCENARIO_TYPES = {
-        "GeneExprs": generate_exprs,
+        # "GeneExprs": generate_exprs,
         "Simple": build_simple_biclusters,
     }
 
@@ -132,7 +231,7 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
 
         rand = np.random.RandomState(seed)
         if self.scenario_type == "GeneExprs":
-            # TODO: use the same interface in gene_exprs
+            # TODO: use the same rand interface in gene_exprs
             exprs, bic_dict, extra = build_func(**self.scenario_args)
         else:
             exprs, bic_dict, extra = build_func(rand=rand, **self.scenario_args)
@@ -141,11 +240,11 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
             exprs = zscore(exprs)
 
         if not self.not_shuffle:
+            # shuffle col&row indexes
+            # without changing the index-value correspondence
             exprs = shuffle_exprs(exprs, rand=rand)
 
-        if self.scenario_type != "GeneExprs":
-            # TODO: use the same interface in gene_exprs
-            exprs, bic_dict, extra = _rename_rows_cols(exprs, bic_dict, extra)
+        exprs, bic_dict, extra = _rename_rows_cols(exprs, bic_dict, extra)
 
         bic_dict = {
             k: {"genes": v.genes, "samples": v.samples} for k, v in bic_dict.items()
@@ -164,22 +263,70 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
         }
 
 
-# dataset = {
-#     "A_5": SynthBic("A", size=5),
-#     "A_50": SynthBic("A", size=50),
-#     "A_500": SynthBic("A", size=500),
-#     "C_5": SynthBic("C", size=5),
-#     "C_50": SynthBic("C", size=50),
-#     "C_500": SynthBic("C", size=500),
+def get_standard_dataset_schema() -> dict[str, SyntheticBiclusterGeneratorABC]:
+    ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {
+        # "GeneExprs": SyntheticBicluster(
+        #     scenario_type="GeneExprs",
+        #     data_sizes=(10, 10),
+        #     frac_samples=[0.2, 0.3],
+        # ),
+        "simple_3": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+        ),
+        "simple_5": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 5)
+        ),
+        "more_rows": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(100, 10), bic_sizes=(3, 3)
+        ),
+        "more_cols": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(3, 3)
+        ),
+        **{
+            f"test_mu_{i}": SyntheticBicluster(
+                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
+            )
+            for i in [0.1, 0.5, 1.0, 2.0, 5.0]
+        },
+    }
+    return ds_schema
 
-# }
 
-# for c in ['A', 'C']:
-#     for size in [5, 50, 500]:
-#         dataset[f"{c}_{size}"] = SyntheticBicluster(c, size=size)
+def get_scenario_dataset_schema(
+    scale: float = 1.0,
+) -> dict[str, SyntheticBiclusterGeneratorABC]:
+    """Get a dataset schema for scenarios."""
+    common_args = {
+        "seed": 42,
+        "m": 4,
+        "std": 1,
+        # fractions of samples included to each subtype
+        "frac_samples": [0.05, 0.1, 0.25, 0.5],
+    }
 
-# for size in [10]:
-#     dataset[f"Simple_{size}"] = SyntheticBicluster("Simple", size=size)
+    scenario_args = {
+        "A": {"add_coexpressed": [], "g_overlap": False, "s_overlap": False},
+        "B": {"add_coexpressed": [], "g_overlap": False, "s_overlap": True},
+        "C": {
+            "add_coexpressed": [int(500 * scale)]
+            * 4,  # add 4 co-expression modules of 500 genes each, with avg. r=0.5
+            "g_overlap": False,
+            "s_overlap": True,
+        },
+    }
+
+    size = (
+        int(10000 * scale),  # number of genes
+        int(200 * scale),  # number of samples
+    )
+
+    ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {}
+    for letter in ["A", "C"]:
+        for n_genes in [5, 50, 500]:
+            ds_schema[f"{letter}_{n_genes}"] = ScenarioBiclusters(
+                size, **common_args, **scenario_args[letter]
+            )
+    return ds_schema
 
 
 def build_dataset(
