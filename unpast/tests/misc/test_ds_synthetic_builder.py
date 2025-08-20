@@ -2,7 +2,12 @@
 
 import pandas as pd
 
-from unpast.misc.ds_synthetic_builder import SyntheticBicluster, build_dataset
+from unpast.misc.ds_synthetic_builder import (
+    SyntheticBicluster,
+    build_dataset,
+    get_scenario_dataset_schema,
+    get_standard_dataset_schema,
+)
 from unpast.utils.io import read_bic_table
 
 
@@ -122,3 +127,8 @@ def test_build_dataset(tmp_path):
     # Check that bicluster files have proper structure
     bic_df = read_bic_table(str(result_df.loc["name1", "bic_file"]))
     assert len(bic_df) > 0  # Should have at least one bicluster entry
+
+
+def test_get_scenario_dataset_schema(tmp_path):
+    ds_schema = get_scenario_dataset_schema(scale=0.1)
+    build_dataset(ds_schema, output_dir=tmp_path)

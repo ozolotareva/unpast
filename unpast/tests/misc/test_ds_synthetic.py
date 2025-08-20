@@ -42,21 +42,22 @@ class TestGenerateExprs:
 
         assert hash_table(data.round(10)) == 13859474739268829572
         if hash_table(data) == 11546093038749057111:
-            warnings.warn((
-                "WARNING: Tests generation could be slightly unreproducible on some machines."
-                "\nWay to test: run the following in python and check the last symbol (1 - problem, 0 - ok)."
-                "\n---"
-                "\nimport struct"
-                "\nimport numpy as np"
-                "\nprint(np.__version__)"
-                "\nnum = float(np.random.RandomState(42).normal(loc=0, scale=1.0, size=77)[-1])"
-                "\nd = struct.unpack('>Q', struct.pack('>d', num))"
-                "\nprint(f'{d[0]:064b}')"
-                "\n---"
-            ))
+            warnings.warn(
+                (
+                    "WARNING: Tests generation could be slightly unreproducible on some machines."
+                    "\nWay to test: run the following in python and check the last symbol (1 - problem, 0 - ok)."
+                    "\n---"
+                    "\nimport struct"
+                    "\nimport numpy as np"
+                    "\nprint(np.__version__)"
+                    "\nnum = float(np.random.RandomState(42).normal(loc=0, scale=1.0, size=77)[-1])"
+                    "\nd = struct.unpack('>Q', struct.pack('>d', num))"
+                    "\nprint(f'{d[0]:064b}')"
+                    "\n---"
+                )
+            )
         else:
             assert hash_table(data) == 8496858187703500925
-
 
         assert hash_table(biclusters.map(set_to_str)) == 17686323693856100141
         assert len(modules) > 0

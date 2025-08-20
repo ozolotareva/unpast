@@ -2,8 +2,8 @@
 
 import pandas as pd
 
-from unpast.misc.eval import calculate_perfromance
 from unpast.misc.ds_synthetic import generate_exprs
+from unpast.misc.eval import calculate_perfromance
 from unpast.utils.io import read_bic_table
 
 

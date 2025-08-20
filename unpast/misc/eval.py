@@ -8,7 +8,6 @@ from lifelines.statistics import logrank_test
 from scipy.stats import chi2_contingency
 from statsmodels.stats.multitest import fdrcorrection
 
-
 """
 # Disabling Unused Code: make_ref_groups, make_known_groups, and compare_gene_clusters
 
