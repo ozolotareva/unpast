@@ -59,6 +59,10 @@ class TestGenerateExprs:
         else:
             assert hash_table(data) == 8496858187703500925
 
+        assert (
+            hash_table(biclusters.drop(columns=["frac"]).map(set_to_str))
+            == 4510554005146861675
+        )
         assert hash_table(biclusters.map(set_to_str)) == 17686323693856100141
         assert len(modules) > 0
         assert hash_table(pd.DataFrame(modules)) == 6483552165326287867

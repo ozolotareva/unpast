@@ -26,7 +26,7 @@ def _scenario_generate_biclusters(
     )
 
     # data_sizes = genes_amount, samples_amount
-    # np.random.seed(seed)
+    np.random.seed(seed)  # todo: remove all the other np.seed
     exprs = np.random.normal(loc=0, scale=1.0, size=data_sizes)
     exprs = pd.DataFrame(exprs)
     exprs.columns = ["s_" + str(x) for x in exprs.columns.values]
@@ -36,7 +36,7 @@ def _scenario_generate_biclusters(
     bg_g = set(exprs.index.values)
     bg_s = set(exprs.columns.values)
 
-    # np.random.seed(seed)
+    np.random.seed(seed)  # todo: remove
     seeds = np.random.choice(range(0, 1000000), size=len(frac_samples), replace=False)
     biclusters = {}
     for s_frac, cur_seed in zip(frac_samples, seeds):
@@ -66,7 +66,7 @@ def _scenario_generate_biclusters(
         biclusters["bic_" + str(s_frac)] = {
             "genes": set(bic_genes),
             "samples": set(bic_samples),
-            # "frac": s_frac,
+            "frac": s_frac,  # todo: remove, in key
         }
 
     return exprs, biclusters
@@ -84,13 +84,13 @@ def _scenario_add_modules(
     store_coef = np.sqrt(1 - mix_coef**2)
 
     coexpressed_modules = []
-    # np.random.seed(seed + 1)
+    np.random.seed(seed + 1)  # todo: remove other np.seed
     seeds = np.random.choice(
         range(0, 1000000), size=len(add_coexpressed), replace=False
     )
 
     for module_size, cur_seed in zip(add_coexpressed, seeds):
-        # np.random.seed(cur_seed)
+        np.random.seed(cur_seed)  # todo: remove
         module_genes = sorted(
             np.random.choice(sorted(bg_g), size=module_size, replace=False)
         )

@@ -20,7 +20,7 @@ def test_synthetic_bicluster():
 
     assert isinstance(exprs, pd.DataFrame)
     assert isinstance(biclusters, pd.DataFrame)
-    assert isinstance(modules, list)
+    assert isinstance(modules, dict)
 
     # Check if the generated expression data has the expected shape
     assert exprs.shape[0] > 0 and exprs.shape[1] > 0
@@ -33,7 +33,7 @@ def test_synthetic_bicluster():
     exprs_3, biclusters_3, modules_3 = generator.build(seed=1)
     assert not exprs.equals(exprs_3)
     assert not biclusters.equals(biclusters_3)
-    # assert modules == modules_3  # both are empty here
+    # assert modules != modules_3  # both are empty here, so equal
 
 
 def test_build_dataset(tmp_path):
@@ -68,7 +68,7 @@ def test_build_dataset(tmp_path):
     }
 
     # Call build_dataset and capture the returned DataFrame
-    result_df = build_dataset(dataset, output_dir=tmp_path)
+    result_df = build_dataset(dataset, output_dir=tmp_path, show_images=False)
 
     # Check that the result is a DataFrame
     assert isinstance(result_df, pd.DataFrame)
@@ -131,4 +131,4 @@ def test_build_dataset(tmp_path):
 
 def test_get_scenario_dataset_schema(tmp_path):
     ds_schema = get_scenario_dataset_schema(scale=0.1)
-    build_dataset(ds_schema, output_dir=tmp_path)
+    build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
