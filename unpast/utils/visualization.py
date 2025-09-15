@@ -125,7 +125,7 @@ def plot_binarization_results(stats, size_snr_trend, sizes, pval):
     plt.show()
 
 
-def plot_heatmap(
+def plot_biclusters_heatmap(
     exprs: pd.DataFrame,
     biclusters: Optional[pd.DataFrame] = None,  # biclusters if available
     coexpressed_modules: list[
@@ -167,7 +167,11 @@ def plot_heatmap(
     )
 
     genes_sorted = sorted(exprs.index, key=lambda item: gene_keys[item], reverse=True)
-    genes_sorted = genes_sorted[:limit_features]  # limit showed genes
+    title_suffix = ""
+    if limit_features is not None:
+        if len(genes_sorted) > limit_features:
+            title_suffix = f" ({limit_features}/{len(genes_sorted)} rows)"
+            genes_sorted = genes_sorted[:limit_features]  # limit showed genes
 
     fig = sns.clustermap(
         exprs.loc[genes_sorted, samples_sorted],
@@ -187,7 +191,7 @@ def plot_heatmap(
         fig.savefig(fig_path, transparent=True)
 
     if visualize:
-        fig.ax_heatmap.set_title(fig_title)
+        fig.ax_heatmap.set_title(fig_title + title_suffix)
         plt.show()
 
     plt.close(fig.fig)

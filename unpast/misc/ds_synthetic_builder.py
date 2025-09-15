@@ -11,6 +11,7 @@ import pandas as pd
 from unpast.core.preprocessing import zscore
 from unpast.misc.ds_synthetic import _build_bicluster_table, generate_exprs
 from unpast.utils.io import write_bic_table
+from unpast.utils.visualization import plot_biclusters_heatmap
 
 Bicluster = namedtuple("Bicluster", ["genes", "samples"])
 
@@ -99,21 +100,21 @@ def _rename_rows_cols(
     }
     exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
 
-    genes_in_bics = {
-        gene: [gene in bic for bic in bics["genes"].values] for gene in exprs.index
-    }
-    genes_sorted = sorted(
-        exprs.index, key=lambda item: genes_in_bics[item], reverse=True
-    )
+    # genes_in_bics = {
+    #     gene: [gene in bic for bic in biclusters["genes"].values] for gene in exprs.index
+    # }
+    # genes_sorted = sorted(
+    #     exprs.index, key=lambda item: genes_in_bics[item], reverse=True
+    # )
 
-    samples_in_bics = {
-        sample: [sample in bic for bic in bics["samples"].values]
-        for sample in exprs.columns
-    }
-    # samples_sorted = sorted(exprs.columns, key=lambda item: [not x for x in samples_in_bics[item]], reverse=True)
-    samples_sorted = sorted(
-        exprs.columns, key=lambda item: samples_in_bics[item], reverse=True
-    )
+    # samples_in_bics = {
+    #     sample: [sample in bic for bic in biclusters["samples"].values]
+    #     for sample in exprs.columns
+    # }
+    # # samples_sorted = sorted(exprs.columns, key=lambda item: [not x for x in samples_in_bics[item]], reverse=True)
+    # samples_sorted = sorted(
+    #     exprs.columns, key=lambda item: samples_in_bics[item], reverse=True
+    # )
 
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
@@ -323,8 +324,9 @@ def get_scenario_dataset_schema(
     ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {}
     for letter in ["A", "C"]:
         for n_genes in [5, 50, 500]:
+            n_genes = max(1, int(n_genes * scale))
             ds_schema[f"{letter}_{n_genes}"] = ScenarioBiclusters(
-                size, **common_args, **scenario_args[letter]
+                size, g_size=n_genes, **common_args, **scenario_args[letter]
             )
     return ds_schema
 
@@ -333,6 +335,7 @@ def build_dataset(
     entry_builders: Mapping[str, SyntheticBiclusterGeneratorABC],
     seed_prefix="",
     output_dir="./synthetic_ds",
+    show_images=True,
 ) -> pd.DataFrame:
     """Build a dataset from the given generators.
 
@@ -340,6 +343,7 @@ def build_dataset(
         entry_builders: A mapping of dataset names to their corresponding SyntheticBicluster instances.
         seed_prefix: A prefix to use for seeding the random number generator, "" by default
         output_dir: The directory to save the generated dataset files.
+        show_images: Whether to show generated plots.
 
     Returns:
         DataFrame, containing info about generated tuples:
@@ -364,6 +368,15 @@ def build_dataset(
 
         exprs.to_csv(exprs_file, sep="\t")
         write_bic_table(bicluster_df, str(bicluster_file))
+
+        plot_biclusters_heatmap(
+            exprs=exprs,
+            biclusters=bicluster_df,
+            coexpressed_modules=extra_info.get("coexpressed_modules", []),
+            fig_title=name,
+            fig_path=output_path / name / "heatmap.png",
+            visualize=show_images,
+        )
 
         # save build info
         build_info[name] = {
