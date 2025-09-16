@@ -185,13 +185,13 @@ def plot_biclusters_heatmap(
         figsize=(4, 5),
     )
     fig.ax_cbar.set_visible(False)  # switch on/off colorbar
+    fig.ax_heatmap.set_title(fig_title + title_suffix)
 
     if fig_path:
         fig_path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(fig_path, transparent=True)
 
     if visualize:
-        fig.ax_heatmap.set_title(fig_title + title_suffix)
         plt.show()
 
     plt.close(fig.fig)

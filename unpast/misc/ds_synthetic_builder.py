@@ -364,7 +364,7 @@ def build_dataset(
         # save
         (output_path / name).mkdir(parents=True, exist_ok=True)
         exprs_file = output_path / name / "data.tsv"
-        bicluster_file = output_path / name / "biclusters.tsv"
+        bicluster_file = output_path / name / "true_biclusters.tsv"
 
         exprs.to_csv(exprs_file, sep="\t")
         write_bic_table(bicluster_df, str(bicluster_file))
