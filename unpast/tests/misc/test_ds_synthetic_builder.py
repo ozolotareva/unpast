@@ -22,11 +22,10 @@ class TestScenarioBiclusters:
             data_sizes=(100, 50),
             frac_samples=[0.2, 0.3],
             outfile_basename="",  # don't save
-            seed=42,
             add_coexpressed=[10, 20],
         )
 
-        data, biclusters, extra = builder.build(seed = 42)
+        data, biclusters, extra = builder.build(seed=42)
         assert extra.keys() == {"coexpressed_modules"}
         modules = extra["coexpressed_modules"]
 
@@ -36,8 +35,8 @@ class TestScenarioBiclusters:
                 return ",".join(map(str, sorted(x)))
             return x
 
-        assert hash_table(data.round(10)) == 13859474739268829572
-        if hash_table(data) == 11546093038749057111:
+        assert hash_table(data.round(10)) == 708873939649143270
+        if hash_table(data) == 8684347458462553755:
             warnings.warn(
                 (
                     "WARNING: Tests generation could be slightly unreproducible on some machines."
@@ -53,15 +52,15 @@ class TestScenarioBiclusters:
                 )
             )
         else:
-            assert hash_table(data) == 8496858187703500925
+            assert hash_table(data) == 12539513048361114401
 
         assert (
             hash_table(biclusters.drop(columns=["frac"]).map(set_to_str))
-            == 4510554005146861675
+            == 7359748298322460785
         )
-        assert hash_table(biclusters.map(set_to_str)) == 17686323693856100141
+        assert hash_table(biclusters.map(set_to_str)) == 7420840823903342389
         assert len(modules) > 0
-        assert hash_table(pd.DataFrame(modules)) == 6483552165326287867
+        assert hash_table(pd.DataFrame(modules)) == 11288322476390681781
 
 
 class TestSyntheticBicluster:

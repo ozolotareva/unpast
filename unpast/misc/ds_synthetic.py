@@ -9,6 +9,7 @@ from unpast.utils.io import write_bic_table
 
 
 def _scenario_generate_biclusters(
+    rand: np.random.RandomState,
     data_sizes: tuple[int, int],
     g_size: int = 5,
     frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
@@ -16,7 +17,6 @@ def _scenario_generate_biclusters(
     std: float = 1.0,
     g_overlap: bool = False,
     s_overlap: bool = True,
-    seed: int = 42,
 ) -> tuple[pd.DataFrame, dict]:
     assert len(set(frac_samples)) == len(frac_samples), (
         f"fraction samples must be unique, got {frac_samples}"
@@ -26,8 +26,7 @@ def _scenario_generate_biclusters(
     )
 
     # data_sizes = genes_amount, samples_amount
-    np.random.seed(seed)  # todo: remove all the other np.seed
-    exprs = np.random.normal(loc=0, scale=1.0, size=data_sizes)
+    exprs = rand.normal(loc=0, scale=1.0, size=data_sizes)
     exprs = pd.DataFrame(exprs)
     exprs.columns = ["s_" + str(x) for x in exprs.columns.values]
     exprs.index = ["g_" + str(x) for x in exprs.index.values]
@@ -36,21 +35,15 @@ def _scenario_generate_biclusters(
     bg_g = set(exprs.index.values)
     bg_s = set(exprs.columns.values)
 
-    np.random.seed(seed)  # todo: remove
-    seeds = np.random.choice(range(0, 1000000), size=len(frac_samples), replace=False)
     biclusters = {}
-    for s_frac, cur_seed in zip(frac_samples, seeds):
+    for s_frac in frac_samples:
         s_size = int(s_frac * data_sizes[1])
 
         # select random sets of samples and genes from the background
-        np.random.seed(cur_seed)
-        bic_genes = sorted(np.random.choice(sorted(bg_g), size=g_size, replace=False))
+        bic_genes = sorted(rand.choice(sorted(bg_g), size=g_size, replace=False))
+        bic_samples = sorted(rand.choice(sorted(bg_s), size=s_size, replace=False))
 
-        np.random.seed(cur_seed)
-        bic_samples = sorted(np.random.choice(sorted(bg_s), size=s_size, replace=False))
-
-        np.random.seed(cur_seed)
-        exprs.loc[bic_genes, bic_samples] += np.random.normal(
+        exprs.loc[bic_genes, bic_samples] += rand.normal(
             loc=m, scale=std, size=(g_size, s_size)
         )
 
@@ -73,9 +66,9 @@ def _scenario_generate_biclusters(
 
 
 def _scenario_add_modules(
+    rand: np.random.RandomState,
     exprs: pd.DataFrame,
     ignore_genes: set[str | int],
-    seed: int,
     add_coexpressed: list[int] = [],
 ) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """Add co-expressed modules to the expression matrix."""
@@ -84,15 +77,9 @@ def _scenario_add_modules(
     store_coef = np.sqrt(1 - mix_coef**2)
 
     coexpressed_modules = []
-    np.random.seed(seed + 1)  # todo: remove other np.seed
-    seeds = np.random.choice(
-        range(0, 1000000), size=len(add_coexpressed), replace=False
-    )
-
-    for module_size, cur_seed in zip(add_coexpressed, seeds):
-        np.random.seed(cur_seed)  # todo: remove
+    for module_size in add_coexpressed:
         module_genes = sorted(
-            np.random.choice(sorted(bg_g), size=module_size, replace=False)
+            rand.choice(sorted(bg_g), size=module_size, replace=False)
         )
 
         exprs_0 = exprs.loc[module_genes[0], :]
@@ -138,6 +125,7 @@ def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFram
 
 
 def generate_exprs(
+    rand: np.random.RandomState,
     data_sizes: tuple[int, int],
     g_size: int = 5,
     frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
@@ -148,27 +136,26 @@ def generate_exprs(
     outfile_basename: str = "",
     g_overlap: bool = False,
     s_overlap: bool = True,
-    seed: int = 42,
     add_coexpressed: list[int] = [],
 ):
     """Generate synthetic expression data with biclusters."""
 
     exprs, bicluster_dict = _scenario_generate_biclusters(
-        data_sizes,
+        rand=rand,
+        data_sizes=data_sizes,
         g_size=g_size,
         frac_samples=frac_samples,
         m=m,
         std=std,
         g_overlap=g_overlap,
         s_overlap=s_overlap,
-        seed=seed,
     )
 
     bicluster_genes = set.union(*[b["genes"] for b in bicluster_dict.values()])
     exprs, coexpressed_modules = _scenario_add_modules(
-        exprs,
+        rand=rand,
+        exprs=exprs,
         ignore_genes=bicluster_genes,
-        seed=seed,
         add_coexpressed=add_coexpressed,
     )
 

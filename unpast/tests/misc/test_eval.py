@@ -1,5 +1,6 @@
 """Tests for eval module."""
 
+import numpy as np
 import pandas as pd
 
 from unpast.misc.ds_synthetic import generate_exprs
@@ -35,8 +36,10 @@ class TestCalculatePerformance:
         scenario = f"{sc_name}_{n_biomarkers}"
 
         # Run the function
+        # TODO: switch to SyntheticBicluster
         data, ground_truth, coexpressed_modules = generate_exprs(
-            (n_genes, N),
+            data_sizes=(n_genes, N),
+            rand=np.random.RandomState(seed),
             g_size=n_biomarkers,
             frac_samples=frac_samples,
             m=m,
@@ -45,7 +48,6 @@ class TestCalculatePerformance:
             outfile_basename=scenario,
             g_overlap=params[sc_name]["g_overlap"],
             s_overlap=params[sc_name]["s_overlap"],
-            seed=seed,
             add_coexpressed=params[sc_name]["add_coexpressed"],
         )
 

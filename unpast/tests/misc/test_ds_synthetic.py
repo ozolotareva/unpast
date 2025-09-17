@@ -4,6 +4,7 @@ import os
 import tempfile
 import warnings
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -69,14 +70,15 @@ class TestGenerateExprs:
 
     def test_generate_exprs_biclusters_write_read_roundtrip(self):
         """Test that created true biclusters can be written and read correctly."""
-
+    
+        # TODO: switch to SyntheticBicluster
         with tempfile.TemporaryDirectory() as temp_dir:
             exprs, biclusters_original, _ = generate_exprs(
                 data_sizes=(10, 5),
+                rand=np.random.RandomState(42),
                 frac_samples=[0.2, 0.3],
                 outdir=temp_dir + "/",
                 outfile_basename="test",
-                seed=42,
             )
 
             exprs_file_path = os.path.join(temp_dir, "test.data.tsv.gz")
@@ -122,8 +124,10 @@ class TestGenerateExprs:
         scenario = f"{sc_name}_{n_biomarkers}"
 
         # Run the function
+        # TODO: switch to SyntheticBicluster
         data, ground_truth, coexpressed_modules = generate_exprs(
-            (n_genes, N),
+            data_sizes=(n_genes, N),
+            rand=np.random.RandomState(seed),
             g_size=n_biomarkers,
             frac_samples=frac_samples,
             m=m,
@@ -132,7 +136,6 @@ class TestGenerateExprs:
             outfile_basename=scenario,
             g_overlap=params[sc_name]["g_overlap"],
             s_overlap=params[sc_name]["s_overlap"],
-            seed=seed,
             add_coexpressed=params[sc_name]["add_coexpressed"],
         )
 

@@ -150,7 +150,6 @@ class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
         outfile_basename: str = "",
         g_overlap: bool = False,
         s_overlap: bool = True,
-        seed: int = 42,
         add_coexpressed: list[int] = [],
     ):
         assert outfile_basename is "", "Output directory must be not specified."
@@ -166,17 +165,14 @@ class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
             "outfile_basename": outfile_basename,
             "g_overlap": g_overlap,
             "s_overlap": s_overlap,
-            "seed": seed,
             "add_coexpressed": add_coexpressed,
         }
 
     def build(self, seed: int):
         """Generate synthetic biclusters."""
-        warnings.warn(f"seed {seed} currently ignored")
-
-        # rand = np.random.RandomState(self.seed)
-        exprs, bic_dict, modules = generate_exprs(**self.kwargs)
-
+        rand = np.random.RandomState(seed)
+        exprs, bic_dict, modules = generate_exprs(rand=rand, **self.kwargs)
+        
         return exprs, bic_dict, {"coexpressed_modules": modules}
 
     def get_args(self) -> dict:
@@ -289,7 +285,6 @@ def get_scenario_dataset_schema(
             useful for debugging on smaller datasets.
     """
     common_args = {
-        "seed": 42,
         "m": 4,
         "std": 1,
         # fractions of samples included to each subtype
