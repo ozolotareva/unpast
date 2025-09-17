@@ -184,5 +184,5 @@ def test_build_dataset(tmp_path):
 
 
 def test_get_scenario_dataset_schema(tmp_path):
-    ds_schema = get_scenario_dataset_schema(scale=0.1)
+    ds_schema = get_scenario_dataset_schema(scale=0.02)
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
