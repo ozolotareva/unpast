@@ -54,7 +54,13 @@ def get_logger(name: Union[str, None] = None) -> PrefixLogger:
     Args:
         name (str, optional): Name of the logger.
     """
-    return PrefixLogger(logging.getLogger(name))
+    if name == "__main__":
+        # using root logger for __main__ to allow "root_package" filtering
+        name = str(__package__).split(".")[0] + "__main__"  # root package name
+    logger = PrefixLogger(logging.getLogger(name))
+
+
+    return logger
 
 
 def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.DEBUG):
@@ -68,7 +74,8 @@ def setup_logging(log_file=None, log_level=logging.INFO, log_file_level=logging.
         log_file_level: Logging level for file output.
     """
     # Create a custom logger
-    logger = logging.getLogger()
+    root_package_name = str(__package__).split(".")[0]  # root package name
+    logger = logging.getLogger(root_package_name)
     logger.setLevel(
         logging.DEBUG
     )  # Set to lowest level to allow all handlers to filter
