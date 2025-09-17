@@ -59,7 +59,7 @@ def build_simple_biclusters(
     return table, {"bic": Bicluster(bic_rows, bic_cols)}, {}
 
 
-def shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
+def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
     """Shuffle the expression data.
         preserves index-value correspondence
         i.e. changes only iloc, not loc
@@ -99,23 +99,7 @@ def _rename_rows_cols(
         name: f"s_{ind}" for (ind, name) in enumerate(exprs.columns.values)
     }
     exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
-
-    # genes_in_bics = {
-    #     gene: [gene in bic for bic in biclusters["genes"].values] for gene in exprs.index
-    # }
-    # genes_sorted = sorted(
-    #     exprs.index, key=lambda item: genes_in_bics[item], reverse=True
-    # )
-
-    # samples_in_bics = {
-    #     sample: [sample in bic for bic in biclusters["samples"].values]
-    #     for sample in exprs.columns
-    # }
-    # # samples_sorted = sorted(exprs.columns, key=lambda item: [not x for x in samples_in_bics[item]], reverse=True)
-    # samples_sorted = sorted(
-    #     exprs.columns, key=lambda item: samples_in_bics[item], reverse=True
-    # )
-
+    
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
         # new_biclusters[bic_id] = {
@@ -142,7 +126,8 @@ def _rename_rows_cols(
         new_extra_info["coexpressed_modules"] = new_coexpressed_modules
 
     assert extra_info.keys() == new_extra_info.keys(), (
-        "Missing logic for renaming logic for some keys."
+        "Missing logic for renaming logic for some keys: "
+        f"{extra_info.keys() - new_extra_info.keys()}."
     )
     return exprs, new_biclusters, new_extra_info
 
@@ -243,8 +228,9 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
         if not self.not_shuffle:
             # shuffle col&row indexes
             # without changing the index-value correspondence
-            exprs = shuffle_exprs(exprs, rand=rand)
+            exprs = _shuffle_exprs(exprs, rand=rand)
 
+        # rename rows and columns to same s_ and g_ format
         exprs, bic_dict, extra = _rename_rows_cols(exprs, bic_dict, extra)
 
         bic_dict = {
@@ -296,7 +282,12 @@ def get_standard_dataset_schema() -> dict[str, SyntheticBiclusterGeneratorABC]:
 def get_scenario_dataset_schema(
     scale: float = 1.0,
 ) -> dict[str, SyntheticBiclusterGeneratorABC]:
-    """Get a dataset schema for scenarios."""
+    """Get a dataset schema for scenarios.
+    
+    Args:
+        scale (float): Scale factor for the dataset size, 
+            useful for debugging on smaller datasets.
+    """
     common_args = {
         "seed": 42,
         "m": 4,

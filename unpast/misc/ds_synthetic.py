@@ -114,7 +114,17 @@ def _scenario_add_modules(
 
 
 def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
-    """Add statistics to the biclusters."""
+    """Build a DataFrame from bicluster dictionary with additional info.
+        Adds some statistics to each bicluster. 
+
+    Args:
+        exprs: Expression DataFrame.
+        biclusters: Dictionary of biclusters.
+
+    Returns:
+        DataFrame with bicluster information.
+    
+    """
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
         bic_data["n_genes"] = len(bic_data["genes"])
