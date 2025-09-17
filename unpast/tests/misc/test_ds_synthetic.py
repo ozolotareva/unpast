@@ -23,49 +23,49 @@ def hash_table(df):
 
 class TestGenerateExprs:
     """Test cases for generate_exprs function."""
+    # # moved to test_ds_synthetic_builder.py
+    # def test_generate_exprs_reproducibility(self):
+    #     """Test that generate_exprs produces the expected output with the same seed."""
+    #     data, biclusters, modules = generate_exprs(
+    #         data_sizes=(100, 50),
+    #         frac_samples=[0.2, 0.3],
+    #         outfile_basename="",  # don't save
+    #         seed=42,
+    #         add_coexpressed=[10, 20],
+    #     )
 
-    def test_generate_exprs_reproducibility(self):
-        """Test that generate_exprs produces the expected output with the same seed."""
-        data, biclusters, modules = generate_exprs(
-            data_sizes=(100, 50),
-            frac_samples=[0.2, 0.3],
-            outfile_basename="",  # don't save
-            seed=42,
-            add_coexpressed=[10, 20],
-        )
+    #     # sets have random order
+    #     def set_to_str(x):
+    #         if isinstance(x, set):
+    #             return ",".join(map(str, sorted(x)))
+    #         return x
 
-        # sets have random order
-        def set_to_str(x):
-            if isinstance(x, set):
-                return ",".join(map(str, sorted(x)))
-            return x
+    #     assert hash_table(data.round(10)) == 13859474739268829572
+    #     if hash_table(data) == 11546093038749057111:
+    #         warnings.warn(
+    #             (
+    #                 "WARNING: Tests generation could be slightly unreproducible on some machines."
+    #                 "\nWay to test: run the following in python and check the last symbol (1 - problem, 0 - ok)."
+    #                 "\n---"
+    #                 "\nimport struct"
+    #                 "\nimport numpy as np"
+    #                 "\nprint(np.__version__)"
+    #                 "\nnum = float(np.random.RandomState(42).normal(loc=0, scale=1.0, size=77)[-1])"
+    #                 "\nd = struct.unpack('>Q', struct.pack('>d', num))"
+    #                 "\nprint(f'{d[0]:064b}')"
+    #                 "\n---"
+    #             )
+    #         )
+    #     else:
+    #         assert hash_table(data) == 8496858187703500925
 
-        assert hash_table(data.round(10)) == 13859474739268829572
-        if hash_table(data) == 11546093038749057111:
-            warnings.warn(
-                (
-                    "WARNING: Tests generation could be slightly unreproducible on some machines."
-                    "\nWay to test: run the following in python and check the last symbol (1 - problem, 0 - ok)."
-                    "\n---"
-                    "\nimport struct"
-                    "\nimport numpy as np"
-                    "\nprint(np.__version__)"
-                    "\nnum = float(np.random.RandomState(42).normal(loc=0, scale=1.0, size=77)[-1])"
-                    "\nd = struct.unpack('>Q', struct.pack('>d', num))"
-                    "\nprint(f'{d[0]:064b}')"
-                    "\n---"
-                )
-            )
-        else:
-            assert hash_table(data) == 8496858187703500925
-
-        assert (
-            hash_table(biclusters.drop(columns=["frac"]).map(set_to_str))
-            == 4510554005146861675
-        )
-        assert hash_table(biclusters.map(set_to_str)) == 17686323693856100141
-        assert len(modules) > 0
-        assert hash_table(pd.DataFrame(modules)) == 6483552165326287867
+    #     assert (
+    #         hash_table(biclusters.drop(columns=["frac"]).map(set_to_str))
+    #         == 4510554005146861675
+    #     )
+    #     assert hash_table(biclusters.map(set_to_str)) == 17686323693856100141
+    #     assert len(modules) > 0
+    #     assert hash_table(pd.DataFrame(modules)) == 6483552165326287867
 
     def test_generate_exprs_biclusters_write_read_roundtrip(self):
         """Test that created true biclusters can be written and read correctly."""
