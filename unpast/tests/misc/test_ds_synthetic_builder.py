@@ -1,5 +1,6 @@
 """Tests for ds_synthetic module."""
 
+from ast import expr
 import warnings
 import pandas as pd
 
@@ -13,6 +14,11 @@ from unpast.misc.ds_synthetic_builder import (
 )
 from unpast.utils.io import read_bic_table
 
+def _set_to_str(x):
+    # fixing, as sets have random order
+    if isinstance(x, set):
+        return ",".join(map(str, sorted(x)))
+    return x
 
 class TestScenarioBiclusters:
     """Test cases for ScenarioBiclusters class."""
@@ -28,12 +34,6 @@ class TestScenarioBiclusters:
         data, biclusters, extra = builder.build(seed=42)
         assert extra.keys() == {"coexpressed_modules"}
         modules = extra["coexpressed_modules"]
-
-        # sets have random order
-        def set_to_str(x):
-            if isinstance(x, set):
-                return ",".join(map(str, sorted(x)))
-            return x
 
         assert hash_table(data.round(10)) == 708873939649143270
         if hash_table(data) == 8684347458462553755:
@@ -55,10 +55,10 @@ class TestScenarioBiclusters:
             assert hash_table(data) == 12539513048361114401
 
         assert (
-            hash_table(biclusters.drop(columns=["frac"]).map(set_to_str))
+            hash_table(biclusters.drop(columns=["frac"]).map(_set_to_str))
             == 7359748298322460785
         )
-        assert hash_table(biclusters.map(set_to_str)) == 7420840823903342389
+        assert hash_table(biclusters.map(_set_to_str)) == 7420840823903342389
         assert len(modules) > 0
         assert hash_table(pd.DataFrame(modules)) == 11288322476390681781
 
@@ -180,6 +180,38 @@ def test_build_dataset(tmp_path):
     # Check that bicluster files have proper structure
     bic_df = read_bic_table(str(result_df.loc["name1", "bic_file"]))
     assert len(bic_df) > 0  # Should have at least one bicluster entry
+
+def test_build_dataset_reproducibility(tmp_path):
+    """Check that results has exactly the same results (by hashes)"""
+    dataset = {
+        "name1": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+        ),
+        "name2": SyntheticBicluster(
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+        ),
+        **{
+            f"test_mu_{i}": SyntheticBicluster(
+                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
+            )
+            for i in [0.1, 0.5, 1.0, 2.0, 5.0]
+        },
+    }
+    df = build_dataset(dataset, output_dir=tmp_path, show_images=False)
+
+    expected_hashes = { 
+        "name1": (720770725035090210, 7405225186472012081),
+        "name2": (6485718250229255822, 618799685746951062),
+    }
+
+    for name, (exprs_hash, bic_hash) in expected_hashes.items():
+        exprs = pd.read_csv(
+            str(df.loc[name, "exprs_file"]), sep="\t", index_col=0
+        ).round(10)  # round to avoid small fp differences
+        assert hash_table(exprs) == exprs_hash
+
+        biclusters = read_bic_table(str(df.loc[name, "bic_file"]))
+        assert hash_table(biclusters.map(_set_to_str)) == bic_hash
 
 
 def test_get_scenario_dataset_schema(tmp_path):
