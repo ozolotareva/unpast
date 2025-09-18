@@ -14,11 +14,13 @@ from unpast.misc.ds_synthetic_builder import (
 )
 from unpast.utils.io import read_bic_table
 
+
 def _set_to_str(x):
     # fixing, as sets have random order
     if isinstance(x, set):
         return ",".join(map(str, sorted(x)))
     return x
+
 
 class TestScenarioBiclusters:
     """Test cases for ScenarioBiclusters class."""
@@ -181,6 +183,7 @@ def test_build_dataset(tmp_path):
     bic_df = read_bic_table(str(result_df.loc["name1", "bic_file"]))
     assert len(bic_df) > 0  # Should have at least one bicluster entry
 
+
 def test_build_dataset_reproducibility(tmp_path):
     """Check that results has exactly the same results (by hashes)"""
     dataset = {
@@ -199,7 +202,7 @@ def test_build_dataset_reproducibility(tmp_path):
     }
     df = build_dataset(dataset, output_dir=tmp_path, show_images=False)
 
-    expected_hashes = { 
+    expected_hashes = {
         "name1": (720770725035090210, 7405225186472012081),
         "name2": (6485718250229255822, 618799685746951062),
     }

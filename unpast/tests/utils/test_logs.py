@@ -56,10 +56,10 @@ def test_log_function_duration(tmp_path, monkeypatch):
     def timed_func() -> int:
         time.sleep(0.1)
         return 42
-    
+
     timed_func.__module__ = "unpast.timed_func"
     timed_func = logs.log_function_duration(name="unpast.timed_func")(timed_func)
-    
+
     result = timed_func()
     assert result == 42
     with open(log_path) as f:

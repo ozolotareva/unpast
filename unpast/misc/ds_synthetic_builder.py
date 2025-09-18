@@ -99,7 +99,7 @@ def _rename_rows_cols(
         name: f"s_{ind}" for (ind, name) in enumerate(exprs.columns.values)
     }
     exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
-    
+
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
         # new_biclusters[bic_id] = {
@@ -172,7 +172,7 @@ class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
         """Generate synthetic biclusters."""
         rand = np.random.RandomState(seed)
         exprs, bic_dict, modules = generate_exprs(rand=rand, **self.kwargs)
-        
+
         return exprs, bic_dict, {"coexpressed_modules": modules}
 
     def get_args(self) -> dict:
@@ -279,9 +279,9 @@ def get_scenario_dataset_schema(
     scale: float = 1.0,
 ) -> dict[str, SyntheticBiclusterGeneratorABC]:
     """Get a dataset schema for scenarios.
-    
+
     Args:
-        scale (float): Scale factor for the dataset size, 
+        scale (float): Scale factor for the dataset size,
             useful for debugging on smaller datasets.
     """
     common_args = {

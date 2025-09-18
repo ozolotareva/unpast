@@ -24,6 +24,7 @@ def hash_table(df):
 
 class TestGenerateExprs:
     """Test cases for generate_exprs function."""
+
     # # moved to test_ds_synthetic_builder.py
     # def test_generate_exprs_reproducibility(self):
     #     """Test that generate_exprs produces the expected output with the same seed."""
@@ -70,7 +71,7 @@ class TestGenerateExprs:
 
     def test_generate_exprs_biclusters_write_read_roundtrip(self):
         """Test that created true biclusters can be written and read correctly."""
-    
+
         # TODO: switch to SyntheticBicluster
         with tempfile.TemporaryDirectory() as temp_dir:
             exprs, biclusters_original, _ = generate_exprs(
