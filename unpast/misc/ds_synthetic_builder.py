@@ -258,23 +258,16 @@ class ScenarioBiclusters(SyntheticBicluster):
         m: float = 2.0,
         std: float = 1.0,
         z: bool = True,
-        outdir: str = "./",
-        outfile_basename: str = "",
         g_overlap: bool = False,
         s_overlap: bool = True,
         add_coexpressed: list[int] = [],
     ):
-        assert outfile_basename is "", "Output directory must be not specified."
-
         kwargs = {
             "data_sizes": data_sizes,
             "g_size": g_size,
             "frac_samples": frac_samples,
             "m": m,
             "std": std,
-            "z": z,
-            "outdir": outdir,
-            "outfile_basename": outfile_basename,
             "g_overlap": g_overlap,
             "s_overlap": s_overlap,
             "add_coexpressed": add_coexpressed,
@@ -282,7 +275,7 @@ class ScenarioBiclusters(SyntheticBicluster):
         super().__init__(
             scenario_type="GeneExprs",
             **kwargs,
-            z_score=False,
+            z_score=z,
             shuffle=False,
             rename_cols=False,
         )

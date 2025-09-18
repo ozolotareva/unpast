@@ -134,9 +134,6 @@ def generate_exprs(
     frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
     m: float = 2.0,
     std: float = 1.0,
-    z: bool = True,
-    outdir: str = "./",
-    outfile_basename: str = "",
     g_overlap: bool = False,
     s_overlap: bool = True,
     add_coexpressed: list[int] = [],
@@ -162,25 +159,6 @@ def generate_exprs(
         ignore_genes=bicluster_genes,
         add_coexpressed=add_coexpressed,
     )
-
-    # center to 0 and scale std to 1
-    if z:
-        exprs = zscore(exprs)
-
-    # rename rows and columns to g_ and s_, add SNRs
-    # exprs, bicluster_dict, coexpressed_modules = _rename_rows_cols(exprs, bicluster_dict, coexpressed_modules)
-
-    bicluster_df = _build_bicluster_table(exprs, bicluster_dict)
-
-    if outfile_basename:
-        exprs_file = outdir + outfile_basename + ".data.tsv.gz"
-        print("input data:", exprs_file)
-        exprs.to_csv(exprs_file, sep="\t")
-
-        # save ground truth
-        bic_file_name = outdir + outfile_basename + ".true_biclusters.tsv.gz"
-        print("true biclusters:", bic_file_name)
-        write_bic_table(bicluster_df, bic_file_name)
 
     res_bicluster_dict = {
         bic_id: Bicluster(genes=bic_data["genes"], samples=bic_data["samples"])

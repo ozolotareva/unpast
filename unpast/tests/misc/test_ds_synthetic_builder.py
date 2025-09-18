@@ -31,7 +31,6 @@ class TestScenarioBiclusters:
         builder = ScenarioBiclusters(
             data_sizes=(100, 50),
             frac_samples=[0.2, 0.3],
-            outfile_basename="",  # don't save
             add_coexpressed=[10, 20],
         )
 

@@ -2,8 +2,7 @@
 
 import numpy as np
 import pandas as pd
-
-from unpast.misc.ds_synthetic import generate_exprs
+from unpast.misc.ds_synthetic_builder import SyntheticBicluster
 from unpast.misc.eval import calculate_perfromance
 from unpast.utils.io import read_bic_table
 
@@ -12,13 +11,11 @@ class TestCalculatePerformance:
     """Test cases for calculate_perfromance function."""
 
     def test_calculate_performance_smoke_test(self, tmp_path):
-        """Simple smoke test for calculate_perfromance function."""
-        # 1) build same data
+        """Simple smoke test for calculate_perfromance function using SyntheticBicluster."""
         n_biomarkers = 50
         frac_samples = [0.1, 0.25, 0.5]
-        # dimensions of the matrix
-        n_genes = 200  # gemes
-        N = 20  # samples
+        n_genes = 200
+        N = 20
         m = 4
         std = 1
         seed = 42
@@ -33,37 +30,26 @@ class TestCalculatePerformance:
             }
         }
 
-        scenario = f"{sc_name}_{n_biomarkers}"
-
-        # Run the function
-        # TODO: switch to SyntheticBicluster
-        data, ground_truth, coexpressed_modules = generate_exprs(
+        ds_builder = SyntheticBicluster(
+            scenario_type="GeneExprs",
             data_sizes=(n_genes, N),
-            rand=np.random.RandomState(seed),
             g_size=n_biomarkers,
             frac_samples=frac_samples,
             m=m,
             std=std,  # int, not float?
-            outdir=str(tmp_path) + "/",
-            outfile_basename=scenario,
             g_overlap=params[sc_name]["g_overlap"],
             s_overlap=params[sc_name]["s_overlap"],
             add_coexpressed=params[sc_name]["add_coexpressed"],
         )
+        data, ground_truth, coexpressed_modules = ds_builder.build(seed=seed)
 
         # Basic assertions to verify function completed
         assert data is not None
         assert ground_truth is not None
         assert coexpressed_modules is not None
 
-        true_biclusters = list(tmp_path.glob("*true_biclusters*"))
-        assert len(true_biclusters) == 1
-        gt = read_bic_table(true_biclusters[0])
-
-        # Use the ground truth biclusters as our sample_clusters for testing
+        gt = ground_truth.copy()
         sample_clusters = gt.copy()
-
-        # check gt versus gt (should give perfect performance):
         all_samples = set(data.columns)
 
         # Create known_groups based on the actual ground truth biclusters
@@ -98,10 +84,8 @@ class TestCalculatePerformance:
             )
 
         # check some arbitrary diff
-        all_samples = set(data.columns)
         sample_list = list(all_samples)
         mid_point = len(sample_list) // 2
-
         known_groups = {
             "test_classification": {
                 "group1": set(sample_list[:mid_point]),
