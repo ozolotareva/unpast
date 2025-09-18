@@ -9,11 +9,9 @@ import numpy as np
 import pandas as pd
 
 from unpast.core.preprocessing import zscore
-from unpast.misc.ds_synthetic import _build_bicluster_table, generate_exprs
+from unpast.misc.ds_synthetic import _build_bicluster_table, generate_exprs, Bicluster
 from unpast.utils.io import write_bic_table
 from unpast.utils.visualization import plot_biclusters_heatmap
-
-Bicluster = namedtuple("Bicluster", ["genes", "samples"])
 
 
 class SyntheticBiclusterGeneratorABC:
@@ -132,58 +130,58 @@ def _rename_rows_cols(
     return exprs, new_biclusters, new_extra_info
 
 
-class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
-    """Class to generate synthetic biclusters.
+# class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
+#     """Class to generate synthetic biclusters.
 
-    TODO: remove, tmp class during changing the logic
-    """
+#     TODO: remove, tmp class during changing the logic
+#     """
 
-    def __init__(
-        self,
-        data_sizes: tuple[int, int],
-        g_size: int = 5,
-        frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
-        m: float = 2.0,
-        std: float = 1.0,
-        z: bool = True,
-        outdir: str = "./",
-        outfile_basename: str = "",
-        g_overlap: bool = False,
-        s_overlap: bool = True,
-        add_coexpressed: list[int] = [],
-    ):
-        assert outfile_basename is "", "Output directory must be not specified."
+#     def __init__(
+#         self,
+#         data_sizes: tuple[int, int],
+#         g_size: int = 5,
+#         frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+#         m: float = 2.0,
+#         std: float = 1.0,
+#         z: bool = True,
+#         outdir: str = "./",
+#         outfile_basename: str = "",
+#         g_overlap: bool = False,
+#         s_overlap: bool = True,
+#         add_coexpressed: list[int] = [],
+#     ):
+#         assert outfile_basename is "", "Output directory must be not specified."
 
-        self.kwargs = {
-            "data_sizes": data_sizes,
-            "g_size": g_size,
-            "frac_samples": frac_samples,
-            "m": m,
-            "std": std,
-            "z": z,
-            "outdir": outdir,
-            "outfile_basename": outfile_basename,
-            "g_overlap": g_overlap,
-            "s_overlap": s_overlap,
-            "add_coexpressed": add_coexpressed,
-        }
+#         self.kwargs = {
+#             "data_sizes": data_sizes,
+#             "g_size": g_size,
+#             "frac_samples": frac_samples,
+#             "m": m,
+#             "std": std,
+#             "z": z,
+#             "outdir": outdir,
+#             "outfile_basename": outfile_basename,
+#             "g_overlap": g_overlap,
+#             "s_overlap": s_overlap,
+#             "add_coexpressed": add_coexpressed,
+#         }
 
-    def build(self, seed: int):
-        """Generate synthetic biclusters."""
-        rand = np.random.RandomState(seed)
-        exprs, bic_dict, modules = generate_exprs(rand=rand, **self.kwargs)
+#     def build(self, seed: int):
+#         """Generate synthetic biclusters."""
+#         rand = np.random.RandomState(seed)
+#         exprs, bic_dict, modules = generate_exprs(rand=rand, **self.kwargs)
 
-        return exprs, bic_dict, {"coexpressed_modules": modules}
+#         return exprs, bic_dict, {"coexpressed_modules": modules}
 
-    def get_args(self) -> dict:
-        return self.kwargs
+#     def get_args(self) -> dict:
+#         return self.kwargs
 
 
 class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
     """Class to generate synthetic biclusters."""
 
     SCENARIO_TYPES = {
-        # "GeneExprs": generate_exprs,
+        "GeneExprs": generate_exprs,
         "Simple": build_simple_biclusters,
     }
 
@@ -214,11 +212,7 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
         build_func = self.SCENARIO_TYPES[self.scenario_type]
 
         rand = np.random.RandomState(seed)
-        if self.scenario_type == "GeneExprs":
-            # TODO: use the same rand interface in gene_exprs
-            exprs, bic_dict, extra = build_func(**self.scenario_args)
-        else:
-            exprs, bic_dict, extra = build_func(rand=rand, **self.scenario_args)
+        exprs, bic_dict, extra = build_func(rand=rand, **self.scenario_args)
 
         if self.z_score:
             exprs = zscore(exprs)
@@ -248,6 +242,64 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
             "rename_cols": self.rename_cols,
             **self.scenario_args,
         }
+
+
+class ScenarioBiclusters(SyntheticBicluster):
+    """Class to generate synthetic biclusters.
+
+    TODO: remove, tmp class during changing the logic
+    """
+
+    def __init__(
+        self,
+        data_sizes: tuple[int, int],
+        g_size: int = 5,
+        frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+        m: float = 2.0,
+        std: float = 1.0,
+        z: bool = True,
+        outdir: str = "./",
+        outfile_basename: str = "",
+        g_overlap: bool = False,
+        s_overlap: bool = True,
+        add_coexpressed: list[int] = [],
+    ):
+        assert outfile_basename is "", "Output directory must be not specified."
+
+        kwargs = {
+            "data_sizes": data_sizes,
+            "g_size": g_size,
+            "frac_samples": frac_samples,
+            "m": m,
+            "std": std,
+            "z": z,
+            "outdir": outdir,
+            "outfile_basename": outfile_basename,
+            "g_overlap": g_overlap,
+            "s_overlap": s_overlap,
+            "add_coexpressed": add_coexpressed,
+        }
+        super().__init__(
+            scenario_type="GeneExprs",
+            **kwargs,
+            z_score=False,
+            shuffle=False,
+            rename_cols=False,
+        )
+
+    def build(self, seed: int):
+        """Generate synthetic biclusters."""
+        exprs, bic_df, modules = super().build(seed)
+
+        frac = [float(s.split("_")[1]) for s in bic_df.index]
+        bic_df["frac"] = frac
+
+        # make frac the 3-d one
+        cols = list(bic_df.columns)
+        cols.insert(2, cols.pop(cols.index("frac")))
+        bic_df = bic_df[cols]
+
+        return exprs, bic_df, modules
 
 
 def get_standard_dataset_schema() -> dict[str, SyntheticBiclusterGeneratorABC]:

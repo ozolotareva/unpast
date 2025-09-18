@@ -1,11 +1,14 @@
 """Generating synthetic biclusters and expression data for evaluating purposes."""
 
+from collections import namedtuple
 import numpy as np
 import pandas as pd
 
 from unpast.core.preprocessing import zscore
 from unpast.core.sample_clustering import update_bicluster_data
 from unpast.utils.io import write_bic_table
+
+Bicluster = namedtuple("Bicluster", ["genes", "samples"])
 
 
 def _scenario_generate_biclusters(
@@ -137,7 +140,8 @@ def generate_exprs(
     g_overlap: bool = False,
     s_overlap: bool = True,
     add_coexpressed: list[int] = [],
-):
+    # ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
     """Generate synthetic expression data with biclusters."""
 
     exprs, bicluster_dict = _scenario_generate_biclusters(
@@ -165,6 +169,7 @@ def generate_exprs(
 
     # rename rows and columns to g_ and s_, add SNRs
     # exprs, bicluster_dict, coexpressed_modules = _rename_rows_cols(exprs, bicluster_dict, coexpressed_modules)
+
     bicluster_df = _build_bicluster_table(exprs, bicluster_dict)
 
     if outfile_basename:
@@ -177,4 +182,8 @@ def generate_exprs(
         print("true biclusters:", bic_file_name)
         write_bic_table(bicluster_df, bic_file_name)
 
-    return exprs, bicluster_df, coexpressed_modules
+    res_bicluster_dict = {
+        bic_id: Bicluster(genes=bic_data["genes"], samples=bic_data["samples"])
+        for bic_id, bic_data in bicluster_dict.items()
+    }
+    return exprs, res_bicluster_dict, {"coexpressed_modules": coexpressed_modules}
