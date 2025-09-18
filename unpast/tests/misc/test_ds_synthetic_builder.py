@@ -1,8 +1,10 @@
 """Tests for ds_synthetic module."""
 
 from ast import expr
+import random
 import warnings
 import pandas as pd
+import pytest
 
 from test_ds_synthetic import hash_table
 from unpast.misc.ds_synthetic_builder import (
@@ -12,7 +14,7 @@ from unpast.misc.ds_synthetic_builder import (
     get_scenario_dataset_schema,
     get_standard_dataset_schema,
 )
-from unpast.utils.io import read_bic_table
+from unpast.utils.io import read_bic_table, read_exprs
 
 
 def _set_to_str(x):
@@ -65,6 +67,39 @@ class TestScenarioBiclusters:
         assert hash_table(pd.DataFrame(modules)) == 11288322476390681781
 
 
+def test_synthetic_bicluster_write_read_roundtrip(tmp_path):
+    """Test that created true biclusters can be written and read correctly using SyntheticBicluster."""
+    # Setup
+    builder = SyntheticBicluster(
+        scenario_type="Simple",
+        data_sizes=(10, 5),
+        bic_sizes=(3, 2),
+        bic_mu=2.0,
+    )
+    df = build_dataset(
+        {"test": builder},
+        output_dir=tmp_path,
+        show_images=False,
+    )
+
+    exprs, bics, _extra = builder.build(seed=random.Random("test").randint(0, 10**6))
+
+    # Read and compare
+    exprs_read = read_exprs(df.loc["test", "exprs_file"])
+    pd.testing.assert_frame_equal(exprs, exprs_read, check_names=True, check_dtype=True)
+
+    biclusters_read = read_bic_table(df.loc["test", "bic_file"])
+    for k in bics.index:
+        v = bics.loc[k]
+        v_read = biclusters_read.loc[k]
+        assert set(v_read["genes"]) == set(v["genes"]) or set(v_read["genes"]) == set(
+            v["genes"]
+        )  # handle set/list
+        assert set(v_read["samples"]) == set(v["samples"]) or set(
+            v_read["samples"]
+        ) == set(v["samples"])  # handle set/list
+
+
 class TestSyntheticBicluster:
     def test_build(self):
         """Test the SyntheticBicluster class."""
@@ -94,11 +129,11 @@ class TestSyntheticBicluster:
 def test_build_dataset(tmp_path):
     """Test the build method of SyntheticBicluster."""
     dataset = {
-        # "GeneExprs": SyntheticBicluster(
-        #     scenario_type="GeneExprs",
-        #     data_sizes=(10, 10),
-        #     frac_samples=[0.2, 0.3],
-        # ),
+        "GeneExprs": SyntheticBicluster(
+            scenario_type="GeneExprs",
+            data_sizes=(10, 10),
+            frac_samples=[0.2, 0.3],
+        ),
         "name1": SyntheticBicluster(
             scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
         ),
@@ -218,5 +253,25 @@ def test_build_dataset_reproducibility(tmp_path):
 
 
 def test_get_scenario_dataset_schema(tmp_path):
+    """Smoke test for scenario dataset schema generation."""
     ds_schema = get_scenario_dataset_schema(scale=0.02)
+    build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
+
+
+@pytest.mark.slow
+def test_get_scenario_dataset_schema_no_scale(tmp_path):
+    """Smoke test for scenario dataset schema generation without scaling."""
+    ds_schema = get_scenario_dataset_schema()
+    df = build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
+    for _name, row in df.iterrows():
+        exprs = pd.read_csv(row["exprs_file"], sep="\t", index_col=0)
+        assert len(exprs) > 0
+
+        bic = read_bic_table(row["bic_file"])
+        assert len(bic) > 0
+
+
+def test_generate_standard_dataset_schema(tmp_path):
+    """Smoke test for standard dataset schema generation."""
+    ds_schema = get_standard_dataset_schema()
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
