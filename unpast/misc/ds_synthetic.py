@@ -62,7 +62,6 @@ def _scenario_generate_biclusters(
         biclusters["bic_" + str(s_frac)] = {
             "genes": set(bic_genes),
             "samples": set(bic_samples),
-            "frac": s_frac,  # todo: remove, in key
         }
 
     return exprs, biclusters

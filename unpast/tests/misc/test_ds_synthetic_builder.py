@@ -38,8 +38,8 @@ class TestScenarioBiclusters:
         assert extra.keys() == {"coexpressed_modules"}
         modules = extra["coexpressed_modules"]
 
-        assert hash_table(data.round(10)) == 708873939649143270
-        if hash_table(data) == 8684347458462553755:
+        assert hash_table(data.round(10)) == 8598621594420307458
+        if hash_table(data) == 10459612308049334423:
             warnings.warn(
                 (
                     "WARNING: Tests generation could be slightly unreproducible on some machines."
@@ -55,15 +55,12 @@ class TestScenarioBiclusters:
                 )
             )
         else:
-            assert hash_table(data) == 12539513048361114401
+            assert hash_table(data) == 16708327152901014055
 
-        assert (
-            hash_table(biclusters.drop(columns=["frac"]).map(_set_to_str))
-            == 7359748298322460785
-        )
-        assert hash_table(biclusters.map(_set_to_str)) == 7420840823903342389
+        assert "frac" not in biclusters.columns
+        assert hash_table(biclusters.map(_set_to_str)) == 12863702880069835519
         assert len(modules) > 0
-        assert hash_table(pd.DataFrame(modules)) == 11288322476390681781
+        assert hash_table(pd.DataFrame(modules)) == 10671481854807148724
 
 
 def test_synthetic_bicluster_write_read_roundtrip(tmp_path):

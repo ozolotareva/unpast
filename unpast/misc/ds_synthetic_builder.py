@@ -252,46 +252,35 @@ class ScenarioBiclusters(SyntheticBicluster):
 
     def __init__(
         self,
-        data_sizes: tuple[int, int],
-        g_size: int = 5,
-        frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
-        m: float = 2.0,
-        std: float = 1.0,
-        z: bool = True,
-        g_overlap: bool = False,
-        s_overlap: bool = True,
-        add_coexpressed: list[int] = [],
+        **kwargs,
+        # data_sizes: tuple[int, int],
+        # g_size: int = 5,
+        # frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
+        # m: float = 2.0,
+        # std: float = 1.0,
+        # g_overlap: bool = False,
+    # s_overlap: bool = True,
+        # add_coexpressed: list[int] = [],
     ):
-        kwargs = {
-            "data_sizes": data_sizes,
-            "g_size": g_size,
-            "frac_samples": frac_samples,
-            "m": m,
-            "std": std,
-            "g_overlap": g_overlap,
-            "s_overlap": s_overlap,
-            "add_coexpressed": add_coexpressed,
-        }
         super().__init__(
             scenario_type="GeneExprs",
             **kwargs,
-            z_score=z,
-            shuffle=False,
-            rename_cols=False,
+            # z_score=z,
+            # shuffle=True,
+            # rename_cols=True,
         )
 
     def build(self, seed: int):
         """Generate synthetic biclusters."""
         exprs, bic_df, modules = super().build(seed)
 
-        frac = [float(s.split("_")[1]) for s in bic_df.index]
-        bic_df["frac"] = frac
+        # # frac = [float(s.split("_")[1]) for s in bic_df.index]
+        # # bic_df["frac"] = frac
 
-        # make frac the 3-d one
-        cols = list(bic_df.columns)
-        cols.insert(2, cols.pop(cols.index("frac")))
-        bic_df = bic_df[cols]
-
+        # # make frac the 3-d one
+        # cols = list(bic_df.columns)
+        # cols.insert(2, cols.pop(cols.index("frac")))
+        # bic_df = bic_df[cols]
         return exprs, bic_df, modules
 
 
@@ -351,17 +340,17 @@ def get_scenario_dataset_schema(
         },
     }
 
-    size = (
+    data_sizes = (
         int(10000 * scale),  # number of genes
         int(200 * scale),  # number of samples
     )
 
     ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {}
     for letter in ["A", "C"]:
-        for n_genes in [5, 50, 500]:
-            n_genes = max(1, int(n_genes * scale))
-            ds_schema[f"{letter}_{n_genes}"] = ScenarioBiclusters(
-                size, g_size=n_genes, **common_args, **scenario_args[letter]
+        for bic_genes in [5, 50, 500]:
+            bic_genes = max(1, int(bic_genes * scale))
+            ds_schema[f"{letter}_{bic_genes}"] = ScenarioBiclusters(
+                data_sizes=data_sizes, g_size=bic_genes, **common_args, **scenario_args[letter]
             )
     return ds_schema
 
