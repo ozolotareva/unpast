@@ -1,6 +1,5 @@
 """Tests for ds_synthetic module."""
 
-from ast import expr
 import random
 import warnings
 import pandas as pd

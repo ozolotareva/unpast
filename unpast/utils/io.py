@@ -227,7 +227,8 @@ def read_exprs(file_tsv: str) -> pd.DataFrame:
         file_tsv (str): Path to the tab-separated file containing expression data.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the expression data with genes as rows and samples as
+        pd.DataFrame:
+            A DataFrame containing the expression data with genes as rows and samples as columns.
     """
 
     return pd.read_csv(file_tsv, sep="\t", index_col=0)

@@ -1,14 +1,8 @@
 """Generating synthetic biclusters and expression data for evaluating purposes."""
 
-from collections import namedtuple
-
 import numpy as np
 import pandas as pd
-from unpast.core.preprocessing import zscore
-from unpast.core.sample_clustering import update_bicluster_data
-from unpast.utils.io import write_bic_table
-
-Bicluster = namedtuple("Bicluster", ["genes", "samples"])
+from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 
 def _scenario_generate_biclusters(

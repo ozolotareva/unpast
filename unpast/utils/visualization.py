@@ -139,12 +139,13 @@ def plot_biclusters_heatmap(
     """Plot heatmap of expression data with biclusters and co-expressed modules.
 
     Args:
-        exprs: A DataFrame containing expression data.
-        biclusters: A DataFrame containing bicluster information (optional).
-        coexpressed_modules: A list of co-expressed modules (optional).
-        show_n_bg: The number of background features to display (default: 2000).
-        fig_title: The title of the figure (default: "").
-        fig_file: The file path to save the figure (default: "").
+        exprs (pd.DataFrame): A DataFrame containing expression data.
+        biclusters (Optional[pd.DataFrame]): A DataFrame containing bicluster information (optional).
+        coexpressed_modules (list[list[str]]): A list of co-expressed modules (optional).
+        limit_features (Optional[int]): Limit the number of genes to show (optional).
+        fig_title (str): The title of the figure (default: "").
+        fig_file (Optional[Path]): The file path to save the figure (default: "").
+        visualize (bool): Whether to display the figure (default: True).
     """
     sample_keys = defaultdict(list)  # avoid errors if biclusters not provided
     gene_keys = defaultdict(list)
