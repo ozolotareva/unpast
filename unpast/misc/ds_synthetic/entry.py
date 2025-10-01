@@ -1,60 +1,12 @@
-import os
-import random
-import warnings
-from collections import namedtuple
-from pathlib import Path
 from typing import Mapping
 
 import numpy as np
 import pandas as pd
-
 from unpast.core.preprocessing import zscore
-from unpast.misc.ds_synthetic import _build_bicluster_table, generate_exprs, Bicluster
-from unpast.utils.io import write_bic_table
-from unpast.utils.visualization import plot_biclusters_heatmap
-
-
-class SyntheticBiclusterGeneratorABC:
-    """Class to generate synthetic biclusters."""
-
-    def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-        """Build synthetic biclusters and expression data."""
-        raise NotImplementedError("This method should be implemented in subclasses.")
-
-    def get_args(self) -> dict:
-        """Describe the scenario."""
-        raise NotImplementedError("This method should be implemented in subclasses.")
-
-
-def build_simple_biclusters(
-    data_sizes: tuple[int, int],
-    bic_sizes: tuple[int, int],
-    rand: np.random.RandomState,
-    bic_mu: float = 3.0,
-) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
-    """Build simple biclusters:
-        exprs = N(0, 1)
-        bic = N(bic_mu, 1)
-
-    Args:
-        data_sizes (tuple[int, int]): Size of the expression data.
-        bic_sizes (tuple[int, int]): Size of the biclusters.
-        seed (int): Random seed.
-        bic_mu (float): Mean of the biclusters.
-
-    Returns:
-        tuple[pd.DataFrame, list[tuple[list[int], list[int]]], dict]:
-            exprs (pd.DataFrame): Expression data.
-            biclusters (list[tuple[list[int], list[int]]]): List of biclusters.
-            some additional data
-    """
-    table = pd.DataFrame(rand.normal(0, 1, size=data_sizes))
-
-    bic_rows = list(range(bic_sizes[0]))
-    bic_cols = list(range(bic_sizes[1]))
-    table.iloc[bic_rows, bic_cols] += bic_mu
-
-    return table, {"bic": Bicluster(bic_rows, bic_cols)}, {}
+from unpast.core.sample_clustering import update_bicluster_data
+from unpast.misc.ds_synthetic.builder_gene_expr import generate_exprs
+from unpast.misc.ds_synthetic.builder_simple import build_simple_biclusters
+from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 
 def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
@@ -130,59 +82,37 @@ def _rename_rows_cols(
     return exprs, new_biclusters, new_extra_info
 
 
-# class ScenarioBiclusters(SyntheticBiclusterGeneratorABC):
-#     """Class to generate synthetic biclusters.
+def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
+    """Build a DataFrame from bicluster dictionary with additional info.
+        Adds some statistics to each bicluster.
 
-#     TODO: remove, tmp class during changing the logic
-#     """
+    Args:
+        exprs: Expression DataFrame.
+        biclusters: Dictionary of biclusters.
 
-#     def __init__(
-#         self,
-#         data_sizes: tuple[int, int],
-#         g_size: int = 5,
-#         frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
-#         m: float = 2.0,
-#         std: float = 1.0,
-#         z: bool = True,
-#         outdir: str = "./",
-#         outfile_basename: str = "",
-#         g_overlap: bool = False,
-#         s_overlap: bool = True,
-#         add_coexpressed: list[int] = [],
-#     ):
-#         assert outfile_basename is "", "Output directory must be not specified."
+    Returns:
+        DataFrame with bicluster information.
 
-#         self.kwargs = {
-#             "data_sizes": data_sizes,
-#             "g_size": g_size,
-#             "frac_samples": frac_samples,
-#             "m": m,
-#             "std": std,
-#             "z": z,
-#             "outdir": outdir,
-#             "outfile_basename": outfile_basename,
-#             "g_overlap": g_overlap,
-#             "s_overlap": s_overlap,
-#             "add_coexpressed": add_coexpressed,
-#         }
+    """
+    new_biclusters = {}
+    for bic_id, bic_data in biclusters.items():
+        bic_data["n_genes"] = len(bic_data["genes"])
+        bic_data["n_samples"] = len(bic_data["samples"])
+        new_biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
 
-#     def build(self, seed: int):
-#         """Generate synthetic biclusters."""
-#         rand = np.random.RandomState(seed)
-#         exprs, bic_dict, modules = generate_exprs(rand=rand, **self.kwargs)
+    bicluster_df = pd.DataFrame.from_dict(new_biclusters).T
 
-#         return exprs, bic_dict, {"coexpressed_modules": modules}
-
-#     def get_args(self) -> dict:
-#         return self.kwargs
+    # bicluster_df.set_index("frac",inplace = True,drop=True)
+    return bicluster_df
 
 
-class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
+class DSEntryBlueprint:
     """Class to generate synthetic biclusters."""
 
     SCENARIO_TYPES = {
         "GeneExprs": generate_exprs,
         "Simple": build_simple_biclusters,
+        # "CorrelatedBackground": build_correlated_background_bicluster,
     }
 
     def __init__(
@@ -242,190 +172,3 @@ class SyntheticBicluster(SyntheticBiclusterGeneratorABC):
             "rename_cols": self.rename_cols,
             **self.scenario_args,
         }
-
-
-class ScenarioBiclusters(SyntheticBicluster):
-    """Class to generate synthetic biclusters.
-
-    TODO: remove, tmp class during changing the logic
-    """
-
-    def __init__(
-        self,
-        **kwargs,
-        # data_sizes: tuple[int, int],
-        # g_size: int = 5,
-        # frac_samples: list[float] = [0.05, 0.1, 0.25, 0.5],
-        # m: float = 2.0,
-        # std: float = 1.0,
-        # g_overlap: bool = False,
-    # s_overlap: bool = True,
-        # add_coexpressed: list[int] = [],
-    ):
-        super().__init__(
-            scenario_type="GeneExprs",
-            **kwargs,
-            # z_score=z,
-            # shuffle=True,
-            # rename_cols=True,
-        )
-
-    def build(self, seed: int):
-        """Generate synthetic biclusters."""
-        exprs, bic_df, modules = super().build(seed)
-
-        # # frac = [float(s.split("_")[1]) for s in bic_df.index]
-        # # bic_df["frac"] = frac
-
-        # # make frac the 3-d one
-        # cols = list(bic_df.columns)
-        # cols.insert(2, cols.pop(cols.index("frac")))
-        # bic_df = bic_df[cols]
-        return exprs, bic_df, modules
-
-
-def get_standard_dataset_schema() -> dict[str, SyntheticBiclusterGeneratorABC]:
-    ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {
-        # "GeneExprs": SyntheticBicluster(
-        #     scenario_type="GeneExprs",
-        #     data_sizes=(10, 10),
-        #     frac_samples=[0.2, 0.3],
-        # ),
-        "simple_3": SyntheticBicluster(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
-        ),
-        "simple_5": SyntheticBicluster(
-            scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 5)
-        ),
-        "more_rows": SyntheticBicluster(
-            scenario_type="Simple", data_sizes=(100, 10), bic_sizes=(3, 3)
-        ),
-        "more_cols": SyntheticBicluster(
-            scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(3, 3)
-        ),
-        **{
-            f"test_mu_{i}": SyntheticBicluster(
-                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
-            )
-            for i in [0.1, 0.5, 1.0, 2.0, 5.0]
-        },
-    }
-    return ds_schema
-
-
-def get_scenario_dataset_schema(
-    scale: float = 1.0,
-) -> dict[str, SyntheticBiclusterGeneratorABC]:
-    """Get a dataset schema for scenarios.
-
-    Args:
-        scale (float): Scale factor for the dataset size,
-            useful for debugging on smaller datasets.
-    """
-    common_args = {
-        "m": 4,
-        "std": 1,
-        # fractions of samples included to each subtype
-        "frac_samples": [0.05, 0.1, 0.25, 0.5],
-    }
-
-    scenario_args = {
-        "A": {"add_coexpressed": [], "g_overlap": False, "s_overlap": False},
-        "B": {"add_coexpressed": [], "g_overlap": False, "s_overlap": True},
-        "C": {
-            "add_coexpressed": [int(500 * scale)]
-            * 4,  # add 4 co-expression modules of 500 genes each, with avg. r=0.5
-            "g_overlap": False,
-            "s_overlap": True,
-        },
-    }
-
-    data_sizes = (
-        int(10000 * scale),  # number of genes
-        int(200 * scale),  # number of samples
-    )
-
-    ds_schema: dict[str, SyntheticBiclusterGeneratorABC] = {}
-    for letter in ["A", "C"]:
-        for bic_genes in [5, 50, 500]:
-            bic_genes = max(1, int(bic_genes * scale))
-            ds_schema[f"{letter}_{bic_genes}"] = ScenarioBiclusters(
-                data_sizes=data_sizes, g_size=bic_genes, **common_args, **scenario_args[letter]
-            )
-    return ds_schema
-
-
-def _save_dataset_entry(
-    name: str,
-    exprs: pd.DataFrame,
-    bicluster_df: pd.DataFrame,
-    extra_info: dict,
-    ds_path: Path,
-    show_images: bool = True,
-) -> dict:
-    """Save dataset entry files and plot heatmap.
-
-    Args:
-        name (str): Name of the dataset entry.
-        exprs (pd.DataFrame): Expression data.
-        bicluster_df (pd.DataFrame): Bicluster information.
-        extra_info (dict): Additional information.
-        ds_path (Path): Output directory path.
-        show_images (bool): Whether to show images.
-
-    Returns:
-        dict: Paths to saved files and extra information.
-    """
-    ds_path.mkdir(parents=True, exist_ok=True)
-    exprs_file = ds_path / "data.tsv"
-    bicluster_file = ds_path / "true_biclusters.tsv"
-
-    exprs.to_csv(exprs_file, sep="\t")
-    write_bic_table(bicluster_df, str(bicluster_file))
-
-    plot_biclusters_heatmap(
-        exprs=exprs,
-        biclusters=bicluster_df,
-        coexpressed_modules=extra_info.get("coexpressed_modules", []),
-        fig_title=name,
-        fig_path=ds_path / "heatmap.png",
-        visualize=show_images,
-    )
-
-    return {
-        "exprs_file": str(exprs_file),
-        "bic_file": str(bicluster_file),
-        "extra_info": extra_info,
-    }
-
-
-def build_dataset(
-    entry_builders: Mapping[str, SyntheticBiclusterGeneratorABC],
-    seed_prefix="",
-    output_dir="./synthetic_ds",
-    show_images=True,
-) -> pd.DataFrame:
-    """Build a dataset from the given generators.
-
-    Args:
-        entry_builders (Mapping[str, SyntheticBiclusterGeneratorABC]):
-            A mapping of dataset entry names to their corresponding bicluster generators.
-        seed_prefix (str): Prefix for random seed generation to ensure reproducibility.
-        output_dir (str): Directory to save the generated dataset entries.
-        show_images (bool): Whether to display images during generation.
-
-    Returns:
-        pd.DataFrame: DataFrame summarizing the built dataset entries.
-    """
-    output_path = Path(output_dir)
-    build_info = {}
-    for name, builder in entry_builders.items():
-        exprs, bicluster_df, extra_info = builder.build(
-            random.Random(seed_prefix + name).randint(0, 10**6)
-        )
-
-        save_path = output_path / name
-        build_info[name] = _save_dataset_entry(
-            name, exprs, bicluster_df, extra_info, save_path, show_images
-        )
-    return pd.DataFrame.from_dict(build_info, orient="index")

@@ -1,9 +1,9 @@
 """Generating synthetic biclusters and expression data for evaluating purposes."""
 
 from collections import namedtuple
+
 import numpy as np
 import pandas as pd
-
 from unpast.core.preprocessing import zscore
 from unpast.core.sample_clustering import update_bicluster_data
 from unpast.utils.io import write_bic_table
@@ -100,30 +100,6 @@ def _scenario_add_modules(
         )
 
     return exprs, coexpressed_modules
-
-
-def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
-    """Build a DataFrame from bicluster dictionary with additional info.
-        Adds some statistics to each bicluster.
-
-    Args:
-        exprs: Expression DataFrame.
-        biclusters: Dictionary of biclusters.
-
-    Returns:
-        DataFrame with bicluster information.
-
-    """
-    new_biclusters = {}
-    for bic_id, bic_data in biclusters.items():
-        bic_data["n_genes"] = len(bic_data["genes"])
-        bic_data["n_samples"] = len(bic_data["samples"])
-        new_biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
-
-    bicluster_df = pd.DataFrame.from_dict(new_biclusters).T
-
-    # bicluster_df.set_index("frac",inplace = True,drop=True)
-    return bicluster_df
 
 
 def generate_exprs(

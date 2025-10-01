@@ -6,16 +6,22 @@ import warnings
 import pandas as pd
 import pytest
 
-from test_ds_synthetic import hash_table
-from unpast.misc.ds_synthetic_builder import (
-    SyntheticBicluster,
-    ScenarioBiclusters,
+from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
+from unpast.misc.ds_synthetic.dataset import (
     build_dataset,
-    get_scenario_dataset_schema,
-    get_standard_dataset_schema,
+    get_scenario_dataset_blueprint,
+    get_standard_dataset_blueprint,
 )
 from unpast.utils.io import read_bic_table, read_exprs
 
+def _hash_table(df):
+    """Hash a DataFrame for reproducibility."""
+    rows_hashes = pd.util.hash_pandas_object(df, index=True)
+    hash = pd.util.hash_pandas_object(
+        pd.DataFrame(rows_hashes).T,  # we need one value
+        index=True,
+    )
+    return hash.sum()
 
 def _set_to_str(x):
     # fixing, as sets have random order
@@ -24,11 +30,35 @@ def _set_to_str(x):
     return x
 
 
-class TestScenarioBiclusters:
-    """Test cases for ScenarioBiclusters class."""
+class TestDSEntryBlueprint:
+    def test_build(self):
+        """Test the DSEntryBlueprint class."""
+        generator = DSEntryBlueprint(
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+        )
+        exprs, biclusters, modules = generator.build(seed=42)
+
+        assert isinstance(exprs, pd.DataFrame)
+        assert isinstance(biclusters, pd.DataFrame)
+        assert isinstance(modules, dict)
+
+        # Check if the generated expression data has the expected shape
+        assert exprs.shape[0] > 0 and exprs.shape[1] > 0
+
+        exprs_2, biclusters_2, modules_2 = generator.build(seed=42)
+        assert exprs.equals(exprs_2)
+        assert biclusters.equals(biclusters_2)
+        assert modules == modules_2
+
+        exprs_3, biclusters_3, modules_3 = generator.build(seed=1)
+        assert not exprs.equals(exprs_3)
+        assert not biclusters.equals(biclusters_3)
+        # assert modules != modules_3  # both are empty here, so equal
+
 
     def test_gene_exprs_reproducibility(self):
-        builder = ScenarioBiclusters(
+        builder = DSEntryBlueprint(
+            scenario_type="GeneExprs",
             data_sizes=(100, 50),
             frac_samples=[0.2, 0.3],
             add_coexpressed=[10, 20],
@@ -38,8 +68,8 @@ class TestScenarioBiclusters:
         assert extra.keys() == {"coexpressed_modules"}
         modules = extra["coexpressed_modules"]
 
-        assert hash_table(data.round(10)) == 8598621594420307458
-        if hash_table(data) == 10459612308049334423:
+        assert _hash_table(data.round(10)) == 8598621594420307458
+        if _hash_table(data) == 10459612308049334423:
             warnings.warn(
                 (
                     "WARNING: Tests generation could be slightly unreproducible on some machines."
@@ -55,18 +85,18 @@ class TestScenarioBiclusters:
                 )
             )
         else:
-            assert hash_table(data) == 16708327152901014055
+            assert _hash_table(data) == 16708327152901014055
 
         assert "frac" not in biclusters.columns
-        assert hash_table(biclusters.map(_set_to_str)) == 12863702880069835519
+        assert _hash_table(biclusters.map(_set_to_str)) == 12863702880069835519
         assert len(modules) > 0
-        assert hash_table(pd.DataFrame(modules)) == 10671481854807148724
+        assert _hash_table(pd.DataFrame(modules)) == 10671481854807148724
 
 
 def test_synthetic_bicluster_write_read_roundtrip(tmp_path):
-    """Test that created true biclusters can be written and read correctly using SyntheticBicluster."""
+    """Test that created true biclusters can be written and read correctly using DSEntryBlueprint."""
     # Setup
-    builder = SyntheticBicluster(
+    builder = DSEntryBlueprint(
         scenario_type="Simple",
         data_sizes=(10, 5),
         bic_sizes=(3, 2),
@@ -96,57 +126,32 @@ def test_synthetic_bicluster_write_read_roundtrip(tmp_path):
         ) == set(v["samples"])  # handle set/list
 
 
-class TestSyntheticBicluster:
-    def test_build(self):
-        """Test the SyntheticBicluster class."""
-        generator = SyntheticBicluster(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
-        )
-        exprs, biclusters, modules = generator.build(seed=42)
-
-        assert isinstance(exprs, pd.DataFrame)
-        assert isinstance(biclusters, pd.DataFrame)
-        assert isinstance(modules, dict)
-
-        # Check if the generated expression data has the expected shape
-        assert exprs.shape[0] > 0 and exprs.shape[1] > 0
-
-        exprs_2, biclusters_2, modules_2 = generator.build(seed=42)
-        assert exprs.equals(exprs_2)
-        assert biclusters.equals(biclusters_2)
-        assert modules == modules_2
-
-        exprs_3, biclusters_3, modules_3 = generator.build(seed=1)
-        assert not exprs.equals(exprs_3)
-        assert not biclusters.equals(biclusters_3)
-        # assert modules != modules_3  # both are empty here, so equal
-
 
 def test_build_dataset(tmp_path):
-    """Test the build method of SyntheticBicluster."""
+    """Test the build method of DSEntryBlueprint."""
     dataset = {
-        "GeneExprs": SyntheticBicluster(
+        "GeneExprs": DSEntryBlueprint(
             scenario_type="GeneExprs",
             data_sizes=(10, 10),
             frac_samples=[0.2, 0.3],
         ),
-        "name1": SyntheticBicluster(
+        "name1": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
         ),
-        "name2": SyntheticBicluster(
+        "name2": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
         ),
-        "name3": SyntheticBicluster(
+        "name3": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 5)
         ),
-        "test_many_rows": SyntheticBicluster(
+        "test_many_rows": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(100, 10), bic_sizes=(3, 3)
         ),
-        "test_many_cols": SyntheticBicluster(
+        "test_many_cols": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(3, 3)
         ),
         **{
-            f"test_mu_{i}": SyntheticBicluster(
+            f"test_mu_{i}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
             )
             for i in [0.1, 0.5, 1.0, 2.0, 5.0]
@@ -218,14 +223,14 @@ def test_build_dataset(tmp_path):
 def test_build_dataset_reproducibility(tmp_path):
     """Check that results has exactly the same results (by hashes)"""
     dataset = {
-        "name1": SyntheticBicluster(
+        "name1": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
         ),
-        "name2": SyntheticBicluster(
+        "name2": DSEntryBlueprint(
             scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
         ),
         **{
-            f"test_mu_{i}": SyntheticBicluster(
+            f"test_mu_{i}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
             )
             for i in [0.1, 0.5, 1.0, 2.0, 5.0]
@@ -242,22 +247,22 @@ def test_build_dataset_reproducibility(tmp_path):
         exprs = pd.read_csv(
             str(df.loc[name, "exprs_file"]), sep="\t", index_col=0
         ).round(10)  # round to avoid small fp differences
-        assert hash_table(exprs) == exprs_hash
+        assert _hash_table(exprs) == exprs_hash
 
         biclusters = read_bic_table(str(df.loc[name, "bic_file"]))
-        assert hash_table(biclusters.map(_set_to_str)) == bic_hash
+        assert _hash_table(biclusters.map(_set_to_str)) == bic_hash
 
 
-def test_get_scenario_dataset_schema(tmp_path):
+def test_get_scenario_dataset_blueprint(tmp_path):
     """Smoke test for scenario dataset schema generation."""
-    ds_schema = get_scenario_dataset_schema(scale=0.02)
+    ds_schema = get_scenario_dataset_blueprint(scale=0.02)
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
 
 
 @pytest.mark.slow
-def test_get_scenario_dataset_schema_no_scale(tmp_path):
+def test_get_scenario_dataset_blueprint_no_scale(tmp_path):
     """Smoke test for scenario dataset schema generation without scaling."""
-    ds_schema = get_scenario_dataset_schema()
+    ds_schema = get_scenario_dataset_blueprint()
     df = build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
     for _name, row in df.iterrows():
         exprs = pd.read_csv(row["exprs_file"], sep="\t", index_col=0)
@@ -267,7 +272,7 @@ def test_get_scenario_dataset_schema_no_scale(tmp_path):
         assert len(bic) > 0
 
 
-def test_generate_standard_dataset_schema(tmp_path):
+def test_generate_standard_dataset_blueprint(tmp_path):
     """Smoke test for standard dataset schema generation."""
-    ds_schema = get_standard_dataset_schema()
+    ds_schema = get_standard_dataset_blueprint()
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)

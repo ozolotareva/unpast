@@ -2,7 +2,7 @@
 
 import numpy as np
 import pandas as pd
-from unpast.misc.ds_synthetic_builder import SyntheticBicluster
+from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.misc.eval import calculate_perfromance
 from unpast.utils.io import read_bic_table
 
@@ -11,7 +11,7 @@ class TestCalculatePerformance:
     """Test cases for calculate_perfromance function."""
 
     def test_calculate_performance_smoke_test(self, tmp_path):
-        """Simple smoke test for calculate_perfromance function using SyntheticBicluster."""
+        """Simple smoke test for calculate_perfromance function using DSEntryBlueprint."""
         n_biomarkers = 50
         frac_samples = [0.1, 0.25, 0.5]
         n_genes = 200
@@ -30,7 +30,7 @@ class TestCalculatePerformance:
             }
         }
 
-        ds_builder = SyntheticBicluster(
+        ds_builder = DSEntryBlueprint(
             scenario_type="GeneExprs",
             data_sizes=(n_genes, N),
             g_size=n_biomarkers,
