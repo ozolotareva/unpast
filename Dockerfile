@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install system dependencies for R
 RUN apt-get update && \
-    apt-get install -y software-properties-common libcurl4-openssl-dev libssl-dev libxml2-dev r-base && \
+    apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev r-base && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
