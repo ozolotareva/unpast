@@ -64,7 +64,7 @@ def _scenario_generate_biclusters(
 def _scenario_add_modules(
     rand: np.random.RandomState,
     exprs: pd.DataFrame,
-    ignore_genes: set[str | int],
+    ignore_genes: set,
     add_coexpressed: list[int] = [],
 ) -> tuple[pd.DataFrame, list[np.ndarray]]:
     """Add co-expressed modules to the expression matrix."""
