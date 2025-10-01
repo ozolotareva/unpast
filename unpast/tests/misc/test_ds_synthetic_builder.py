@@ -14,6 +14,7 @@ from unpast.misc.ds_synthetic.dataset import (
 )
 from unpast.utils.io import read_bic_table, read_exprs
 
+
 def _hash_table(df):
     """Hash a DataFrame for reproducibility."""
     rows_hashes = pd.util.hash_pandas_object(df, index=True)
@@ -22,6 +23,7 @@ def _hash_table(df):
         index=True,
     )
     return hash.sum()
+
 
 def _set_to_str(x):
     # fixing, as sets have random order
@@ -54,7 +56,6 @@ class TestDSEntryBlueprint:
         assert not exprs.equals(exprs_3)
         assert not biclusters.equals(biclusters_3)
         # assert modules != modules_3  # both are empty here, so equal
-
 
     def test_gene_exprs_reproducibility(self):
         builder = DSEntryBlueprint(
@@ -124,7 +125,6 @@ def test_synthetic_bicluster_write_read_roundtrip(tmp_path):
         assert set(v_read["samples"]) == set(v["samples"]) or set(
             v_read["samples"]
         ) == set(v["samples"])  # handle set/list
-
 
 
 def test_build_dataset(tmp_path):

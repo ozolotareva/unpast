@@ -82,7 +82,9 @@ def _rename_rows_cols(
     return exprs, new_biclusters, new_extra_info
 
 
-def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFrame:
+def _build_bicluster_table(
+    exprs: pd.DataFrame, biclusters: dict[str, Bicluster]
+) -> pd.DataFrame:
     """Build a DataFrame from bicluster dictionary with additional info.
         Adds some statistics to each bicluster.
 
@@ -95,14 +97,16 @@ def _build_bicluster_table(exprs: pd.DataFrame, biclusters: dict) -> pd.DataFram
 
     """
     new_biclusters = {}
-    for bic_id, bic_data in biclusters.items():
-        bic_data["n_genes"] = len(bic_data["genes"])
-        bic_data["n_samples"] = len(bic_data["samples"])
-        new_biclusters[bic_id] = update_bicluster_data(biclusters[bic_id], exprs)
+    for bic_id, bic in biclusters.items():
+        bic_data = {
+            "genes": bic.genes,
+            "samples": bic.samples,
+            "n_genes": len(bic.genes),
+            "n_samples": len(bic.samples),
+        }
+        new_biclusters[bic_id] = update_bicluster_data(bic_data, exprs)
 
     bicluster_df = pd.DataFrame.from_dict(new_biclusters).T
-
-    # bicluster_df.set_index("frac",inplace = True,drop=True)
     return bicluster_df
 
 
@@ -156,9 +160,6 @@ class DSEntryBlueprint:
             # rename rows and columns to same s_ and g_ format
             exprs, bic_dict, extra = _rename_rows_cols(exprs, bic_dict, extra)
 
-        bic_dict = {
-            k: {"genes": v.genes, "samples": v.samples} for k, v in bic_dict.items()
-        }  # todo: remove
         bic_df = _build_bicluster_table(exprs, bic_dict)
 
         return exprs, bic_df, extra
