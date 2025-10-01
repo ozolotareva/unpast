@@ -144,7 +144,7 @@ def plot_biclusters_heatmap(
         coexpressed_modules (list[list[str]]): A list of co-expressed modules (optional).
         limit_features (Optional[int]): Limit the number of genes to show (optional).
         fig_title (str): The title of the figure (default: "").
-        fig_file (Optional[Path]): The file path to save the figure (default: "").
+        fig_path (Optional[Path]): The file path to save the figure (default: "").
         visualize (bool): Whether to display the figure (default: True).
     """
     sample_keys = defaultdict(list)  # avoid errors if biclusters not provided
