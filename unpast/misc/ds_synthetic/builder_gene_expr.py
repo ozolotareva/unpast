@@ -86,7 +86,7 @@ def _scenario_add_modules(
         coexpressed_modules.append(module_genes)
 
         avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module_size) / (
-            module_size**2 / 2 - module_size
+            module_size**2 - module_size
         )
         print(
             "\tco-exprs. module %s features, avg. pairwise r=%.2f"
