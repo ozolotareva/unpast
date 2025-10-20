@@ -27,10 +27,10 @@ def get_standard_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(3, 3)
         ),
         **{
-            f"test_mu_{i}": DSEntryBlueprint(
-                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=i
+            f"test_mu_{f}": DSEntryBlueprint(
+                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=f
             )
-            for i in [0.1, 0.5, 1.0, 2.0, 5.0]
+            for f in [0.1, 0.5, 1.0, 2.0, 5.0]
         },
     }
     return ds_schema

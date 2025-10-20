@@ -18,16 +18,18 @@ def build_simple_biclusters(
     Args:
         data_sizes (tuple[int, int]): Size of the expression data.
         bic_sizes (tuple[int, int]): Size of the biclusters.
-        seed (int): Random seed.
+        rand (np.random.RandomState): Random state for reproducibility.
         bic_mu (float): Mean of the biclusters.
 
     Returns:
-        tuple[pd.DataFrame, list[tuple[list[int], list[int]]], dict]:
+        tuple[pd.DataFrame, dict[str, Bicluster], dict]:
             exprs (pd.DataFrame): Expression data.
-            biclusters (list[tuple[list[int], list[int]]]): List of biclusters.
+            biclusters (dict[str, Bicluster]): Dictionary of biclusters.
             some additional data
     """
     table = pd.DataFrame(rand.normal(0, 1, size=data_sizes))
+    assert bic_sizes[0] <= data_sizes[0], f"bic size_0 too large ({bic_sizes[0]} > {data_sizes[0]})"
+    assert bic_sizes[1] <= data_sizes[1], f"bic size_1 too large ({bic_sizes[1]} > {data_sizes[1]})"
 
     bic_rows = list(range(bic_sizes[0]))
     bic_cols = list(range(bic_sizes[1]))

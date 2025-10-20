@@ -1,4 +1,3 @@
-
 import numpy as np
 import pandas as pd
 from unpast.core.preprocessing import zscore
@@ -10,8 +9,8 @@ from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
     """Shuffle the expression data.
-        preserves index-value correspondence
-        i.e. changes only iloc, not loc
+        Preserves index-value correspondence.
+        I.e. changes only iloc, not loc.
 
     Args:
         exprs (pd.DataFrame): Expression data.
@@ -22,27 +21,24 @@ def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataF
     """
     new_index = rand.permutation(exprs.index)
     new_columns = rand.permutation(exprs.columns)
-    return pd.DataFrame(
-        exprs.loc[new_index, new_columns], index=new_index, columns=new_columns
-    )
+    return exprs.loc[new_index, new_columns]
 
 
 def _rename_rows_cols(
-    exprs: pd.DataFrame, biclusters: dict, extra_info: dict = {}
+    exprs: pd.DataFrame, biclusters: dict, extra_info: dict
 ) -> tuple[pd.DataFrame, dict, dict]:
     """Rename rows and columns of the exprs.
-        preserves exprs values positions
-        i.e. changes only loc, not iloc
+        Preserves exprs values positions.
+        I.e. changes only loc, not iloc.
 
     Args:
         exprs (pd.DataFrame): Expression data.
         biclusters (dict): Biclusters information.
-        extra_info (dict): Additional information.
+        extra_info (dict): Additional information, e.g. co-expressed modules.
 
     Returns:
         tuple[pd.DataFrame, dict, dict]: Renamed expression data, biclusters, and extra information.
     """
-    # exprs
     renaming_rows = {name: f"g_{ind}" for (ind, name) in enumerate(exprs.index.values)}
     renaming_cols = {
         name: f"s_{ind}" for (ind, name) in enumerate(exprs.columns.values)
@@ -51,11 +47,6 @@ def _rename_rows_cols(
 
     new_biclusters = {}
     for bic_id, bic_data in biclusters.items():
-        # new_biclusters[bic_id] = {
-        #     "genes": {renaming_rows[g] for g in bic_data["genes"]},
-        #     "samples": {renaming_cols[s] for s in bic_data["samples"]},
-        #     "frac": bic_data["frac"],
-        # }
         new_biclusters[bic_id] = Bicluster(
             genes={renaming_rows[g] for g in bic_data.genes},
             samples={renaming_cols[s] for s in bic_data.samples},
@@ -65,7 +56,6 @@ def _rename_rows_cols(
     if "coexpressed_modules" in extra_info:
         coexpressed_modules = extra_info["coexpressed_modules"]
 
-        # Update coexpressed_modules with new gene names
         new_coexpressed_modules = []
         if coexpressed_modules:
             for module in coexpressed_modules:
@@ -75,7 +65,7 @@ def _rename_rows_cols(
         new_extra_info["coexpressed_modules"] = new_coexpressed_modules
 
     assert extra_info.keys() == new_extra_info.keys(), (
-        "Missing logic for renaming logic for some keys: "
+        "Missing logic for some keys renaming: "
         f"{extra_info.keys() - new_extra_info.keys()}."
     )
     return exprs, new_biclusters, new_extra_info
@@ -93,7 +83,6 @@ def _build_bicluster_table(
 
     Returns:
         DataFrame with bicluster information.
-
     """
     new_biclusters = {}
     for bic_id, bic in biclusters.items():
@@ -123,7 +112,7 @@ class DSEntryBlueprint:
         scenario_type: str,
         z_score: bool = True,
         shuffle: bool = True,
-        rename_cols: bool = True,
+        rename_rows_cols: bool = True,
         **kwargs,
     ):
         self.scenario_type = scenario_type
@@ -133,7 +122,7 @@ class DSEntryBlueprint:
 
         self.z_score = z_score
         self.shuffle = shuffle
-        self.rename_cols = rename_cols
+        self.rename_rows_cols = rename_rows_cols
 
         self.scenario_args = kwargs
         assert "seed" not in self.scenario_args, (
@@ -141,7 +130,14 @@ class DSEntryBlueprint:
         )
 
     def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
-        """Build synthetic biclusters."""
+        """Build synthetic biclusters.
+
+        Args:
+            seed: Random seed for reproducibility.
+
+        Returns:
+            Tuple containing expression data, bicluster DataFrame, and extra information.
+        """
         build_func = self.SCENARIO_TYPES[self.scenario_type]
 
         rand = np.random.RandomState(seed)
@@ -155,7 +151,7 @@ class DSEntryBlueprint:
             # without changing the index-value correspondence
             exprs = _shuffle_exprs(exprs, rand=rand)
 
-        if self.rename_cols:
+        if self.rename_rows_cols:
             # rename rows and columns to same s_ and g_ format
             exprs, bic_dict, extra = _rename_rows_cols(exprs, bic_dict, extra)
 
@@ -164,11 +160,15 @@ class DSEntryBlueprint:
         return exprs, bic_df, extra
 
     def get_args(self) -> dict:
-        """Describe the scenario."""
+        """Describe the scenario.
+
+        Returns:
+            Dictionary containing scenario configuration.
+        """
         return {
             "scenario_type": self.scenario_type,
             "z_score": self.z_score,
             "shuffle": self.shuffle,
-            "rename_cols": self.rename_cols,
+            "rename_rows_cols": self.rename_rows_cols,
             **self.scenario_args,
         }

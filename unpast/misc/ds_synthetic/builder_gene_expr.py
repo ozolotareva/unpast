@@ -3,7 +3,9 @@
 import numpy as np
 import pandas as pd
 from unpast.misc.ds_synthetic.ds_utils import Bicluster
+from unpast.utils.logs import get_logger
 
+logger = get_logger(__name__)
 
 def _scenario_generate_biclusters(
     rand: np.random.RandomState,
@@ -35,6 +37,17 @@ def _scenario_generate_biclusters(
     biclusters = {}
     for s_frac in frac_samples:
         s_size = int(s_frac * data_sizes[1])
+        if s_size < 2: 
+            logger.warning(
+                "Skipping too small bicluster size during ds generation"
+                f" {s_size} for fraction {s_frac}"
+            )
+            continue
+
+        assert g_size <= len(bg_g), f"not enough genes left: {len(bg_g)}, need {g_size}"
+        assert s_size <= len(bg_s), (
+            f"not enough samples left: {len(bg_s)}, need {s_size}"
+        )
 
         # select random sets of samples and genes from the background
         bic_genes = sorted(rand.choice(sorted(bg_g), size=g_size, replace=False))
@@ -66,7 +79,7 @@ def _scenario_add_modules(
     exprs: pd.DataFrame,
     ignore_genes: set,
     add_coexpressed: list[int] = [],
-) -> tuple[pd.DataFrame, list[np.ndarray]]:
+) -> tuple[pd.DataFrame, list[list]]:
     """Add co-expressed modules to the expression matrix."""
     bg_g = set(exprs.index.values).difference(set(ignore_genes))
     mix_coef = 0.5
@@ -88,9 +101,8 @@ def _scenario_add_modules(
         avg_r = (exprs.loc[module_genes, :].T.corr().sum().sum() - module_size) / (
             module_size**2 - module_size
         )
-        print(
-            "\tco-exprs. module %s features, avg. pairwise r=%.2f"
-            % (module_size, avg_r)
+        logger.info(
+            f"\tco-exprs. module {module_size} features, avg. pairwise r={avg_r:.2f}"
         )
 
     return exprs, coexpressed_modules
@@ -106,7 +118,6 @@ def generate_exprs(
     g_overlap: bool = False,
     s_overlap: bool = True,
     add_coexpressed: list[int] = [],
-    # ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
 ) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
     """Generate synthetic expression data with biclusters."""
 
