@@ -25,7 +25,7 @@ def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataF
 
 
 def _rename_rows_cols(
-    exprs: pd.DataFrame, biclusters: dict, extra_info: dict
+    exprs: pd.DataFrame, bics: dict, extra: dict
 ) -> tuple[pd.DataFrame, dict, dict]:
     """Rename rows and columns of the exprs.
         Preserves exprs values positions.
@@ -33,11 +33,11 @@ def _rename_rows_cols(
 
     Args:
         exprs (pd.DataFrame): Expression data.
-        biclusters (dict): Biclusters information.
-        extra_info (dict): Additional information, e.g. co-expressed modules.
+        bics (dict): bicluster information.
+        extra (dict): Additional information, e.g. co-expressed modules.
 
     Returns:
-        tuple[pd.DataFrame, dict, dict]: Renamed expression data, biclusters, and extra information.
+        tuple[pd.DataFrame, dict, dict]: Renamed expression data, bics, and extra information.
     """
     renaming_rows = {name: f"g_{ind}" for (ind, name) in enumerate(exprs.index.values)}
     renaming_cols = {
@@ -45,16 +45,16 @@ def _rename_rows_cols(
     }
     exprs.rename(index=renaming_rows, columns=renaming_cols, inplace=True)
 
-    new_biclusters = {}
-    for bic_id, bic_data in biclusters.items():
-        new_biclusters[bic_id] = Bicluster(
+    new_bics = {}
+    for bic_id, bic_data in bics.items():
+        new_bics[bic_id] = Bicluster(
             genes={renaming_rows[g] for g in bic_data.genes},
             samples={renaming_cols[s] for s in bic_data.samples},
         )
 
-    new_extra_info = {}
-    if "coexpressed_modules" in extra_info:
-        coexpressed_modules = extra_info["coexpressed_modules"]
+    new_extra = {}
+    if "coexpressed_modules" in extra:
+        coexpressed_modules = extra["coexpressed_modules"]
 
         new_coexpressed_modules = []
         if coexpressed_modules:
@@ -62,13 +62,13 @@ def _rename_rows_cols(
                 new_module = [renaming_rows[gene] for gene in module]
                 new_coexpressed_modules.append(sorted(new_module))
 
-        new_extra_info["coexpressed_modules"] = new_coexpressed_modules
+        new_extra["coexpressed_modules"] = new_coexpressed_modules
 
-    assert extra_info.keys() == new_extra_info.keys(), (
+    assert extra.keys() == new_extra.keys(), (
         "Missing logic for some keys renaming: "
-        f"{extra_info.keys() - new_extra_info.keys()}."
+        f"{extra.keys() - new_extra.keys()}."
     )
-    return exprs, new_biclusters, new_extra_info
+    return exprs, new_bics, new_extra
 
 
 def _build_bicluster_table(

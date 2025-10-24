@@ -16,7 +16,7 @@ def _scenario_generate_biclusters(
     std: float = 1.0,
     g_overlap: bool = False,
     s_overlap: bool = True,
-) -> tuple[pd.DataFrame, dict]:
+) -> tuple[pd.DataFrame, dict[str, dict]]:
     assert len(set(frac_samples)) == len(frac_samples), (
         f"fraction samples must be unique, got {frac_samples}"
     )
@@ -92,9 +92,9 @@ def _scenario_add_modules(
         )
 
         exprs_0 = exprs.loc[module_genes[0], :]
-        for gen_ind in module_genes[1:]:
-            exprs.loc[gen_ind, :] *= store_coef
-            exprs.loc[gen_ind, :] += mix_coef * exprs_0
+        for gene_ind in module_genes[1:]:
+            exprs.loc[gene_ind, :] *= store_coef
+            exprs.loc[gene_ind, :] += mix_coef * exprs_0
 
         coexpressed_modules.append(module_genes)
 
@@ -121,7 +121,7 @@ def generate_exprs(
 ) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
     """Generate synthetic expression data with biclusters."""
 
-    exprs, bicluster_dict = _scenario_generate_biclusters(
+    exprs, bic_dict = _scenario_generate_biclusters(
         rand=rand,
         data_sizes=data_sizes,
         g_size=g_size,
@@ -132,16 +132,16 @@ def generate_exprs(
         s_overlap=s_overlap,
     )
 
-    bicluster_genes = set.union(*[b["genes"] for b in bicluster_dict.values()])
+    bic_genes = set.union(*[b["genes"] for b in bic_dict.values()])
     exprs, coexpressed_modules = _scenario_add_modules(
         rand=rand,
         exprs=exprs,
-        ignore_genes=bicluster_genes,
+        ignore_genes=bic_genes,
         add_coexpressed=add_coexpressed,
     )
 
-    res_bicluster_dict = {
+    res_bic_dict = {
         bic_id: Bicluster(genes=bic_data["genes"], samples=bic_data["samples"])
-        for bic_id, bic_data in bicluster_dict.items()
+        for bic_id, bic_data in bic_dict.items()
     }
-    return exprs, res_bicluster_dict, {"coexpressed_modules": coexpressed_modules}
+    return exprs, res_bic_dict, {"coexpressed_modules": coexpressed_modules}

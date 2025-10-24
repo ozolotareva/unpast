@@ -103,12 +103,12 @@ def build_dataset(
     output_path = Path(output_dir)
     build_info = {}
     for name, builder in entry_builders.items():
-        exprs, bicluster_df, extra_info = builder.build(
+        exprs, bic_df, extra_info = builder.build(
             random.Random(seed_prefix + name).randint(0, 10**6)
         )
 
         save_path = output_path / name
         build_info[name] = save_dataset_entry(
-            name, exprs, bicluster_df, extra_info, save_path, show_images
+            name, exprs, bic_df, extra_info, save_path, show_images
         )
     return pd.DataFrame.from_dict(build_info, orient="index")
