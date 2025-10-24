@@ -118,12 +118,8 @@ def test_synthetic_bicluster_write_read_roundtrip(tmp_path):
     for k in bics.index:
         v = bics.loc[k]
         v_read = biclusters_read.loc[k]
-        assert set(v_read["genes"]) == set(v["genes"]) or set(v_read["genes"]) == set(
-            v["genes"]
-        )  # handle set/list
-        assert set(v_read["samples"]) == set(v["samples"]) or set(
-            v_read["samples"]
-        ) == set(v["samples"])  # handle set/list
+        assert set(v_read["genes"]) == set(v["genes"])
+        assert set(v_read["samples"]) == set(v["samples"])
 
 
 def test_build_dataset(tmp_path):
