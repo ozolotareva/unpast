@@ -1,4 +1,10 @@
+from collections import defaultdict
+from pathlib import Path
+from typing import Optional
+
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 
 def plot_binarized_feature_impl(
@@ -117,3 +123,76 @@ def plot_binarization_results(stats, size_snr_trend, sizes, pval):
     ax.set_ylim(0, 4)
     # plt.savefig("figs_binarization/dist.svg", bbox_inches='tight', transparent=True)
     plt.show()
+
+
+def plot_biclusters_heatmap(
+    exprs: pd.DataFrame,
+    biclusters: Optional[pd.DataFrame] = None,  # biclusters if available
+    coexpressed_modules: list[
+        list[str]
+    ] = [],  # a list of co-expression modules if available
+    limit_features: Optional[int] = None,  # how many genes to show
+    fig_title: str = "",
+    fig_path: Optional[Path] = None,
+    visualize: bool = True,
+) -> None:
+    """Plot heatmap of expression data with biclusters and co-expressed modules.
+
+    Args:
+        exprs (pd.DataFrame): A DataFrame containing expression data.
+        biclusters (Optional[pd.DataFrame]): A DataFrame containing bicluster information (optional).
+        coexpressed_modules (list[list[str]]): A list of co-expressed modules (optional).
+        limit_features (Optional[int]): Limit the number of genes to show (optional).
+        fig_title (str): The title of the figure (default: "").
+        fig_path (Optional[Path]): The file path to save the figure (default: "").
+        visualize (bool): Whether to display the figure (default: True).
+    """
+    sample_keys = defaultdict(list)  # avoid errors if biclusters not provided
+    gene_keys = defaultdict(list)
+
+    if biclusters is not None:
+        for sample in exprs.columns:
+            sample_keys[sample] = [
+                sample in bic for bic in biclusters["samples"].values
+            ]
+
+        for gene in exprs.index:
+            gene_keys[gene] = [gene in bic for bic in biclusters["genes"].values]
+
+    if coexpressed_modules:
+        for gene in exprs.index:
+            gene_keys[gene] += [gene in module for module in coexpressed_modules]
+
+    samples_sorted = sorted(
+        exprs.columns, key=lambda item: sample_keys[item], reverse=True
+    )
+
+    genes_sorted = sorted(exprs.index, key=lambda item: gene_keys[item], reverse=True)
+    title_suffix = ""
+    if limit_features is not None:
+        if len(genes_sorted) > limit_features:
+            title_suffix = f" ({limit_features}/{len(genes_sorted)} rows)"
+            genes_sorted = genes_sorted[:limit_features]  # limit showed genes
+
+    fig = sns.clustermap(
+        exprs.loc[genes_sorted, samples_sorted],
+        xticklabels=False,
+        yticklabels=False,
+        row_cluster=False,
+        col_cluster=False,
+        cmap=sns.color_palette("coolwarm", as_cmap=True),
+        vmin=-3,
+        vmax=3,
+        figsize=(4, 5),
+    )
+    fig.ax_cbar.set_visible(False)  # switch on/off colorbar
+    fig.ax_heatmap.set_title(fig_title + title_suffix)
+
+    if fig_path:
+        fig_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.savefig(fig_path, transparent=True)
+
+    if visualize:
+        plt.show()
+
+    plt.close(fig.fig)

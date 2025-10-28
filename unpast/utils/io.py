@@ -219,6 +219,21 @@ def write_bic_table(
     bics.to_csv(results_file_name, sep="\t", mode=write_mode)
 
 
+def read_exprs(file_tsv: str) -> pd.DataFrame:
+    """
+    Reads expression data from a tab-separated file.
+
+    Args:
+        file_tsv (str): Path to the tab-separated file containing expression data.
+
+    Returns:
+        pd.DataFrame:
+            A DataFrame containing the expression data with genes as rows and samples as columns.
+    """
+
+    return pd.read_csv(file_tsv, sep="\t", index_col=0)
+
+
 class ProjectPaths:
     """
     A class to manage project paths for input and output files.

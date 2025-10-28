@@ -1,5 +1,9 @@
+# generated on tests/notebooks running directories
 notebooks/TCGA200_example/
 notebooks/test_data_TCGA200/
+notebooks/test_data_sim/
+unpast/tests/test_run_output
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
