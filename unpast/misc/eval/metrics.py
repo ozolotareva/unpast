@@ -9,7 +9,7 @@ from statsmodels.stats.multitest import fdrcorrection
 from sklearn.metrics import adjusted_rand_score
 
 
-def calculate_perfromance(
+def calculate_performance(
     sample_clusters_,  # data.Frame with "samples" column
     known_groups,  # dict={"classification1":{"group1":{"s1","s2",...},"group2":{...}, ...}}
     all_samples,  # set of all samples in input; needed for overlap p-value computations
