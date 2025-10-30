@@ -1,5 +1,7 @@
 """
 # Disabling Unused Code Functions
+from lifelines import CoxPHFitter
+from lifelines.statistics import logrank_test
 
 def make_ref_groups(subtypes, annotation, exprs):
     import copy

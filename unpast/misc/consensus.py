@@ -10,8 +10,6 @@ from scipy.stats import chi2_contingency
 
 from unpast.core.feature_clustering import run_Louvain
 from unpast.core.sample_clustering import cluster_samples, update_bicluster_data
-from unpast.misc.eval import find_best_matching_biclusters
-
 
 def make_consensus_biclusters(
     biclusters_list,
@@ -74,7 +72,7 @@ def make_consensus_biclusters(
             if i != j:
                 bics2 = biclusters.loc[biclusters["run"] == j, :]
                 # find best matches between bics1 and bics2
-                bm = find_best_matching_biclusters(
+                bm = _find_best_matching_biclusters(
                     bics1,
                     bics2,
                     exprs.shape,
@@ -284,7 +282,7 @@ def calc_signif_bicluster_similarities(
     labels=False,
     colorbar_off=True,
 ):
-    """WILL REPLACE find_best_matching_biclusters(), currently is not used.
+    """WILL REPLACE _find_best_matching_biclusters(), currently is not used.
     Calculates Jaccard similarities of significanly overlapping bicluster paires based on gene and/or sample overlaps, and optionally visualize the results.
 
         Parameters
@@ -417,3 +415,168 @@ def calc_signif_bicluster_similarities(
         plt.show()
 
     return J_heatmap
+
+def _calc_overlap_pval(overlap, group1_only, group2_only, background, max_N=5000):
+    # if sample size < max_N), use Fisher's exact
+    # otherwise replacing exact Fisher's with chi2
+    if overlap + group1_only + group2_only + background < max_N:
+        pval = pvalue(overlap, group1_only, group2_only, background).right_tail
+    else:
+        chi2, pval, dof, expected = chi2_contingency(
+            [[overlap, group1_only], [group2_only, background]]
+        )
+    return pval
+
+
+def _find_best_matching_biclusters(
+    bics1, bics2, sizes, by="genes", adj_pval_thr=0.05, min_g=2
+):
+    # takes two biluster dafaframes from read_bic_table
+    # by = "genes" or "samples" or "both"
+    # sizes - dimensions of input matrix (n_genes,n_samples)
+    # finds best matches of bics1 biclusters among bics2 biclusters
+
+    N_g, N_s = sizes
+    n_bics1 = bics1.shape[0]
+    n_bics2 = bics2.shape[0]
+
+    best_matches = {}  # OrderedDict({})
+    for row1 in bics1.iterrows():
+        bic1 = row1[1]
+        i1 = row1[0]
+
+        best_matches[i1] = {}
+        bm_J = 0
+        bm_o = 0
+        bm_adj_pval = 1
+        bm_id = None
+
+        for row2 in bics2.iterrows():
+            bic2 = row2[1]
+            i2 = row2[0]
+
+            g1 = bic1["genes"]
+            s1 = bic1["samples"]
+            g2 = bic2["genes"]
+            s2 = bic2["samples"]
+            o_g = len(g1.intersection(g2))
+            o_s = len(s1.intersection(s2))
+            s1 = len(s1)
+            s2 = len(s2)
+            g1 = len(g1)
+            g2 = len(g2)
+            J = 0
+            adj_pval = 1
+            # if not by="samples", ignore overlaps with gene < min_g
+            if (by != "samples" and o_g >= min_g) or by == "samples":
+                if by == "genes" or by == "both":
+                    g2_ = g2 - o_g  # genes exclusively in bicluster 2
+                    g1_ = g1 - o_g
+                    u_g = g1_ + g2_ + o_g
+                    bg_g = N_g - u_g
+                    J_g = o_g * 1.0 / u_g
+                    if not by == "both":
+                        pval_g = _calc_overlap_pval(o_g, g1_, g2_, bg_g)
+                elif by == "samples" or by == "both":
+                    s2_ = s2 - o_s  # samples exclusively in bicluster 2
+                    s1_ = s1 - o_s
+                    u_s = s1_ + s2_ + o_s
+                    bg_s = N_s - u_s
+                    pval_s = _calc_overlap_pval(o_s, s1_, s2_, bg_s)
+                    # if p-val is high but one of the biclusters is large,
+                    # try flipping the largest bicluster if it is close to 50% of the cohort
+                    if pval_s > adj_pval_thr and max(s1, s2) > 0.4 * N_s:
+                        if s1 > s2:  # flip s1
+                            s1 = N_s - s1
+                            u_s = bg_s + s2
+                            o_s = s2_
+                            s2_ = s2 - o_s
+                            bg_s = s1_
+                            s1_ = s1 - o_s
+                        else:  # flip s2
+                            s2 = N_s - s2
+                            u_s = bg_s + s1
+                            o_s = s1_
+                            s1_ = s1 - o_s
+                            bg_s = s2_
+                            s2_ = s2 - o_s
+                        assert bg_s == N_s - u_s, (
+                            "i1=%s; i2=%s: bg=%s, N_s=%s, u_s=%s"
+                            % (
+                                i1,
+                                i2,
+                                bg_s,
+                                N_s,
+                                u_s,
+                            )
+                        )
+                        assert u_s == o_s + s1_ + s2_, (
+                            "i1=%s; i2=%s: u_s=%s, o_s=%s, s1_=%s, s2_=%s"
+                            % (
+                                i1,
+                                i2,
+                                u_s,
+                                o_s,
+                                s1_,
+                                s2_,
+                            )
+                        )
+                        if not by == "both":
+                            # compute p-value again
+                            pval_s = _calc_overlap_pval(o_s, s1_, s2_, bg_s)
+                    J_s = o_s * 1.0 / u_s
+
+                if by == "genes":
+                    J = J_g
+                    pval = pval_g
+                    o = o_g
+                elif by == "samples":
+                    J = J_s
+                    pval = pval_s
+                    o = o_s
+                else:
+                    o = o_s * o_g  # bicluster overlap
+                    b1_ = s1 * g1 - o  # exclusive bicluster 1 area
+                    b2_ = s2 * g2 - o
+                    u = o + b1_ + b2_
+                    bg = N_s * N_g - u
+                    J = o * 1.0 / u
+                    pval = _calc_overlap_pval(o, b1_, b2_, bg)
+
+                adj_pval = pval * n_bics2 * n_bics1
+                if adj_pval < adj_pval_thr and J > 0:
+                    if J > bm_J or (J == bm_J and adj_pval < bm_adj_pval):
+                        bm_J = J
+                        bm_adj_pval = adj_pval
+                        bm_id = i2
+                        bm_o = o
+        best_matches[i1]["bm_id"] = bm_id
+        best_matches[i1]["J"] = bm_J
+        best_matches[i1]["adj_pval"] = bm_adj_pval
+        if "genes" in bics1.columns and "genes" in bics2.columns:
+            if bm_id:
+                best_matches[i1]["shared_genes"] = bics2.loc[
+                    bm_id, "genes"
+                ].intersection(bics1.loc[i1, "genes"])
+                best_matches[i1]["n_shared_genes"] = len(
+                    best_matches[i1]["shared_genes"]
+                )
+                best_matches[i1]["bm_genes"] = bics2.loc[bm_id, "genes"]
+                best_matches[i1]["bm_n_genes"] = bics2.loc[bm_id, "n_genes"]
+            best_matches[i1]["genes"] = bics1.loc[i1, "genes"]
+            best_matches[i1]["n_genes"] = bics1.loc[i1, "n_genes"]
+        if "samples" in bics1.columns and "samples" in bics2.columns:
+            best_matches[i1]["n_samples"] = bics1.loc[i1, "n_samples"]
+            best_matches[i1]["samples"] = bics1.loc[i1, "samples"]
+            if bm_id:
+                best_matches[i1]["bm_n_samples"] = bics2.loc[bm_id, "n_samples"]
+                best_matches[i1]["bm_samples"] = bics2.loc[bm_id, "samples"]
+                best_matches[i1]["shared_samples"] = bics2.loc[
+                    bm_id, "samples"
+                ].intersection(bics1.loc[i1, "samples"])
+                best_matches[i1]["n_shared_samples"] = len(
+                    best_matches[i1]["shared_samples"]
+                )
+
+    best_matches = pd.DataFrame.from_dict(best_matches).T
+    return best_matches
