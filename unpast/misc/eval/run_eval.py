@@ -1,3 +1,5 @@
+import numpy as np
+
 def _add_performance_cols(
     best_matches_, true_biclusters, pred_biclusters, target="genes", all_samples={None}
 ):
