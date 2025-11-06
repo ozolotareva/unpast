@@ -1,4 +1,7 @@
 import numpy as np
+import pandas as pd
+
+from unpast.misc.eval.metrics import calculate_performance
 
 def _add_performance_cols(
     best_matches_, true_biclusters, pred_biclusters, target="genes", all_samples={None}
@@ -97,3 +100,53 @@ def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, e
     Recall_bic = TP.sum() / P
 
     return best_matches, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic
+
+
+def calculate_metrics(true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFrame, _exprs: pd.DataFrame):
+    # 1. Find best matches and estimate performance
+    _all_samples = set(_exprs.columns.values)  # all samples in the dataset
+    _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]
+    _known_groups = {
+        "true_biclusters": _known_groups
+    }  # can be more than one classification => it is a dict of dicts
+    res, best_matches = calculate_performance(
+        pred_biclusters, _known_groups, _all_samples, performance_measure="ARI"
+    )
+
+    # 2. Calc other metrics
+    wARIs = res["true_biclusters"]
+    _, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic = (
+        calc_performance_measures(
+            best_matches.dropna(), true_biclusters, pred_biclusters, _exprs
+        )
+    )
+
+    return {
+        "wARIs": wARIs,
+        "F1_f_avg": F1_f_avg,
+        "F1_s_avg": F1_s_avg,
+        "FDR_bic": FDR_bic,
+        "Recall_bic": Recall_bic,
+    }
+
+
+    # best_matches = calc_best_matches(
+    #     true_bics, pred_bics, _exprs
+    # )
+
+    # metrics = {}
+
+    # # best_matches_metrics
+    # precision_recall = calc_precision_recall(best_matches, true_bics, pred_bics)
+    # metrics['FDR_bic'] = precision_recall['FDR_bic']
+    # metrics['Recall_bic'] = precision_recall['Recall_bic']
+
+    # metrics.update({
+    #     "wARIs": _calc_wARIs(true_bics, pred_bics, matches),
+    #     "F1_f_avg": _calc_F1_f_avg(true_bics, pred_bics, matches),
+    #     "F1_s_avg": F1_s_avg(true_bics, pred_bics, matches),
+    #     "FDR_bic": FDR_bic(true_bics, pred_bics, matches),
+    #     "Recall_bic": Recall_bic(true_bics, pred_bics, matches),
+    # })
+
+    # })
