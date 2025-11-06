@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from unpast.misc.eval.run_eval import calculate_metrics
-
+from unpast.misc.eval.draft_map_metric import calc_mean_average_precision
 
 def _hash_table(df):
     """Hash a DataFrame for reproducibility."""
@@ -75,12 +75,29 @@ def test_reproducible(n_genes_samples):
     assert metrics["wARIs"] > 0.0
 
 
+def _gen_random_biclusters(rand, cols, inds, n_bics):
+    gene_weights = np.power(0.9, np.arange(len(inds)))
+    gene_weights /= gene_weights.sum()
+    sample_weights = np.power(0.9, np.arange(len(cols)))
+    sample_weights /= sample_weights.sum()
+
+    bics = {}
+    for i in range(n_bics):
+        n_g = rand.randint(5, 15)
+        n_s = rand.randint(5, 15)
+
+        genes = set(rand.choice(inds, size=n_g, replace=False, p=gene_weights))
+        samples = set(rand.choice(cols, size=n_s, replace=False, p=sample_weights))
+        bics[f"bic_{i}"] = {"genes": genes, "samples": samples}
+
+    return pd.DataFrame.from_dict(bics).T
+
 def test_reproducible_big_random():
-    np.random.seed(42)
+    rand = np.random.RandomState(42)
     n_genes = 50
     n_samples = 50
     data = pd.DataFrame(
-        np.random.rand(n_genes, n_samples),
+        rand.rand(n_genes, n_samples),
         columns=[f"s_{i}" for i in range(n_samples)],
         index=[f"g_{i}" for i in range(n_genes)],
     )
@@ -109,22 +126,8 @@ def test_reproducible_big_random():
 
     for i in range(10):
         # use weights to force bics to be often the same
-        gene_weights = np.power(0.9, np.arange(n_genes))
-        gene_weights /= gene_weights.sum()
-        sample_weights = np.power(0.9, np.arange(n_samples))
-        sample_weights /= sample_weights.sum()
-
-        bics = []
-        for i in range(n_true_bics + n_pred_bics):
-            n_g = np.random.randint(5, 15)
-            n_s = np.random.randint(5, 15)
-
-            genes = set(np.random.choice(data.index.values, size=n_g, replace=False, p=gene_weights))
-            samples = set(np.random.choice(data.columns.values, size=n_s, replace=False, p=sample_weights))
-            bics.append({"genes": genes, "samples": samples})
-        
-        true_bics = pd.DataFrame(bics[:n_true_bics])
-        pred_bics = pd.DataFrame(bics[n_true_bics:])
+        true_bics = _gen_random_biclusters(rand, data.columns.values, data.index.values, n_true_bics)
+        pred_bics = _gen_random_biclusters(rand, data.columns.values, data.index.values, n_pred_bics)
 
         # todo: avoid that
         pred_bics['n_genes'] = pred_bics['genes'].apply(len)
@@ -136,4 +139,75 @@ def test_reproducible_big_random():
         repeated_metrics.append(metrics)
 
     metrics_df = pd.DataFrame(repeated_metrics)
-    assert _hash_table(metrics_df) == 17285711652143097685
+    assert _hash_table(metrics_df) == 18424040714768897732
+
+
+@pytest.mark.skip("Not working on some set of n_genes_samples. TODO: debug.")
+def test_calc_mean_average_precision_smoke():
+    rand = np.random.RandomState(42)
+    n_genes = 100
+    n_samples = 100
+    row_names = [f"g_{i}" for i in range(n_genes)]
+    col_names = [f"s_{i}" for i in range(n_samples)]
+
+    true_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=10)
+    pred_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=15)
+
+    map_score = calc_mean_average_precision(true_bics, pred_bics)
+    assert 0.0 <= map_score <= 1.0
+
+def test_map_metric(): 
+    n_genes = 1000
+    n_samples = 1000
+
+    pred_bics_dict = {}
+    for i in range(1, 10): 
+        size = i
+        genes = samples = [100*i + j for j in range(size)]
+        pred_bics_dict[f"bic_{i}"] = {"genes": set(genes), "samples": set(samples), "SNR": float(i)}
+
+    pred_bics = pd.DataFrame.from_dict(pred_bics_dict).T
+
+    def _shift(vals, i):
+        return set([v + i for v in vals])
+
+    gt_bics = pred_bics.copy()
+    del gt_bics['SNR']
+    for name, bic in gt_bics.iterrows():
+        gt_bics.at[name, 'genes'] = _shift(bic['genes'], 1)
+        gt_bics.at[name, 'samples'] = _shift(bic['samples'], 1)
+
+    map_score = calc_mean_average_precision(gt_bics, pred_bics)
+
+    pred_bics_no_good_bic = pred_bics.copy()
+    pred_bics_no_good_bic.drop(index='bic_5', inplace=True)
+    map_score_no_good_bic = calc_mean_average_precision(gt_bics, pred_bics_no_good_bic)
+    assert map_score > map_score_no_good_bic
+
+    pred_bics_no_bad_bic = pred_bics.copy()
+    pred_bics_no_bad_bic.drop(index='bic_1', inplace=True)
+    map_score_no_bad_bic = calc_mean_average_precision(gt_bics, pred_bics_no_bad_bic)
+    assert map_score == map_score_no_bad_bic
+
+    pred_bics_bad_order = pred_bics.copy()
+    pred_bics_bad_order['SNR'] = pred_bics_bad_order['SNR'].values[::-1]
+    map_score_bad_order = calc_mean_average_precision(gt_bics, pred_bics_bad_order)
+    assert map_score > map_score_bad_order
+
+    pred_bics_bad_order_no_bad_bic = pred_bics_bad_order.copy()
+    pred_bics_bad_order_no_bad_bic.drop(index='bic_1', inplace=True)
+    map_score_bad_order_no_bad_bic = calc_mean_average_precision(gt_bics, pred_bics_bad_order_no_bad_bic)
+    assert map_score_bad_order > map_score_bad_order_no_bad_bic
+
+    pred_bics_two_9_detections = pred_bics.copy()
+    pred_bics_two_9_detections = pd.concat([pred_bics_two_9_detections, pred_bics.loc[["bic_9"]]])
+    map_score_two_9_detections = calc_mean_average_precision(gt_bics, pred_bics_two_9_detections)
+    assert map_score > map_score_two_9_detections
+
+
+
+
+
+
+
+
