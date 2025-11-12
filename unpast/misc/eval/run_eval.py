@@ -32,18 +32,18 @@ def _add_performance_cols(
     )
 
     best_matches["TP_" + target] = best_matches.apply(
-        lambda row: row["true_" + target].intersection(row["pred_" + target]), axis=1
+        lambda row: row["true_" + target].intersection(row["pred_" + target]), axis=1, result_type='reduce'
     )
     # true positive rate == Recall
     best_matches["TPR_" + target] = best_matches.apply(
-        lambda row: len(row["TP_" + target]) / len(row["true_" + target]), axis=1
+        lambda row: len(row["TP_" + target]) / len(row["true_" + target]), axis=1, result_type='reduce'
     )
 
     # precision
     best_matches["Prec_" + target] = 0.0
     non_zero = best_matches["pred_" + target].apply(len) > 0
     best_matches.loc[non_zero, "Prec_" + target] = best_matches.loc[non_zero, :].apply(
-        lambda row: len(row["TP_" + target]) / len(row["pred_" + target]), axis=1
+        lambda row: len(row["TP_" + target]) / len(row["pred_" + target]), axis=1, result_type='reduce'
     )
 
     # keep only biclusters matching anything
