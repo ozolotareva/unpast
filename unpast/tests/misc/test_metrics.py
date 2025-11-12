@@ -3,7 +3,8 @@ import pandas as pd
 import pytest
 
 from unpast.misc.eval.run_eval import calculate_metrics
-from unpast.misc.eval.draft_map_metric import calc_mean_average_precision
+from unpast.misc.eval.draft_map_metric import calc_average_precision_at_thresh
+from unpast.misc.eval.draft_map_metric import _calc_mat_iou
 
 def _hash_table(df):
     """Hash a DataFrame for reproducibility."""
@@ -21,7 +22,7 @@ def test_reproducible(n_genes_samples):
     """Test metrics calculations give exactly the same results as now."""
     true_bics = pd.DataFrame({
         "genes": [
-            {"g1", "g2", "g3", "g6"},
+            {"g1", "g2", "g6"},
             {"g1", "g5", "g7"},
             {"g1", "g4"}
         ],
@@ -34,7 +35,7 @@ def test_reproducible(n_genes_samples):
 
     pred_bics = pd.DataFrame({
         "genes": [
-            {"g1", "g2", "g3", "g6"},
+            {"g1", "g2", "g6"},
             {"g1", "g2", "g3"},
             {"g1", "g5"},
             {"g6", "g7"},
@@ -142,8 +143,61 @@ def test_reproducible_big_random():
     assert _hash_table(metrics_df) == 18424040714768897732
 
 
+def _build_bics_example():
+    # schema of the data
+    # 1,2,3,4 - true bics. 1,2,5 - predicted bics
+    # gene \ sample      s1      s2     s3    s4
+    #       -------------------------------------------------
+    #        g1 |       12___   123__  1_3__ __3__ 
+    # 
+    #        g2 |       1__45   1_3__  1_3_5 __3__
+    # 
+    #        g3 |       ____5   __3__  __3_5 __3__
+    
+    bics = pd.DataFrame({
+        "genes": [
+            {"g1", "g2"}, 
+            {"g1"}, 
+            {"g1", "g2", "g3"},
+            {"g2"},
+            {"g2", "g3"},
+        ],
+        "samples": [
+            {"s1", "s2", "s3"},
+            {"s1", "s2"},
+            {"s2", "s3", "s4"},
+            {"s1"},
+            {"s1", "s3"}
+            ], 
+        }, 
+        index=["bic1", "bic2", "bic3", "bic4", "bic5"]
+    )
+    true_bics = bics.iloc[[0,1,2,3]]
+    pred_bics = bics.iloc[[0,1,4]]
+    return true_bics, pred_bics
+
+
+def test__calc_mat_iou():
+    """Test IoU / Jaccard similarity matrix calculation."""
+    ###
+    bics_true, bics_pred = _build_bics_example()
+    
+    mat_iou = _calc_mat_iou(bics_pred, bics_true)
+    expected_mat_iou = pd.DataFrame(
+        data=np.array([
+            [6/6, 2/6, 4/11, 1/6],
+            [2/6, 6/6, 1/10, 0/3],
+            [2/8, 0/8, 2/11, 1/4],
+        ]),
+        index=bics_pred.index,
+        columns=bics_true.index,
+    )
+
+    pd.testing.assert_frame_equal(mat_iou, expected_mat_iou)
+
+
 @pytest.mark.skip("Not working on some set of n_genes_samples. TODO: debug.")
-def test_calc_mean_average_precision_smoke():
+def test_calc_average_precision_at_thresh_smoke():
     rand = np.random.RandomState(42)
     n_genes = 100
     n_samples = 100
@@ -153,7 +207,7 @@ def test_calc_mean_average_precision_smoke():
     true_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=10)
     pred_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=15)
 
-    map_score = calc_mean_average_precision(true_bics, pred_bics)
+    map_score = calc_average_precision_at_thresh(true_bics, pred_bics)
     assert 0.0 <= map_score <= 1.0
 
 def test_map_metric(): 
@@ -163,13 +217,13 @@ def test_map_metric():
     pred_bics_dict = {}
     for i in range(1, 10): 
         size = i
-        genes = samples = [100*i + j for j in range(size)]
+        genes = samples = [str(100*i + j) for j in range(size)]
         pred_bics_dict[f"bic_{i}"] = {"genes": set(genes), "samples": set(samples), "SNR": float(i)}
 
     pred_bics = pd.DataFrame.from_dict(pred_bics_dict).T
 
     def _shift(vals, i):
-        return set([v + i for v in vals])
+        return set([str(int(v) + i) for v in vals])
 
     gt_bics = pred_bics.copy()
     del gt_bics['SNR']
@@ -177,35 +231,53 @@ def test_map_metric():
         gt_bics.at[name, 'genes'] = _shift(bic['genes'], 1)
         gt_bics.at[name, 'samples'] = _shift(bic['samples'], 1)
 
-    map_score = calc_mean_average_precision(gt_bics, pred_bics)
+    map_score = calc_average_precision_at_thresh(gt_bics, pred_bics)
 
     pred_bics_no_good_bic = pred_bics.copy()
-    pred_bics_no_good_bic.drop(index='bic_5', inplace=True)
-    map_score_no_good_bic = calc_mean_average_precision(gt_bics, pred_bics_no_good_bic)
+    # bic5 has IoU < 0.5, bic7 has IoU >= 0.5
+    # pred_bics_no_good_bic.drop(index='bic_5', inplace=True)  
+    pred_bics_no_good_bic.drop(index='bic_7', inplace=True)
+    map_score_no_good_bic = calc_average_precision_at_thresh(gt_bics, pred_bics_no_good_bic)
     assert map_score > map_score_no_good_bic
 
     pred_bics_no_bad_bic = pred_bics.copy()
     pred_bics_no_bad_bic.drop(index='bic_1', inplace=True)
-    map_score_no_bad_bic = calc_mean_average_precision(gt_bics, pred_bics_no_bad_bic)
+    map_score_no_bad_bic = calc_average_precision_at_thresh(gt_bics, pred_bics_no_bad_bic)
     assert map_score == map_score_no_bad_bic
 
     pred_bics_bad_order = pred_bics.copy()
     pred_bics_bad_order['SNR'] = pred_bics_bad_order['SNR'].values[::-1]
-    map_score_bad_order = calc_mean_average_precision(gt_bics, pred_bics_bad_order)
+    map_score_bad_order = calc_average_precision_at_thresh(gt_bics, pred_bics_bad_order)
     assert map_score > map_score_bad_order
 
     pred_bics_bad_order_no_bad_bic = pred_bics_bad_order.copy()
     pred_bics_bad_order_no_bad_bic.drop(index='bic_1', inplace=True)
-    map_score_bad_order_no_bad_bic = calc_mean_average_precision(gt_bics, pred_bics_bad_order_no_bad_bic)
-    assert map_score_bad_order > map_score_bad_order_no_bad_bic
+    map_score_bad_order_no_bad_bic = calc_average_precision_at_thresh(gt_bics, pred_bics_bad_order_no_bad_bic)
+    assert map_score_bad_order_no_bad_bic > map_score_bad_order
 
     pred_bics_two_9_detections = pred_bics.copy()
     pred_bics_two_9_detections = pd.concat([pred_bics_two_9_detections, pred_bics.loc[["bic_9"]]])
-    map_score_two_9_detections = calc_mean_average_precision(gt_bics, pred_bics_two_9_detections)
+    map_score_two_9_detections = calc_average_precision_at_thresh(gt_bics, pred_bics_two_9_detections)
     assert map_score > map_score_two_9_detections
 
 
+def test_map_edge_cases():
+    # No ground truth biclusters
+    pred_bics = pd.DataFrame({
+        "genes": [{"g1", "g2"}, {"g3", "g4"}],
+        "samples": [{"s1", "s2"}, {"s3", "s4"}],
+        "SNR": [2.0, 1.5],
+    })
+    map_score = calc_average_precision_at_thresh(pd.DataFrame(columns=["genes", "samples"]), pred_bics)
+    assert map_score == 0.0
 
+    # No predicted biclusters
+    true_bics = pd.DataFrame({
+        "genes": [{"g1", "g2"}, {"g3", "g4"}],
+        "samples": [{"s1", "s2"}, {"s3", "s4"}],
+    })
+    map_score = calc_average_precision_at_thresh(true_bics, pd.DataFrame(columns=["genes", "samples", "SNR"]))
+    assert map_score == 0.0
 
 
 
