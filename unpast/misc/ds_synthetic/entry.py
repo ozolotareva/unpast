@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+
 from unpast.core.preprocessing import zscore
 from unpast.core.sample_clustering import update_bicluster_data
 from unpast.misc.ds_synthetic.builder_gene_expr import generate_exprs
@@ -65,8 +66,7 @@ def _rename_rows_cols(
         new_extra["coexpressed_modules"] = new_coexpressed_modules
 
     assert extra.keys() == new_extra.keys(), (
-        "Missing logic for some keys renaming: "
-        f"{extra.keys() - new_extra.keys()}."
+        f"Missing logic for some keys renaming: {extra.keys() - new_extra.keys()}."
     )
     return exprs, new_bics, new_extra
 

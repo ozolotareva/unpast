@@ -2,15 +2,16 @@
 
 import random
 import warnings
+
 import pandas as pd
 import pytest
 
-from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.misc.ds_synthetic.dataset import (
     build_dataset,
     get_scenario_dataset_blueprint,
     get_standard_dataset_blueprint,
 )
+from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.utils.io import read_bic_table, read_exprs
 
 

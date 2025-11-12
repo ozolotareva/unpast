@@ -2,10 +2,12 @@
 
 import numpy as np
 import pandas as pd
+
 from unpast.misc.ds_synthetic.ds_utils import Bicluster
 from unpast.utils.logs import get_logger
 
 logger = get_logger(__name__)
+
 
 def _scenario_generate_biclusters(
     rand: np.random.RandomState,
@@ -37,7 +39,7 @@ def _scenario_generate_biclusters(
     biclusters = {}
     for s_frac in frac_samples:
         s_size = int(s_frac * data_sizes[1])
-        if s_size < 2: 
+        if s_size < 2:
             logger.warning(
                 "Skipping too small bicluster size during ds generation"
                 f" {s_size} for fraction {s_frac}"

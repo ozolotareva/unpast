@@ -3,6 +3,7 @@ import pandas as pd
 
 from unpast.misc.eval.metrics import calculate_performance
 
+
 def _add_performance_cols(
     best_matches_, true_biclusters, pred_biclusters, target="genes", all_samples={None}
 ):
@@ -32,18 +33,24 @@ def _add_performance_cols(
     )
 
     best_matches["TP_" + target] = best_matches.apply(
-        lambda row: row["true_" + target].intersection(row["pred_" + target]), axis=1, result_type='reduce'
+        lambda row: row["true_" + target].intersection(row["pred_" + target]),
+        axis=1,
+        result_type="reduce",
     )
     # true positive rate == Recall
     best_matches["TPR_" + target] = best_matches.apply(
-        lambda row: len(row["TP_" + target]) / len(row["true_" + target]), axis=1, result_type='reduce'
+        lambda row: len(row["TP_" + target]) / len(row["true_" + target]),
+        axis=1,
+        result_type="reduce",
     )
 
     # precision
     best_matches["Prec_" + target] = 0.0
     non_zero = best_matches["pred_" + target].apply(len) > 0
     best_matches.loc[non_zero, "Prec_" + target] = best_matches.loc[non_zero, :].apply(
-        lambda row: len(row["TP_" + target]) / len(row["pred_" + target]), axis=1, result_type='reduce'
+        lambda row: len(row["TP_" + target]) / len(row["pred_" + target]),
+        axis=1,
+        result_type="reduce",
     )
 
     # keep only biclusters matching anything
@@ -102,7 +109,9 @@ def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, e
     return best_matches, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic
 
 
-def calculate_metrics(true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFrame, _exprs: pd.DataFrame):
+def calculate_metrics(
+    true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFrame, _exprs: pd.DataFrame
+):
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
     _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]
@@ -115,10 +124,8 @@ def calculate_metrics(true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFra
 
     # 2. Calc other metrics
     wARIs = res["true_biclusters"]
-    _, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic = (
-        calc_performance_measures(
-            best_matches.dropna(), true_biclusters, pred_biclusters, _exprs
-        )
+    _, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic = calc_performance_measures(
+        best_matches.dropna(), true_biclusters, pred_biclusters, _exprs
     )
 
     return {
@@ -128,7 +135,6 @@ def calculate_metrics(true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFra
         "FDR_bic": FDR_bic,
         "Recall_bic": Recall_bic,
     }
-
 
     # best_matches = calc_best_matches(
     #     true_bics, pred_bics, _exprs

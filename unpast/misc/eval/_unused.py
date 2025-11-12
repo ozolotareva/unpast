@@ -150,7 +150,7 @@ def test_sample_overlap(row, sample_set, N):
     p = pvalue(o, bic_only, sample_set_only, bg).right_tail
     # if p<0.001:
     #    print(p,(o,bic_only,sample_set_only,bg),row["genes"])
-    return pd.Series({"pval": p, "counts": (o, bic_only, sample_set_only, bg)})    
+    return pd.Series({"pval": p, "counts": (o, bic_only, sample_set_only, bg)})
 
 def add_sex(biclusters, males=[], females=[]):
     sample_sets = {}

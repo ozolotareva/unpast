@@ -2,6 +2,7 @@ from collections import namedtuple
 from pathlib import Path
 
 import pandas as pd
+
 from unpast.utils.io import write_bic_table
 from unpast.utils.visualization import plot_biclusters_heatmap
 

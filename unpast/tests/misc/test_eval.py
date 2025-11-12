@@ -1,10 +1,9 @@
 """Tests for eval module."""
 
-import numpy as np
 import pandas as pd
+
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.misc.eval import calculate_performance
-from unpast.utils.io import read_bic_table
 
 
 class TestCalculatePerformance:

@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Mapping
 
 import pandas as pd
+
 from unpast.misc.ds_synthetic.ds_utils import save_dataset_entry
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 

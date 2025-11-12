@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+
 from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 

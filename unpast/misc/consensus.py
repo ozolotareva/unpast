@@ -11,6 +11,7 @@ from scipy.stats import chi2_contingency
 from unpast.core.feature_clustering import run_Louvain
 from unpast.core.sample_clustering import cluster_samples, update_bicluster_data
 
+
 def make_consensus_biclusters(
     biclusters_list,
     exprs,
@@ -415,6 +416,7 @@ def calc_signif_bicluster_similarities(
         plt.show()
 
     return J_heatmap
+
 
 def _calc_overlap_pval(overlap, group1_only, group2_only, background, max_N=5000):
     # if sample size < max_N), use Fisher's exact

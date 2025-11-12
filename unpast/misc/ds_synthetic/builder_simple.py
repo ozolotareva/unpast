@@ -2,6 +2,7 @@
 
 import numpy as np
 import pandas as pd
+
 from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 
@@ -28,8 +29,12 @@ def build_simple_biclusters(
             some additional data
     """
     table = pd.DataFrame(rand.normal(0, 1, size=data_sizes))
-    assert bic_sizes[0] <= data_sizes[0], f"bic size_0 too large ({bic_sizes[0]} > {data_sizes[0]})"
-    assert bic_sizes[1] <= data_sizes[1], f"bic size_1 too large ({bic_sizes[1]} > {data_sizes[1]})"
+    assert bic_sizes[0] <= data_sizes[0], (
+        f"bic size_0 too large ({bic_sizes[0]} > {data_sizes[0]})"
+    )
+    assert bic_sizes[1] <= data_sizes[1], (
+        f"bic size_1 too large ({bic_sizes[1]} > {data_sizes[1]})"
+    )
 
     bic_rows = list(range(bic_sizes[0]))
     bic_cols = list(range(bic_sizes[1]))
