@@ -29,12 +29,6 @@ def calculate_performance(
     if sample_clusters_ is None or sample_clusters_.shape[0] == 0:
         return pd.DataFrame(), pd.DataFrame()
 
-    if adjust_pvals not in ["B", "BH", False]:
-        print(
-            adjust_pvals,
-            "is not recognized, Bonferroni method will be used,",
-            file=sys.stderr,
-        )
     sample_clusters = _filter_sample_clusters(
         sample_clusters_, min_n_samples=min_n_samples, min_SNR=min_SNR, min_n_genes=min_n_genes
     )
@@ -49,6 +43,7 @@ def calculate_performance(
         N = 0
         for subt in known_groups[cl].keys():
             N += len(known_groups[cl][subt])
+        
         if performance_measure == "ARI":
             pvals, is_enriched, performance = _evaluate_overlaps_ARI(
                 sample_clusters, known_groups[cl], all_samples
@@ -57,12 +52,8 @@ def calculate_performance(
             pvals, is_enriched, performance = _evaluate_overlaps(
                 sample_clusters, known_groups[cl], all_samples
             )
-        if adjust_pvals:
-            if adjust_pvals == "B":
-                pvals = pvals * pvals.shape[0]
-                pvals = pvals.applymap(lambda x: min(x, 1))
-            elif adjust_pvals == "BH":
-                pvals = _apply_bh(pvals, a=pval_cutoff)
+       
+        pvals = _adjust_pvals_df(pvals, adjust_pvals=adjust_pvals, pval_cutoff=pval_cutoff)
         best_match_stats = {}
         best_pval = pvals.min(axis=1)
         for subt in known_groups[cl].keys():
@@ -221,6 +212,27 @@ def _apply_bh(df_pval, a=0.05):
     df_adj = pd.DataFrame.from_dict(df_adj)
     df_adj.index = df_pval.index
     return df_adj
+
+
+def _adjust_pvals_df(pvals, adjust_pvals, pval_cutoff=0.05):
+    """Adjust p-values DataFrame according to requested method.
+
+    - If adjust_pvals is 'B', apply Bonferroni (multiply by number of tests and cap at 1).
+    - If adjust_pvals is 'BH', apply Benjamini-Hochberg using _apply_bh.
+    - If adjust_pvals is False or None, return pvals unchanged.
+    """
+    if adjust_pvals == "B":
+        # Bonferroni across each row/entry: multiply p-values by number of tests (columns)
+        # original behavior multiplied by pvals.shape[0] in-place; preserve that logic
+        pvals = pvals * pvals.shape[0]
+        pvals = pvals.applymap(lambda x: min(x, 1))
+        return pvals
+    elif adjust_pvals == "BH":
+        return _apply_bh(pvals, a=pval_cutoff)
+    elif adjust_pvals == False:
+        return pvals
+    else: 
+        raise ValueError(f"Unrecognized adjust_pvals value: {adjust_pvals}, expected 'B', 'BH', or False.")
 
 
 def _evaluate_overlaps(biclusters, known_groups, all_elements, dimension="samples"):
