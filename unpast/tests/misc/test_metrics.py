@@ -213,7 +213,6 @@ def test__calc_mat_iou():
     pd.testing.assert_frame_equal(mat_iou, expected_mat_iou)
 
 
-@pytest.mark.skip("Not working on some set of n_genes_samples. TODO: debug.")
 def test_calc_average_precision_at_thresh_smoke():
     rand = np.random.RandomState(42)
     n_genes = 100
@@ -223,6 +222,7 @@ def test_calc_average_precision_at_thresh_smoke():
 
     true_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=10)
     pred_bics = _gen_random_biclusters(rand, col_names, row_names, n_bics=15)
+    pred_bics["SNR"] = rand.rand(pred_bics.shape[0]) * 10.0
 
     map_score = calc_average_precision_at_thresh(true_bics, pred_bics)
     assert 0.0 <= map_score <= 1.0
