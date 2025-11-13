@@ -35,16 +35,9 @@ def calculate_performance(
             "is not recognized, Bonferroni method will be used,",
             file=sys.stderr,
         )
-    sample_clusters = sample_clusters_[
-        sample_clusters_["samples"].apply(lambda x: len(x)) >= min_n_samples
-    ]
-    sample_clusters["n_samples"] = sample_clusters["samples"].apply(lambda x: len(x))
-    if min_SNR:
-        sample_clusters = sample_clusters[sample_clusters["SNR"] >= min_SNR]
-    if min_n_genes:
-        sample_clusters = sample_clusters[
-            sample_clusters["genes"].apply(lambda x: len(x)) >= min_n_genes
-        ]
+    sample_clusters = _filter_sample_clusters(
+        sample_clusters_, min_n_samples=min_n_samples, min_SNR=min_SNR, min_n_genes=min_n_genes
+    )
 
     if sample_clusters.shape[0] == 0:
         return pd.DataFrame(), pd.DataFrame()
@@ -120,6 +113,29 @@ def calculate_performance(
     performances = pd.Series(performances)
     best_matches = pd.concat(best_matches, axis=0)
     return performances, best_matches
+
+
+def _filter_sample_clusters(sample_clusters_, min_n_samples, min_SNR, min_n_genes):
+    """Filter sample_clusters DataFrame according to provided thresholds.
+
+    Returns a DataFrame (possibly empty) with an added "n_samples" column.
+    If input is None or empty, returns an empty DataFrame.
+    """
+    if sample_clusters_.shape[0] == 0:
+        return pd.DataFrame()
+
+    sample_clusters = sample_clusters_[
+        sample_clusters_["samples"].apply(lambda x: len(x)) >= min_n_samples
+    ]
+    sample_clusters["n_samples"] = sample_clusters["samples"].apply(lambda x: len(x))
+    if min_SNR:
+        sample_clusters = sample_clusters[sample_clusters["SNR"] >= min_SNR]
+    if min_n_genes:
+        sample_clusters = sample_clusters[
+            sample_clusters["genes"].apply(lambda x: len(x)) >= min_n_genes
+        ]
+
+    return sample_clusters
 
 
 def _evaluate_overlaps_ARI(biclusters, known_groups, all_elements):
