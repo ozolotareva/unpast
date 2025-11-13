@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from unpast.misc.eval.draft_map_metric import (
+from unpast.misc.eval.calc_average_precision import (
     _calc_mat_iou,
     calc_average_precision_at_thresh,
 )

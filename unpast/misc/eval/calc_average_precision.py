@@ -2,9 +2,6 @@ import numpy as np
 import pandas as pd
 from typing import Tuple, Set, List, Optional, Iterable
 
-# Reuse existing, tested helpers from the project's map_metric module
-from .map_metric import calculate_average_precision
-
 THRESHS = tuple(x / 100 for x in range(50, 100, 5))
 USE_MAX_PRECISION = True
 
@@ -99,68 +96,6 @@ def _calc_mat_iou(
             mat_iou.loc[pred_ind, true_ind] = _calc_jaccard(pred_bic, true_bic)
 
     return mat_iou
-
-
-# def _calculate_average_precision(
-#     bics_true: pd.DataFrame,
-#     bics_pred: pd.DataFrame,
-#     iou_threshold: float,
-# ) -> float:
-#     """Calculate Average Precision (AP) for predicted biclusters vs. ground truth
-#     at a specific IoU / Jaccard threshold.
-
-#     Args:
-#         bics_true: Ground-truth biclusters as a DataFrame.
-#         bics_pred: Predicted biclusters as a DataFrame.
-#         iou_threshold: IoU / Jaccard threshold for considering a prediction
-#             as a true positive.
-#     Returns:
-#         Average Precision as a float in ``[0.0, 1.0]``.
-#     """
-
-#     # implementing the function here
-#     # 1. find correspondences between predicted and true biclusters based on iou_threshold
-#     correspondence = find_correspondence(bics_true, bics_pred, iou_threshold)
-
-
-# class BicsAPCorrespondence:
-#     def __init__(self, true_bics: pd.DataFrame, pred_bics: pd.DataFrame) -> None:
-#         self.true_bics = true_bics
-#         self.pred_bics = pred_bics
-#         self.mat_ious = self._build_iou_matrix(true_bics, pred_bics)
-
-#     def build_correspondence(self, iou_threshold: float) -> dict:
-#         """Build AP correspondences between true and predicted biclusters based on IoU threshold.
-#             As required for Average Precision calculation, each predicted bicluster can correspond
-#             to at most one true bicluster. And the most overlapping true bicluster is chosen.
-
-#         Args:
-#             iou_threshold: IoU / Jaccard threshold for considering a prediction
-#                 as a true positive.
-
-#         Returns:
-#             A dictionary mapping indices of predicted biclusters to indices of
-#             corresponding true biclusters.
-#         """
-
-#         # correspondences between predicted and true biclusters as
-#         raise NotImplementedError()
-
-#     @staticmethod
-#     def _build_iou_matrix(
-#         bics_true: pd.DataFrame,
-#         bics_pred: pd.DataFrame
-#     ) -> pd.DataFrame:
-#         """Build IoU / Jaccard similarity matrix between true and predicted biclusters.
-
-#         Args:
-#             bics_true: Ground-truth biclusters as a DataFrame.
-#             bics_pred: Predicted biclusters as a DataFrame.
-
-#         Returns:
-#             A DataFrame representing the IoU / Jaccard similarity matrix.
-#         """
-#         raise NotImplementedError()
 
 
 def _calc_average_precision_by_matrix(
