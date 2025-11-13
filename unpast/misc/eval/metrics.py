@@ -39,72 +39,100 @@ def calculate_performance(
     best_matches = []
     performances = {}
     for cl in known_groups.keys():
-        # denominator for weights
-        N = 0
-        for subt in known_groups[cl].keys():
-            N += len(known_groups[cl][subt])
-        
-        if performance_measure == "ARI":
-            pvals, is_enriched, performance = _evaluate_overlaps_ARI(
-                sample_clusters, known_groups[cl], all_samples
-            )
-        if performance_measure == "Jaccard":
-            pvals, is_enriched, performance = _evaluate_overlaps(
-                sample_clusters, known_groups[cl], all_samples
-            )
-       
-        pvals = _adjust_pvals_df(pvals, adjust_pvals=adjust_pvals, pval_cutoff=pval_cutoff)
-        best_match_stats = {}
-        best_pval = pvals.min(axis=1)
-        for subt in known_groups[cl].keys():
-            w = len(known_groups[cl][subt]) / N  # weight
-            subt_pval = pvals[subt]
-            passed_pvals = subt_pval[subt_pval == best_pval]
-            passed_pvals = subt_pval[subt_pval < pval_cutoff].index.values
-            d = performance.loc[passed_pvals, subt].sort_values(ascending=False)
-            if d.shape[0] == 0:
-                best_match_stats[subt] = {
-                    "bm_id": np.nan,
-                    performance_measure: 0,
-                    "weight": w,
-                    "adj_pval": np.nan,
-                    "is_enriched": np.nan,
-                    "samples": set([]),
-                    "n_samples": 0,
-                }
-            else:
-                bm_j = d.values[0]
-                d = d[d == bm_j]
-                bm_id = sorted(
-                    pvals.loc[d.index.values, :]
-                    .sort_values(by=subt, ascending=True)
-                    .index.values
-                )[0]
-                bm_pval = pvals.loc[bm_id, subt]
-                bm_j = performance.loc[bm_id, subt]
-                bm_is_enrich = is_enriched.loc[bm_id, subt]
-                bm_samples = sample_clusters.loc[bm_id, "samples"]
-                best_match_stats[subt] = {
-                    "bm_id": bm_id,
-                    performance_measure: bm_j,
-                    "weight": w,
-                    "adj_pval": bm_pval,
-                    "is_enriched": bm_is_enrich,
-                    "samples": bm_samples,
-                    "n_samples": len(bm_samples),
-                }
-
-        best_match_stats = pd.DataFrame.from_dict(best_match_stats).T
-        best_match_stats["classification"] = cl
-        best_matches.append(best_match_stats)
-        performances[cl] = sum(
-            best_match_stats[performance_measure] * best_match_stats["weight"]
+        perf_val, best_match_stats = _process_class(
+            cl,
+            sample_clusters,
+            known_groups[cl],
+            all_samples,
+            performance_measure,
+            adjust_pvals,
+            pval_cutoff,
         )
+        best_matches.append(best_match_stats)
+        performances[cl] = perf_val
 
     performances = pd.Series(performances)
     best_matches = pd.concat(best_matches, axis=0)
     return performances, best_matches
 
+
+def _process_class(
+    cl,
+    sample_clusters,
+    known_groups_cl,
+    all_samples,
+    performance_measure,
+    adjust_pvals,
+    pval_cutoff,
+):
+    """Process a single classification 'cl' and return (performance_value, best_match_stats_df).
+
+    This extracts the logic previously inside the 'for cl in known_groups.keys()' loop.
+    Behavior is preserved exactly.
+    """
+    # denominator for weights
+    N = 0
+    for subt in known_groups_cl.keys():
+        N += len(known_groups_cl[subt])
+
+    if performance_measure == "ARI":
+        pvals, is_enriched, performance = _evaluate_overlaps_ARI(
+            sample_clusters, known_groups_cl, all_samples
+        )
+    if performance_measure == "Jaccard":
+        pvals, is_enriched, performance = _evaluate_overlaps(
+            sample_clusters, known_groups_cl, all_samples
+        )
+
+    pvals = _adjust_pvals_df(pvals, adjust_pvals=adjust_pvals, pval_cutoff=pval_cutoff)
+    best_match_stats = {}
+    best_pval = pvals.min(axis=1)
+    for subt in known_groups_cl.keys():
+        w = len(known_groups_cl[subt]) / N  # weight
+        subt_pval = pvals[subt]
+        passed_pvals = subt_pval[subt_pval == best_pval]
+        passed_pvals = subt_pval[subt_pval < pval_cutoff].index.values
+        d = performance.loc[passed_pvals, subt].sort_values(ascending=False)
+        if d.shape[0] == 0:
+            best_match_stats[subt] = {
+                "bm_id": np.nan,
+                performance_measure: 0,
+                "weight": w,
+                "adj_pval": np.nan,
+                "is_enriched": np.nan,
+                "samples": set([]),
+                "n_samples": 0,
+            }
+        else:
+            bm_j = d.values[0]
+            d = d[d == bm_j]
+            bm_id = sorted(
+                pvals.loc[d.index.values, :]
+                .sort_values(by=subt, ascending=True)
+                .index.values
+            )[0]
+            bm_pval = pvals.loc[bm_id, subt]
+            bm_j = performance.loc[bm_id, subt]
+            bm_is_enrich = is_enriched.loc[bm_id, subt]
+            bm_samples = sample_clusters.loc[bm_id, "samples"]
+            best_match_stats[subt] = {
+                "bm_id": bm_id,
+                performance_measure: bm_j,
+                "weight": w,
+                "adj_pval": bm_pval,
+                "is_enriched": bm_is_enrich,
+                "samples": bm_samples,
+                "n_samples": len(bm_samples),
+            }
+
+    best_match_stats = pd.DataFrame.from_dict(best_match_stats).T
+    best_match_stats["classification"] = cl
+
+    perf_value = sum(
+        best_match_stats[performance_measure] * best_match_stats["weight"]
+    )
+
+    return perf_value, best_match_stats
 
 def _filter_sample_clusters(sample_clusters_, min_n_samples, min_SNR, min_n_genes):
     """Filter sample_clusters DataFrame according to provided thresholds.
