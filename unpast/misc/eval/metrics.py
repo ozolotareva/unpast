@@ -1,7 +1,7 @@
 from typing import Any
+
 import numpy as np
 import pandas as pd
-
 from unpast.misc.eval.calc_ari_matching import calc_ari_matching
 from unpast.misc.eval.calc_average_precision import calc_average_precision_at_thresh
 
@@ -139,9 +139,7 @@ def calc_metrics(
     )
 
     # 3. Calc average precision metric
-    AP_50_95 = calc_average_precision_at_thresh(
-        true_biclusters, pred_biclusters
-    )
+    AP_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters)
 
     return {
         "wARIs": wARIs,

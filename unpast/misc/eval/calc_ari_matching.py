@@ -189,10 +189,14 @@ def _adjust_pvals_df(pvals, adjust_pvals, pval_cutoff=0.05):
         )
 
 
-def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension="samples"):
+def _evaluate_overlaps(
+    biclusters, known_groups, all_elements, method, dimension="samples"
+):
     # compute exact Fisher's p-values and Jaccard/ARI overlaps for samples
-    
-    assert method in ["Jaccard", "ARI"], f"Unsupported method: {method}, expected 'Jaccard' or 'ARI'."
+
+    assert method in ["Jaccard", "ARI"], (
+        f"Unsupported method: {method}, expected 'Jaccard' or 'ARI'."
+    )
     pvals = {}
     is_enriched = {}
     metric_vals = {}
@@ -211,7 +215,7 @@ def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension
                 file=sys.stderr,
             )
             bic_members = bic_members.intersection(all_elements)
-    
+
     # sanity check and sorting
     group_names = list(known_groups.keys())
     sorted_group_names = [group_names[0]]  # group names ordered by group size
@@ -230,7 +234,7 @@ def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension
                     break
                 elif gn == len(sorted_group_names) - 1:
                     sorted_group_names = [group] + sorted_group_names
-    
+
     # print(sorted_group_names)
     for group in sorted_group_names:
         group_members = known_groups[group]
@@ -248,7 +252,7 @@ def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension
         for i in biclusters.index.values:
             bic = biclusters.loc[i, :]
             bic_members = bic[dimension]
-           
+
             if method == "ARI":
                 bic_binary = np.zeros(len(all_elements_list))
                 for j in range(len(all_elements_list)):
@@ -258,12 +262,11 @@ def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension
                 metric_vals[group][i] = adjusted_rand_score(group_binary, bic_binary)
 
             # Fisher's exact test
-            shared = len(bic_members.intersection(group_members))   
+            shared = len(bic_members.intersection(group_members))
             bic_only = len(bic_members.difference(group_members))
             group_only = len(group_members.difference(bic_members))
             union = shared + bic_only + group_only
             pval = pvalue(shared, bic_only, group_only, N - union)
-
 
             # some commented out code in the Jaccard version above for under-representation handling
             """
@@ -279,7 +282,7 @@ def _evaluate_overlaps(biclusters, known_groups, all_elements, method, dimension
                 shared = len(bic_members.intersection(group_members))
                 union = len(bic_members.union(group_members))
             """
-            
+
             pvals[group][i] = pval.two_tail
             is_enriched[group][i] = False
             if pval.right_tail < pval.left_tail:

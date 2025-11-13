@@ -1,6 +1,7 @@
+from typing import Iterable
+
 import numpy as np
 import pandas as pd
-from typing import Tuple, Set, List, Optional, Iterable
 
 THRESHS = tuple(x / 100 for x in range(50, 100, 5))
 USE_MAX_PRECISION = True
@@ -200,8 +201,6 @@ def calc_average_precision_at_thresh(
         # todo: double-checking that don't mixing cols and rows
         ap = _calc_average_precision_by_matrix(mat_iou, thr)
         ap_scores.append(ap)
-
-    print(f"AP scores at thresholds", *zip(threshs, ap_scores))
 
     # Return mean AP across requested thresholds
     return float(sum(ap_scores) / len(ap_scores))
