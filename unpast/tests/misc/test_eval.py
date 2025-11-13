@@ -93,7 +93,7 @@ class TestCalcAriMatching:
         }
 
         # Call the function - should not crash
-        performances, best_matches = calculate_performance(
+        performances, best_matches = calc_ari_matching(
             sample_clusters_=sample_clusters,
             known_groups=known_groups,
             all_samples=all_samples,

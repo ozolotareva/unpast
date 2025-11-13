@@ -2,7 +2,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from unpast.misc.eval.metrics import calc_ari_matching
+from unpast.misc.eval.calc_ari_matching import calc_ari_matching
 
 
 def _add_performance_cols(
