@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 
 from unpast.misc.eval.calc_ari_matching import calc_ari_matching
+from unpast.misc.eval.calc_average_precision import calc_average_precision_at_thresh
 
 
 def _add_performance_cols(
@@ -110,7 +111,7 @@ def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, e
     return best_matches, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic
 
 
-def calculate_metrics(
+def calc_metrics(
     true_biclusters: pd.DataFrame,
     pred_biclusters: pd.DataFrame,
     _exprs: pd.DataFrame,
@@ -137,12 +138,18 @@ def calculate_metrics(
         best_matches.dropna(), true_biclusters, pred_biclusters, _exprs
     )
 
+    # 3. Calc average precision metric
+    AP_50_95 = calc_average_precision_at_thresh(
+        true_biclusters, pred_biclusters
+    )
+
     return {
         "wARIs": wARIs,
         "F1_f_avg": F1_f_avg,
         "F1_s_avg": F1_s_avg,
         "FDR_bic": FDR_bic,
         "Recall_bic": Recall_bic,
+        "AP_50_95": AP_50_95,
     }
 
     # best_matches = calc_best_matches(
