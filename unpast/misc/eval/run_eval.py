@@ -2,7 +2,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from unpast.misc.eval.metrics import calculate_performance
+from unpast.misc.eval.metrics import calc_ari_matching
 
 
 def _add_performance_cols(
@@ -114,8 +114,8 @@ def calculate_metrics(
     true_biclusters: pd.DataFrame,
     pred_biclusters: pd.DataFrame,
     _exprs: pd.DataFrame,
-    performance_measure="ARI",
-    **calc_performance_args: Any,
+    matching_measure="ARI",
+    **calc_matching_args: Any,
 ):
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
@@ -123,12 +123,12 @@ def calculate_metrics(
     _known_groups = {
         "true_biclusters": _known_groups
     }  # can be more than one classification => it is a dict of dicts
-    res, best_matches = calculate_performance(
+    res, best_matches = calc_ari_matching(
         pred_biclusters,
         _known_groups,
         _all_samples,
-        performance_measure=performance_measure,
-        **calc_performance_args,
+        matching_measure=matching_measure,
+        **calc_matching_args,
     )
 
     # 2. Calc other metrics

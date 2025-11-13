@@ -1,3 +1,8 @@
+"""Calculate wARIs metric and best wARIs matching.
+
+Jaccard can be also used instead of ARI
+"""
+
 import sys
 
 import numpy as np
@@ -7,11 +12,11 @@ from sklearn.metrics import adjusted_rand_score
 from statsmodels.stats.multitest import fdrcorrection
 
 
-def calculate_performance(
+def calc_ari_matching(
     sample_clusters_,  # data.Frame with "samples" column
     known_groups,  # dict={"classification1":{"group1":{"s1","s2",...},"group2":{...}, ...}}
     all_samples,  # set of all samples in input; needed for overlap p-value computations
-    performance_measure="Jaccard",  # must be "ARI" or "Jaccard"
+    matching_measure="ARI",  # must be "ARI" or "Jaccard"
     adjust_pvals="B",  # ["B", "BH", False] # correction for multiple testing
     pval_cutoff=0.05,  # cutoff for p-values to select significant matches
     min_SNR=0,
@@ -45,7 +50,7 @@ def calculate_performance(
             sample_clusters,
             known_groups[cl],
             all_samples,
-            performance_measure,
+            matching_measure,
             adjust_pvals,
             pval_cutoff,
         )

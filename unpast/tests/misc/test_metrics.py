@@ -150,7 +150,7 @@ def test_reproducible_big_random():
                 true_bics,
                 pred_bics,
                 data,
-                performance_measure=measure,
+                matching_measure=measure,
                 adjust_pvals=adjust_pvals,
             )
     metrics_df_params = pd.DataFrame(params_metrics)

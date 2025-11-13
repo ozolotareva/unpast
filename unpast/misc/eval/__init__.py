@@ -1,4 +1,4 @@
-from .metrics import calculate_performance
+from .metrics import calc_ari_matching
 from .run_eval import calc_performance_measures
 
-__all__ = ["calculate_performance", "calc_performance_measures"]
+__all__ = ["calc_ari_matching", "calc_performance_measures"]
