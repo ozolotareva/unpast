@@ -3,10 +3,8 @@ import sys
 import numpy as np
 import pandas as pd
 from fisher import pvalue
-from statsmodels.stats.multitest import fdrcorrection
-
-
 from sklearn.metrics import adjusted_rand_score
+from statsmodels.stats.multitest import fdrcorrection
 
 
 def calculate_performance(
@@ -30,7 +28,10 @@ def calculate_performance(
         return pd.DataFrame(), pd.DataFrame()
 
     sample_clusters = _filter_sample_clusters(
-        sample_clusters_, min_n_samples=min_n_samples, min_SNR=min_SNR, min_n_genes=min_n_genes
+        sample_clusters_,
+        min_n_samples=min_n_samples,
+        min_SNR=min_SNR,
+        min_n_genes=min_n_genes,
     )
 
     if sample_clusters.shape[0] == 0:
@@ -128,11 +129,10 @@ def _process_class(
     best_match_stats = pd.DataFrame.from_dict(best_match_stats).T
     best_match_stats["classification"] = cl
 
-    perf_value = sum(
-        best_match_stats[performance_measure] * best_match_stats["weight"]
-    )
+    perf_value = sum(best_match_stats[performance_measure] * best_match_stats["weight"])
 
     return perf_value, best_match_stats
+
 
 def _filter_sample_clusters(sample_clusters_, min_n_samples, min_SNR, min_n_genes):
     """Filter sample_clusters DataFrame according to provided thresholds.
@@ -259,8 +259,10 @@ def _adjust_pvals_df(pvals, adjust_pvals, pval_cutoff=0.05):
         return _apply_bh(pvals, a=pval_cutoff)
     elif adjust_pvals == False:
         return pvals
-    else: 
-        raise ValueError(f"Unrecognized adjust_pvals value: {adjust_pvals}, expected 'B', 'BH', or False.")
+    else:
+        raise ValueError(
+            f"Unrecognized adjust_pvals value: {adjust_pvals}, expected 'B', 'BH', or False."
+        )
 
 
 def _evaluate_overlaps(biclusters, known_groups, all_elements, dimension="samples"):
