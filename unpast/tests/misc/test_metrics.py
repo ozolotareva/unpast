@@ -142,6 +142,20 @@ def test_reproducible_big_random():
     metrics_df = pd.DataFrame(repeated_metrics)
     assert _hash_table(metrics_df) == 18424040714768897732
 
+    # different extra calculations:
+    params_metrics = {}
+    for measure in ["ARI", "Jaccard"]:
+        for adjust_pvals in ["B", "BH", False]:
+            params_metrics[f"{measure}_{adjust_pvals}"] = calculate_metrics(
+                true_bics,
+                pred_bics,
+                data,
+                performance_measure=measure,
+                adjust_pvals=adjust_pvals,
+            )
+    metrics_df_params = pd.DataFrame(params_metrics)
+    assert _hash_table(metrics_df_params) == 9152769111870831455
+
 
 def _build_bics_example():
     # schema of the data

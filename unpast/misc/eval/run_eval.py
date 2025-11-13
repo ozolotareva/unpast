@@ -1,3 +1,4 @@
+from typing import Any
 import numpy as np
 import pandas as pd
 
@@ -110,7 +111,11 @@ def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, e
 
 
 def calculate_metrics(
-    true_biclusters: pd.DataFrame, pred_biclusters: pd.DataFrame, _exprs: pd.DataFrame
+    true_biclusters: pd.DataFrame,
+    pred_biclusters: pd.DataFrame,
+    _exprs: pd.DataFrame,
+    performance_measure="ARI",
+    **calc_performance_args: Any,
 ):
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
@@ -119,7 +124,11 @@ def calculate_metrics(
         "true_biclusters": _known_groups
     }  # can be more than one classification => it is a dict of dicts
     res, best_matches = calculate_performance(
-        pred_biclusters, _known_groups, _all_samples, performance_measure="ARI"
+        pred_biclusters,
+        _known_groups,
+        _all_samples,
+        performance_measure=performance_measure,
+        **calc_performance_args,
     )
 
     # 2. Calc other metrics
