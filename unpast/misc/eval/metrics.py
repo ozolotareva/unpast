@@ -155,6 +155,35 @@ def calc_performance_measures(
     return best_matches, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic
 
 
+def _handle_empty_bicluster_case(
+    true_biclusters: pd.DataFrame,
+    pred_biclusters: pd.DataFrame,
+) -> dict[str, float]:
+    """Handle edge cases where there are no predicted or true biclusters.
+
+    Args:
+        true_biclusters: DataFrame containing ground truth biclusters.
+        pred_biclusters: DataFrame containing predicted biclusters.
+
+    Returns:
+        Dictionary containing evaluation metrics for edge cases.
+    """
+    if len(true_biclusters) == 0:
+        raise ValueError("True biclusters cannot be empty for metric calculation.")
+
+    assert len(pred_biclusters) == 0, (
+        "Unexpected non-empty predicted and true biclusters."
+    )
+    return {
+        "wARIs": 0.0,
+        "F1_f_avg": 0.0,
+        "F1_s_avg": 0.0,
+        "FDR_bic": 1.0,
+        "Recall_bic": 0.0,
+        "AP_50_95": 0.0,
+    }
+
+
 def calc_metrics(
     true_biclusters: pd.DataFrame,
     pred_biclusters: pd.DataFrame,
@@ -180,6 +209,12 @@ def calc_metrics(
             - Recall_bic: Recall for biclusters
             - AP_50_95: Average precision at IoU thresholds 0.5-0.95
     """
+    # 0. Handle empty cases
+    if len(pred_biclusters) == 0 or len(true_biclusters) == 0:
+        return _handle_empty_bicluster_case(
+            true_biclusters=true_biclusters, pred_biclusters=pred_biclusters
+        )
+
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
     _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]

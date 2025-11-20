@@ -136,7 +136,7 @@ dmypy.json
 .idea
 /checkups/
 
-# Mac 
+# Mac
 .DS_Store
 
 # vscode

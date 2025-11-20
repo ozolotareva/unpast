@@ -136,6 +136,61 @@ def test_reproducible_big_random():
     assert _hash_table(metrics_df_params) == 6034197052908192337
 
 
+def test_calc_metrics_empty_data():
+    exprs = pd.DataFrame(
+        np.random.rand(10, 10),
+        index=[f"g{i}" for i in range(10)],
+        columns=[f"s{i}" for i in range(10)],
+    )
+    true_bics = pd.DataFrame(
+        {
+            "genes": [{"g1", "g2"}, {"g3", "g4"}],
+            "samples": [{"s1", "s2"}, {"s3", "s4"}],
+        }
+    )
+    pred_bics = pd.DataFrame(
+        {
+            "genes": [{"g1", "g2"}, {"g3", "g9"}],
+            "samples": [{"s1", "s2"}, {"s3", "s9"}],
+            "SNR": [2.0, 1.5],
+        }
+    )
+
+    # todo: avoid requiring extra columns for the metrics calculations
+    pred_bics["n_genes"] = pred_bics["genes"].apply(len)
+    pred_bics["n_samples"] = pred_bics["samples"].apply(len)
+    pred_bics["SNR"] = range(len(pred_bics))
+    true_bics["n_genes"] = true_bics["genes"].apply(len)
+    true_bics["n_samples"] = true_bics["samples"].apply(len)
+
+    # empty data
+    empty_true_bics = true_bics.copy()[:0]
+    empty_pred_bics = pred_bics.copy()[:0]
+
+    metrics_11 = calc_metrics(true_bics, pred_bics, exprs)
+
+    metrics_10 = calc_metrics(true_bics, empty_pred_bics, exprs)
+    assert metrics_10["FDR_bic"] == 1.0
+    assert all(v == 0.0 for (k, v) in metrics_10.items() if k != "FDR_bic")
+    assert metrics_10.keys() == metrics_11.keys(), "Metrics keys differ in edge case"
+
+    with pytest.raises(ValueError):
+        calc_metrics(empty_true_bics, pred_bics, exprs)
+
+    with pytest.raises(ValueError):
+        calc_metrics(empty_true_bics, empty_pred_bics, exprs)
+
+    # metrics_01 = calc_metrics(empty_true_bics, pred_bics, exprs)
+    # assert metrics_01["wARIs"] == 1.0
+
+    # metrics_00 = calc_metrics(empty_true_bics, empty_pred_bics, exprs)
+    # assert metrics_00["wARIs"] == 0.0
+
+    # # has same keys as full metrics
+    # for m in metrics_01, metrics_10, metrics_00:
+    #     assert m.keys() == metrics_11.keys()
+
+
 def _build_bics_example():
     # schema of the data
     # 1,2,3,4 - true bics. 1,2,5 - predicted bics
