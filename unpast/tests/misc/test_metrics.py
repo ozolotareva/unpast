@@ -7,17 +7,7 @@ from unpast.misc.eval.calc_average_precision import (
     calc_average_precision_at_thresh,
 )
 from unpast.misc.eval.metrics import calc_metrics
-
-
-def _hash_table(df):
-    """Hash a DataFrame for reproducibility."""
-    # todo: avoid function duplication with test_ds_synthetic_builder.py
-    rows_hashes = pd.util.hash_pandas_object(df, index=True)
-    hash = pd.util.hash_pandas_object(
-        pd.DataFrame(rows_hashes).T,  # we need one value
-        index=True,
-    )
-    return hash.sum()
+from unpast.tests.test_utils import _hash_table
 
 
 @pytest.mark.parametrize("n_genes_samples", [(10, 10), (8, 10)])
@@ -102,22 +92,6 @@ def test_reproducible_big_random():
 
     n_true_bics = 5
     n_pred_bics = 20
-
-    # _, true_bics = _scenario_generate_biclusters(
-    #     rand=np.random.RandomState(1),
-    #     data_sizes=(n_genes, n_samples),
-    #     frac_samples=[0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16],
-    #     g_size=10,
-    # )
-    # true_bics = pd.DataFrame(true_bics).T
-
-    # _, pred_bics = _scenario_generate_biclusters(
-    #     rand=np.random.RandomState(2),
-    #     data_sizes=(n_genes, n_samples),
-    #     frac_samples=[0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16],
-    #     g_size=10,
-    # )
-    # pred_bics = pd.DataFrame(pred_bics).T
 
     repeated_metrics = []
 
@@ -234,9 +208,6 @@ def test_calc_average_precision_at_thresh_smoke():
 
 
 def test_map_metric():
-    n_genes = 1000
-    n_samples = 1000
-
     pred_bics_dict = {}
     for i in range(1, 10):
         size = i

@@ -12,17 +12,8 @@ from unpast.misc.ds_synthetic.dataset import (
     get_standard_dataset_blueprint,
 )
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
+from unpast.tests.test_utils import _hash_table
 from unpast.utils.io import read_bic_table, read_exprs
-
-
-def _hash_table(df):
-    """Hash a DataFrame for reproducibility."""
-    rows_hashes = pd.util.hash_pandas_object(df, index=True)
-    hash = pd.util.hash_pandas_object(
-        pd.DataFrame(rows_hashes).T,  # we need one value
-        index=True,
-    )
-    return hash.sum()
 
 
 def _set_to_str(x):
