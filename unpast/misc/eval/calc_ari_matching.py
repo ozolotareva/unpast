@@ -3,13 +3,15 @@
 Jaccard can be also used instead of ARI
 """
 
-import sys
-
 import numpy as np
 import pandas as pd
 from fisher import pvalue
 from sklearn.metrics import adjusted_rand_score
 from statsmodels.stats.multitest import fdrcorrection
+
+from unpast.utils.logs import get_logger
+
+logger = get_logger(__name__)
 
 
 def calc_ari_matching(
@@ -262,9 +264,8 @@ def _evaluate_overlaps(
         bic_members = biclusters.loc[i, dimension]
         if not bic_members.intersection(all_elements) == bic_members:
             _diff_str = " ".join(bic_members.difference(all_elements))
-            print(
-                f"bicluster {i} elements {_diff_str} are not in 'all_elements'",
-                file=sys.stderr,
+            logger.warning(
+                f"bicluster {i} elements {_diff_str} are not in 'all_elements'"
             )
             bic_members = bic_members.intersection(all_elements)
 
@@ -274,8 +275,11 @@ def _evaluate_overlaps(
     for group in group_names:
         group_members = known_groups[group]
         if not group_members.intersection(all_elements) == group_members:
-            print(group, "elements are not in 'all_elements'", file=sys.stderr)
-            return
+            _diff_str = " ".join(group_members.difference(all_elements))
+            logger.error(f"{group} elements {_diff_str} are not in 'all_elements'")
+            raise RuntimeError(
+                f"{group} elements {_diff_str} are not in 'all_elements'"
+            )
 
         if group != group_names[0]:
             for gn in range(len(sorted_group_names)):

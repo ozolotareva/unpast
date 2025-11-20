@@ -3,6 +3,10 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from unpast.utils.logs import get_logger
+
+logger = get_logger(__name__)
+
 THRESHS = tuple(x / 100 for x in range(50, 100, 5))
 USE_MAX_PRECISION = True
 
@@ -182,7 +186,7 @@ def calc_average_precision_at_thresh(
         Implementation intentionally omitted in this draft.
     """
     if len(bics_true) == 0:
-        print(
+        logger.warning(
             "No ground-truth biclusters provided, returning AP=0.0 or 1.0 based on predictions."
         )
         return 0.0 if len(bics_pred) > 0 else 1.0
