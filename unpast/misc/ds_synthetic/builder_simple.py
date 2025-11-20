@@ -1,5 +1,7 @@
 """Generating simpler versions of synthetic biclusters and expression data."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -11,7 +13,7 @@ def build_simple_biclusters(
     bic_sizes: tuple[int, int],
     rand: np.random.RandomState,
     bic_mu: float = 3.0,
-) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
+) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
     """Build simple biclusters:
         exprs = N(0, 1)
         bic = N(bic_mu, 1)

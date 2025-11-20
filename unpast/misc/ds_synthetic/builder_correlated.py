@@ -1,5 +1,7 @@
 """Generating synthetic biclusters with random rank-k background."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -40,7 +42,7 @@ def build_correlated_background_bicluster(
     rand: np.random.RandomState,
     bic_mu: float = 3.0,
     bg_rank: int = 3,
-) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
+) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
     table = _build_background_matrix(rand, data_sizes, bg_rank)
 
     bic_rows = list(range(bic_sizes[0]))

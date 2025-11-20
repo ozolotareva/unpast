@@ -85,9 +85,9 @@ def get_scenario_dataset_blueprint(
 
 def build_dataset(
     entry_builders: Mapping[str, DSEntryBlueprint],
-    seed_prefix="",
-    output_dir="./synthetic_ds",
-    show_images=True,
+    seed_prefix: str = "",
+    output_dir: str = "./synthetic_ds",
+    show_images: bool = True,
 ) -> pd.DataFrame:
     """Build a dataset from the given generators.
 

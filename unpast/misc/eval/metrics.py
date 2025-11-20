@@ -8,8 +8,12 @@ from unpast.misc.eval.calc_average_precision import calc_average_precision_at_th
 
 
 def _add_performance_cols(
-    best_matches_, true_biclusters, pred_biclusters, target="genes", all_samples={None}
-):
+    best_matches_: pd.DataFrame,
+    true_biclusters: pd.DataFrame,
+    pred_biclusters: pd.DataFrame,
+    target: str = "genes",
+    all_samples: set = {None},
+) -> pd.DataFrame:
     best_matches = best_matches_.loc[:, :].copy()
 
     best_matches.loc[best_matches["bm_id"].dropna().index, "pred_" + target] = (
@@ -69,7 +73,12 @@ def _add_performance_cols(
     return best_matches
 
 
-def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, exprs):
+def calc_performance_measures(
+    best_matches_: pd.DataFrame,
+    true_biclusters: pd.DataFrame,
+    pred_biclusters: pd.DataFrame,
+    exprs: pd.DataFrame,
+) -> tuple[pd.DataFrame, float, float, float, float]:
     best_matches = _add_performance_cols(
         best_matches_,
         true_biclusters,
@@ -94,7 +103,7 @@ def calc_performance_measures(best_matches_, true_biclusters, pred_biclusters, e
 
     #  number of elements in non-matched biclusters
     bm_ids = list(set(best_matches["bm_id"].values))
-    not_mbic_ids = [x for x in pred_biclusters.index if not x in bm_ids]
+    not_mbic_ids = [x for x in pred_biclusters.index if x not in bm_ids]
     df2 = pred_biclusters.loc[not_mbic_ids, :]
     FP2 = df2["n_genes"] * df2["n_samples"]
 
@@ -116,9 +125,9 @@ def calc_metrics(
     true_biclusters: pd.DataFrame,
     pred_biclusters: pd.DataFrame,
     _exprs: pd.DataFrame,
-    matching_measure="ARI",
+    matching_measure: str = "ARI",
     **calc_matching_args: Any,
-):
+) -> dict[str, float]:
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
     _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]

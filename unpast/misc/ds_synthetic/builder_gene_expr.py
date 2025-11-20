@@ -1,5 +1,7 @@
 """Generating synthetic biclusters and expression data for evaluating purposes."""
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -18,7 +20,7 @@ def _scenario_generate_biclusters(
     std: float = 1.0,
     g_overlap: bool = False,
     s_overlap: bool = True,
-) -> tuple[pd.DataFrame, dict[str, dict]]:
+) -> tuple[pd.DataFrame, dict[str, dict[str, set]]]:
     assert len(set(frac_samples)) == len(frac_samples), (
         f"fraction samples must be unique, got {frac_samples}"
     )
@@ -81,7 +83,7 @@ def _scenario_add_modules(
     exprs: pd.DataFrame,
     ignore_genes: set,
     add_coexpressed: list[int] = [],
-) -> tuple[pd.DataFrame, list[list]]:
+) -> tuple[pd.DataFrame, list[list[Any]]]:
     """Add co-expressed modules to the expression matrix."""
     bg_g = set(exprs.index.values).difference(set(ignore_genes))
     mix_coef = 0.5
@@ -120,7 +122,7 @@ def generate_exprs(
     g_overlap: bool = False,
     s_overlap: bool = True,
     add_coexpressed: list[int] = [],
-) -> tuple[pd.DataFrame, dict[str, Bicluster], dict]:
+) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
     """Generate synthetic expression data with biclusters."""
 
     exprs, bic_dict = _scenario_generate_biclusters(

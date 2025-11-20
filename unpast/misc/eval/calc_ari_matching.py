@@ -13,17 +13,20 @@ from statsmodels.stats.multitest import fdrcorrection
 
 
 def calc_ari_matching(
-    sample_clusters_,  # data.Frame with "samples" column
-    known_groups,  # dict={"classification1":{"group1":{"s1","s2",...},"group2":{...}, ...}}
-    all_samples,  # set of all samples in input; needed for overlap p-value computations
-    matching_measure="ARI",  # must be "ARI" or "Jaccard"
-    adjust_pvals="B",  # ["B", "BH", False] # correction for multiple testing
-    pval_cutoff=0.05,  # cutoff for p-values to select significant matches
-    min_SNR=0,
-    min_n_genes=False,
-    min_n_samples=1,
-    verbose=False,
-):
+    sample_clusters_: pd.DataFrame | None,  # data.Frame with "samples" column
+    known_groups: dict[
+        str, dict[str, set]
+    ],  # dict={"classification1":{"group1":{"s1","s2",...},"group2":{...}, ...}}
+    all_samples: set,  # set of all samples in input; needed for overlap p-value computations
+    matching_measure: str = "ARI",  # must be "ARI" or "Jaccard"
+    adjust_pvals: str
+    | bool = "B",  # ["B", "BH", False] # correction for multiple testing
+    pval_cutoff: float = 0.05,  # cutoff for p-values to select significant matches
+    min_SNR: float = 0,
+    min_n_genes: int | bool = False,
+    min_n_samples: int = 1,
+    verbose: bool = False,
+) -> tuple[pd.Series, pd.DataFrame]:
     # select the sample set best matching the subtype based on p-value
     # adj. overlap p-value should be:
     # below pval_cutoff, e.g. < 0.05
@@ -63,14 +66,14 @@ def calc_ari_matching(
 
 
 def _process_class(
-    cl,
-    sample_clusters,
-    known_groups_cl,
-    all_samples,
-    performance_measure,
-    adjust_pvals,
-    pval_cutoff,
-):
+    cl: str,
+    sample_clusters: pd.DataFrame,
+    known_groups_cl: dict[str, set],
+    all_samples: set,
+    performance_measure: str,
+    adjust_pvals: str | bool,
+    pval_cutoff: float,
+) -> tuple[float, pd.DataFrame]:
     """Process a single classification 'cl' and return (performance_value, best_match_stats_df).
 
     This extracts the logic previously inside the 'for cl in known_groups.keys()' loop.
@@ -133,7 +136,12 @@ def _process_class(
     return perf_value, best_match_stats
 
 
-def _filter_sample_clusters(sample_clusters_, min_n_samples, min_SNR, min_n_genes):
+def _filter_sample_clusters(
+    sample_clusters_: pd.DataFrame,
+    min_n_samples: int,
+    min_SNR: float,
+    min_n_genes: int | bool,
+) -> pd.DataFrame:
     """Filter sample_clusters DataFrame according to provided thresholds.
 
     Returns a DataFrame (possibly empty) with an added "n_samples" column.
@@ -156,7 +164,7 @@ def _filter_sample_clusters(sample_clusters_, min_n_samples, min_SNR, min_n_gene
     return sample_clusters
 
 
-def _apply_bh(df_pval, a=0.05):
+def _apply_bh(df_pval: pd.DataFrame, a: float = 0.05) -> pd.DataFrame:
     # applies BH procedure to each column of p-value table
     df_adj = {}
     for group in df_pval.columns.values:
@@ -167,7 +175,9 @@ def _apply_bh(df_pval, a=0.05):
     return df_adj
 
 
-def _adjust_pvals_df(pvals, adjust_pvals, pval_cutoff=0.05):
+def _adjust_pvals_df(
+    pvals: pd.DataFrame, adjust_pvals: str | bool, pval_cutoff: float = 0.05
+) -> pd.DataFrame:
     """Adjust p-values DataFrame according to requested method.
 
     - If adjust_pvals is 'B', apply Bonferroni (multiply by number of tests and cap at 1).
@@ -190,8 +200,12 @@ def _adjust_pvals_df(pvals, adjust_pvals, pval_cutoff=0.05):
 
 
 def _evaluate_overlaps(
-    biclusters, known_groups, all_elements, method, dimension="samples"
-):
+    biclusters: pd.DataFrame,
+    known_groups: dict[str, set],
+    all_elements: set,
+    method: str,
+    dimension: str = "samples",
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     # compute exact Fisher's p-values and Jaccard/ARI overlaps for samples
 
     assert method in ["Jaccard", "ARI"], (
@@ -270,7 +284,7 @@ def _evaluate_overlaps(
 
             # some commented out code in the Jaccard version above for under-representation handling
             """
-            pvals[group][i] = 1 
+            pvals[group][i] = 1
             if pval.right_tail < pval.left_tail:
                 pvals[group][i] = pval.right_tail
                 is_enriched[group][i] = True

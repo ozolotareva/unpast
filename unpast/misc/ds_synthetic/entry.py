@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 import pandas as pd
 
@@ -26,8 +28,10 @@ def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataF
 
 
 def _rename_rows_cols(
-    exprs: pd.DataFrame, bics: dict, extra: dict
-) -> tuple[pd.DataFrame, dict, dict]:
+    exprs: pd.DataFrame,
+    bics: dict[str, Bicluster],
+    extra: dict[str, Any],
+) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
     """Rename rows and columns of the exprs.
         Preserves exprs values positions.
         I.e. changes only loc, not iloc.
@@ -113,8 +117,8 @@ class DSEntryBlueprint:
         z_score: bool = True,
         shuffle: bool = True,
         rename_rows_cols: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         self.scenario_type = scenario_type
         assert scenario_type in self.SCENARIO_TYPES, (
             f"Invalid scenario type: {scenario_type}"
@@ -129,7 +133,7 @@ class DSEntryBlueprint:
             "Seed should not be in scenario_args, use the build method to set it."
         )
 
-    def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    def build(self, seed: int) -> tuple[pd.DataFrame, pd.DataFrame, dict[str, Any]]:
         """Build synthetic biclusters.
 
         Args:
@@ -159,7 +163,7 @@ class DSEntryBlueprint:
 
         return exprs, bic_df, extra
 
-    def get_args(self) -> dict:
+    def get_args(self) -> dict[str, Any]:
         """Describe the scenario.
 
         Returns:

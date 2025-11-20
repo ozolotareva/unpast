@@ -100,7 +100,8 @@ def _calc_mat_iou(
 
 
 def _calc_average_precision_by_matrix(
-    mat_iou_pred_to_true: pd.DataFrame, thresh: float
+    mat_iou_pred_to_true: pd.DataFrame,
+    thresh: float,
 ) -> float:
     """Calculate Average Precision (AP) for predicted biclusters vs. ground truth
     based on a precomputed IoU / Jaccard similarity matrix.

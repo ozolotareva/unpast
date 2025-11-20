@@ -1,5 +1,6 @@
 from collections import namedtuple
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -13,10 +14,10 @@ def save_dataset_entry(
     name: str,
     exprs: pd.DataFrame,
     bic_df: pd.DataFrame,
-    extra_info: dict,
+    extra_info: dict[str, Any],
     ds_path: Path,
     show_images: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Save dataset entry files and plot heatmap.
 
     Args:
