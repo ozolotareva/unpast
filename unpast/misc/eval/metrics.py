@@ -2,6 +2,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
 from unpast.misc.eval.calc_ari_matching import calc_ari_matching
 from unpast.misc.eval.calc_average_precision import calc_average_precision_at_thresh
 
@@ -149,24 +150,3 @@ def calc_metrics(
         "Recall_bic": Recall_bic,
         "AP_50_95": AP_50_95,
     }
-
-    # best_matches = calc_best_matches(
-    #     true_bics, pred_bics, _exprs
-    # )
-
-    # metrics = {}
-
-    # # best_matches_metrics
-    # precision_recall = calc_precision_recall(best_matches, true_bics, pred_bics)
-    # metrics['FDR_bic'] = precision_recall['FDR_bic']
-    # metrics['Recall_bic'] = precision_recall['Recall_bic']
-
-    # metrics.update({
-    #     "wARIs": _calc_wARIs(true_bics, pred_bics, matches),
-    #     "F1_f_avg": _calc_F1_f_avg(true_bics, pred_bics, matches),
-    #     "F1_s_avg": F1_s_avg(true_bics, pred_bics, matches),
-    #     "FDR_bic": FDR_bic(true_bics, pred_bics, matches),
-    #     "Recall_bic": Recall_bic(true_bics, pred_bics, matches),
-    # })
-
-    # })

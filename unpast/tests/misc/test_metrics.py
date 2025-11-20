@@ -130,7 +130,7 @@ def test_reproducible_big_random():
             rand, data.columns.values, data.index.values, n_pred_bics
         )
 
-        # todo: avoid that
+        # todo: avoid requiring extra columns for the metrics calculations
         pred_bics["n_genes"] = pred_bics["genes"].apply(len)
         pred_bics["n_samples"] = pred_bics["samples"].apply(len)
         pred_bics["SNR"] = range(len(pred_bics))
@@ -156,8 +156,11 @@ def test_reproducible_big_random():
                 adjust_pvals=adjust_pvals,
             )
     metrics_df_params = pd.DataFrame(params_metrics)
-    assert _hash_table(metrics_df_params.drop(index=["AP_50_95"])) == 9152769111870831455
+    assert (
+        _hash_table(metrics_df_params.drop(index=["AP_50_95"])) == 9152769111870831455
+    )
     assert _hash_table(metrics_df_params) == 6034197052908192337
+
 
 def _build_bics_example():
     # schema of the data

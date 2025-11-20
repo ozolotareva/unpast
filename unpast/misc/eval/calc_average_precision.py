@@ -100,7 +100,7 @@ def _calc_mat_iou(
 
 
 def _calc_average_precision_by_matrix(
-    mat_iou_pred_to_gt: np.ndarray, thresh: float
+    mat_iou_pred_to_true: pd.DataFrame, thresh: float
 ) -> float:
     """Calculate Average Precision (AP) for predicted biclusters vs. ground truth
     based on a precomputed IoU / Jaccard similarity matrix.
@@ -115,7 +115,7 @@ def _calc_average_precision_by_matrix(
     assert 0.0 <= thresh <= 1.0, (
         f"IoU / Jaccard thresholds must be in [0.0, 1.0], found {thresh}"
     )
-    mat = mat_iou_pred_to_gt.values.copy()
+    mat = mat_iou_pred_to_true.values.copy()
 
     pred_count = mat.shape[0]
     gt_count = mat.shape[1]
@@ -144,9 +144,8 @@ def _calc_average_precision_by_matrix(
     # integrate AP using precision-recall points
     pr_ar = np.array(precision_recall_points)
     if USE_MAX_PRECISION:
-        # This seems to be the standard way of calculating AP,
-        # makign the pr[i] = max(pr[i:])
-        # Though I haven't found, why is it reasonable to do so
+        # making the pr[i] = max(pr[i:]), as in Pascal VOC challenge
+        # Questionable, whether this is useful for biclustering AP
         for i in range(len(pr_ar) - 2, -1, -1):
             pr_ar[i][0] = max(pr_ar[i][0], pr_ar[i + 1][0])
 
@@ -194,12 +193,12 @@ def calc_average_precision_at_thresh(
     bics_pred = _validate_cols(bics_pred, score_col)
 
     bics_pred = bics_pred.sort_values(by="score", ascending=False)
-    mat_iou = _calc_mat_iou(bics_pred, bics_true)
+    mat_iou_pred_to_true = _calc_mat_iou(bics_pred, bics_true)
 
     ap_scores = []
     for thr in threshs:
         # todo: double-checking that don't mixing cols and rows
-        ap = _calc_average_precision_by_matrix(mat_iou, thr)
+        ap = _calc_average_precision_by_matrix(mat_iou_pred_to_true, thr)
         ap_scores.append(ap)
 
     # Return mean AP across requested thresholds
