@@ -1,4 +1,8 @@
-"""Generating synthetic biclusters and expression data for evaluating purposes."""
+"""Generating synthetic biclusters and expression data for evaluating purposes.
+
+This module provides functionality to create synthetic gene expression datasets with
+embedded biclusters and optional co-expression modules for algorithm evaluation.
+"""
 
 from typing import Any
 
@@ -21,6 +25,23 @@ def _scenario_generate_biclusters(
     g_overlap: bool = False,
     s_overlap: bool = True,
 ) -> tuple[pd.DataFrame, dict[str, dict[str, set]]]:
+    """Generate expression matrix with embedded biclusters.
+
+    Args:
+        rand: Random state for reproducibility.
+        data_sizes: Size of expression data (n_genes, n_samples).
+        g_size: Number of genes in each bicluster.
+        frac_samples: List of sample fractions for each bicluster.
+        m: Mean shift for bicluster expression values.
+        std: Standard deviation for bicluster expression values.
+        g_overlap: Whether to allow gene overlap between biclusters.
+        s_overlap: Whether to allow sample overlap between biclusters.
+
+    Returns:
+        Tuple containing:
+            - exprs: Expression DataFrame with embedded biclusters
+            - biclusters: Dictionary mapping bicluster IDs to gene/sample sets
+    """
     assert len(set(frac_samples)) == len(frac_samples), (
         f"fraction samples must be unique, got {frac_samples}"
     )
@@ -84,7 +105,22 @@ def _scenario_add_modules(
     ignore_genes: set,
     add_coexpressed: list[int] = [],
 ) -> tuple[pd.DataFrame, list[list[Any]]]:
-    """Add co-expressed modules to the expression matrix."""
+    """Add co-expressed modules to the expression matrix.
+
+    Creates co-expression patterns by mixing gene expression profiles with
+    a reference profile to achieve correlation structure.
+
+    Args:
+        rand: Random state for reproducibility.
+        exprs: Expression DataFrame to modify.
+        ignore_genes: Set of genes to exclude from co-expression modules.
+        add_coexpressed: List of module sizes to create.
+
+    Returns:
+        Tuple containing:
+            - exprs: Modified expression DataFrame with co-expression
+            - coexpressed_modules: List of gene lists for each module
+    """
     bg_g = set(exprs.index.values).difference(set(ignore_genes))
     mix_coef = 0.5
     store_coef = np.sqrt(1 - mix_coef**2)
@@ -123,7 +159,25 @@ def generate_exprs(
     s_overlap: bool = True,
     add_coexpressed: list[int] = [],
 ) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
-    """Generate synthetic expression data with biclusters."""
+    """Generate synthetic expression data with biclusters and optional co-expression modules.
+
+    Args:
+        rand: Random state for reproducibility.
+        data_sizes: Size of expression data (n_genes, n_samples).
+        g_size: Number of genes in each bicluster.
+        frac_samples: List of sample fractions for each bicluster.
+        m: Mean shift for bicluster expression values.
+        std: Standard deviation for bicluster expression values.
+        g_overlap: Whether to allow gene overlap between biclusters.
+        s_overlap: Whether to allow sample overlap between biclusters.
+        add_coexpressed: List of sizes for co-expression modules to add.
+
+    Returns:
+        Tuple containing:
+            - exprs: Expression DataFrame
+            - biclusters: Dictionary mapping bicluster IDs to Bicluster objects
+            - extra: Dictionary with 'coexpressed_modules' key containing module information
+    """
 
     exprs, bic_dict = _scenario_generate_biclusters(
         rand=rand,

@@ -1,3 +1,9 @@
+"""Utility functions and data structures for synthetic dataset generation.
+
+This module provides helper functions for saving synthetic datasets and
+the Bicluster named tuple for representing bicluster structures.
+"""
+
 from collections import namedtuple
 from pathlib import Path
 from typing import Any

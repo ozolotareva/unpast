@@ -144,8 +144,15 @@ def _filter_sample_clusters(
 ) -> pd.DataFrame:
     """Filter sample_clusters DataFrame according to provided thresholds.
 
-    Returns a DataFrame (possibly empty) with an added "n_samples" column.
-    If input is None or empty, returns an empty DataFrame.
+    Args:
+        sample_clusters_: DataFrame containing sample clusters to filter.
+        min_n_samples: Minimum number of samples required in a cluster.
+        min_SNR: Minimum signal-to-noise ratio threshold.
+        min_n_genes: Minimum number of genes required (or False to skip).
+
+    Returns:
+        Filtered DataFrame with an added "n_samples" column.
+        Returns empty DataFrame if input is empty.
     """
     if sample_clusters_.shape[0] == 0:
         return pd.DataFrame()
@@ -165,7 +172,15 @@ def _filter_sample_clusters(
 
 
 def _apply_bh(df_pval: pd.DataFrame, a: float = 0.05) -> pd.DataFrame:
-    # applies BH procedure to each column of p-value table
+    """Apply Benjamini-Hochberg procedure to each column of p-value table.
+
+    Args:
+        df_pval: DataFrame of p-values.
+        a: Significance level (alpha) for FDR correction.
+
+    Returns:
+        DataFrame with adjusted p-values.
+    """
     df_adj = {}
     for group in df_pval.columns.values:
         bh_res, adj_pval = fdrcorrection(df_pval[group].fillna(1).values, alpha=a)
@@ -180,9 +195,18 @@ def _adjust_pvals_df(
 ) -> pd.DataFrame:
     """Adjust p-values DataFrame according to requested method.
 
-    - If adjust_pvals is 'B', apply Bonferroni (multiply by number of tests and cap at 1).
-    - If adjust_pvals is 'BH', apply Benjamini-Hochberg using _apply_bh.
-    - If adjust_pvals is False or None, return pvals unchanged.
+    Args:
+        pvals: DataFrame of p-values to adjust.
+        adjust_pvals: Method for adjustment ('B' for Bonferroni, 'BH' for Benjamini-Hochberg, False for none).
+        pval_cutoff: Significance cutoff for BH correction.
+
+    Returns:
+        DataFrame with adjusted p-values.
+
+    Note:
+        - If adjust_pvals is 'B', apply Bonferroni (multiply by number of tests and cap at 1).
+        - If adjust_pvals is 'BH', apply Benjamini-Hochberg using _apply_bh.
+        - If adjust_pvals is False or None, return pvals unchanged.
     """
     if adjust_pvals == "B":
         # Bonferroni across each row/entry: multiply p-values by number of tests (columns)
@@ -206,7 +230,21 @@ def _evaluate_overlaps(
     method: str,
     dimension: str = "samples",
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    # compute exact Fisher's p-values and Jaccard/ARI overlaps for samples
+    """Compute Fisher's p-values and Jaccard/ARI overlaps between biclusters and known groups.
+
+    Args:
+        biclusters: DataFrame containing biclusters to evaluate.
+        known_groups: Dictionary mapping group names to sets of members.
+        all_elements: Set of all elements in the dataset.
+        method: Overlap measure to use ("Jaccard" or "ARI").
+        dimension: Dimension to evaluate ("samples" or "genes").
+
+    Returns:
+        Tuple containing:
+            - pvals: DataFrame of p-values from Fisher's exact test
+            - is_enriched: DataFrame indicating enrichment direction
+            - metric_vals: DataFrame of Jaccard or ARI values
+    """
 
     assert method in ["Jaccard", "ARI"], (
         f"Unsupported method: {method}, expected 'Jaccard' or 'ARI'."

@@ -1,3 +1,9 @@
+"""Dataset generation and configuration for synthetic biclusters.
+
+This module provides predefined dataset schemas and generation functions for
+creating standard and scenario-based synthetic datasets with embedded biclusters.
+"""
+
 import random
 from pathlib import Path
 from typing import Mapping
@@ -9,6 +15,12 @@ from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 
 
 def get_standard_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
+    """Get a standard dataset schema for basic bicluster testing.
+
+    Returns:
+        Dictionary mapping dataset names to DSEntryBlueprint configurations
+        for simple biclusters with various parameter settings.
+    """
     ds_schema: dict[str, DSEntryBlueprint] = {
         # "GeneExprs": DSEntryBlueprint(
         #     scenario_type="GeneExprs",
@@ -40,11 +52,18 @@ def get_standard_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
 def get_scenario_dataset_blueprint(
     scale: float = 1.0,
 ) -> dict[str, DSEntryBlueprint]:
-    """Get a dataset schema for scenarios.
+    """Get a dataset schema for realistic gene expression scenarios.
+
+    Creates configurations for testing different scenarios:
+    - Scenario A: No gene/sample overlap, no co-expression
+    - Scenario C: Sample overlap allowed, with co-expression modules
 
     Args:
-        scale (float): Scale factor for the dataset size,
-            useful for debugging on smaller datasets.
+        scale: Scale factor for the dataset size (useful for debugging on smaller datasets).
+
+    Returns:
+        Dictionary mapping dataset names to DSEntryBlueprint configurations
+        for gene expression scenarios with varying bicluster sizes.
     """
     common_args = {
         "m": 4,
@@ -91,12 +110,14 @@ def build_dataset(
 ) -> pd.DataFrame:
     """Build a dataset from the given generators.
 
+    Generates multiple dataset entries according to the provided blueprints,
+    saves expression data, bicluster information, and heatmap visualizations.
+
     Args:
-        entry_builders (Mapping[str, DSEntryBlueprint]):
-            A mapping of dataset entry names to their corresponding bicluster generators.
-        seed_prefix (str): Prefix for random seed generation to ensure reproducibility.
-        output_dir (str): Directory to save the generated dataset entries.
-        show_images (bool): Whether to display images during generation.
+        entry_builders: A mapping of dataset entry names to their corresponding bicluster generators.
+        seed_prefix: Prefix for random seed generation to ensure reproducibility.
+        output_dir: Directory to save the generated dataset entries.
+        show_images: Whether to display images during generation.
 
     Returns:
         pd.DataFrame: DataFrame summarizing the built dataset entries.

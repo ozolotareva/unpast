@@ -1,3 +1,9 @@
+"""Performance metrics for bicluster evaluation.
+
+This module provides comprehensive evaluation metrics for comparing predicted biclusters
+against ground truth, including precision, recall, F1 scores, and ARI-based matching.
+"""
+
 from typing import Any
 
 import numpy as np
@@ -14,6 +20,18 @@ def _add_performance_cols(
     target: str = "genes",
     all_samples: set = {None},
 ) -> pd.DataFrame:
+    """Add performance columns (TPR, Precision, F1) to best matches DataFrame.
+
+    Args:
+        best_matches_: DataFrame with best matches between predicted and true biclusters.
+        true_biclusters: DataFrame containing ground truth biclusters.
+        pred_biclusters: DataFrame containing predicted biclusters.
+        target: Target dimension to evaluate ("genes" or "samples").
+        all_samples: Set of all samples in the dataset (used for sample evaluation).
+
+    Returns:
+        DataFrame with added performance columns for the specified target dimension.
+    """
     best_matches = best_matches_.loc[:, :].copy()
 
     best_matches.loc[best_matches["bm_id"].dropna().index, "pred_" + target] = (
@@ -79,6 +97,22 @@ def calc_performance_measures(
     pred_biclusters: pd.DataFrame,
     exprs: pd.DataFrame,
 ) -> tuple[pd.DataFrame, float, float, float, float]:
+    """Calculate performance measures for bicluster predictions.
+
+    Args:
+        best_matches_: DataFrame with best matches between predicted and true biclusters.
+        true_biclusters: DataFrame containing ground truth biclusters.
+        pred_biclusters: DataFrame containing predicted biclusters.
+        exprs: Expression data DataFrame.
+
+    Returns:
+        Tuple containing:
+            - best_matches: DataFrame with added performance metrics
+            - F1_f_avg: Average F1 score for genes
+            - F1_s_avg: Average F1 score for samples
+            - FDR_bic: False discovery rate for biclusters
+            - Recall_bic: Recall for biclusters
+    """
     best_matches = _add_performance_cols(
         best_matches_,
         true_biclusters,
@@ -128,6 +162,24 @@ def calc_metrics(
     matching_measure: str = "ARI",
     **calc_matching_args: Any,
 ) -> dict[str, float]:
+    """Calculate comprehensive evaluation metrics for bicluster predictions.
+
+    Args:
+        true_biclusters: DataFrame containing ground truth biclusters.
+        pred_biclusters: DataFrame containing predicted biclusters.
+        _exprs: Expression data DataFrame.
+        matching_measure: Measure to use for matching ("ARI" or "Jaccard").
+        **calc_matching_args: Additional arguments for calc_ari_matching.
+
+    Returns:
+        Dictionary containing evaluation metrics:
+            - wARIs: Weighted adjusted Rand index
+            - F1_f_avg: Average F1 score for genes
+            - F1_s_avg: Average F1 score for samples
+            - FDR_bic: False discovery rate for biclusters
+            - Recall_bic: Recall for biclusters
+            - AP_50_95: Average precision at IoU thresholds 0.5-0.95
+    """
     # 1. Find best matches and estimate performance
     _all_samples = set(_exprs.columns.values)  # all samples in the dataset
     _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]

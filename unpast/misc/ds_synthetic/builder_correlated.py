@@ -1,4 +1,8 @@
-"""Generating synthetic biclusters with random rank-k background."""
+"""Generating synthetic biclusters with random rank-k background.
+
+This module provides functionality to create synthetic datasets with low-rank
+correlated background structure and embedded biclusters for testing purposes.
+"""
 
 from typing import Any
 
@@ -43,6 +47,24 @@ def build_correlated_background_bicluster(
     bic_mu: float = 3.0,
     bg_rank: int = 3,
 ) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
+    """Build biclusters on a low-rank correlated background.
+
+    Creates a synthetic dataset with a rank-k background matrix and adds a
+    bicluster with elevated expression values.
+
+    Args:
+        data_sizes: Size of the expression data (n_genes, n_samples).
+        bic_sizes: Size of the bicluster (n_genes, n_samples).
+        rand: Random state for reproducibility.
+        bic_mu: Mean elevation for bicluster values.
+        bg_rank: Rank of the background correlation structure.
+
+    Returns:
+        Tuple containing:
+            - table: Expression data DataFrame
+            - biclusters: Dictionary with bicluster information
+            - extra: Additional metadata (empty dict)
+    """
     table = _build_background_matrix(rand, data_sizes, bg_rank)
 
     bic_rows = list(range(bic_sizes[0]))

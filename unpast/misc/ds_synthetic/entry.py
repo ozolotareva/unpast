@@ -1,3 +1,9 @@
+"""Entry point for synthetic dataset generation with configurable blueprints.
+
+This module provides the DSEntryBlueprint class for configuring and building
+synthetic datasets with various scenarios and preprocessing options.
+"""
+
 from typing import Any
 
 import numpy as np
@@ -11,16 +17,17 @@ from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 
 def _shuffle_exprs(exprs: pd.DataFrame, rand: np.random.RandomState) -> pd.DataFrame:
-    """Shuffle the expression data.
-        Preserves index-value correspondence.
-        I.e. changes only iloc, not loc.
+    """Shuffle the expression data while preserving index-value correspondence.
+
+    Changes only iloc (integer-based indexing), not loc (label-based indexing).
+    This randomizes the order of genes and samples without changing their identities.
 
     Args:
-        exprs (pd.DataFrame): Expression data.
-        rand (np.random.RandomState): Random state for shuffling.
+        exprs: Expression data.
+        rand: Random state for shuffling.
 
     Returns:
-        pd.DataFrame: Shuffled expression data.
+        Shuffled expression data.
     """
     new_index = rand.permutation(exprs.index)
     new_columns = rand.permutation(exprs.columns)
@@ -32,17 +39,18 @@ def _rename_rows_cols(
     bics: dict[str, Bicluster],
     extra: dict[str, Any],
 ) -> tuple[pd.DataFrame, dict[str, Bicluster], dict[str, Any]]:
-    """Rename rows and columns of the exprs.
-        Preserves exprs values positions.
-        I.e. changes only loc, not iloc.
+    """Rename rows and columns to standardized format (g_* and s_*).
+
+    Preserves expression values at their positions (changes loc, not iloc).
+    Renames genes to g_0, g_1, ... and samples to s_0, s_1, ...
 
     Args:
-        exprs (pd.DataFrame): Expression data.
-        bics (dict): bicluster information.
-        extra (dict): Additional information, e.g. co-expressed modules.
+        exprs: Expression data.
+        bics: Bicluster information.
+        extra: Additional information, e.g. co-expressed modules.
 
     Returns:
-        tuple[pd.DataFrame, dict, dict]: Renamed expression data, bics, and extra information.
+        Tuple containing renamed expression data, biclusters, and extra information.
     """
     renaming_rows = {name: f"g_{ind}" for (ind, name) in enumerate(exprs.index.values)}
     renaming_cols = {
@@ -78,15 +86,16 @@ def _rename_rows_cols(
 def _build_bicluster_table(
     exprs: pd.DataFrame, biclusters: dict[str, Bicluster]
 ) -> pd.DataFrame:
-    """Build a DataFrame from bicluster dictionary with additional info.
-        Adds some statistics to each bicluster.
+    """Build a DataFrame from bicluster dictionary with additional statistics.
+
+    Adds statistics such as size and expression metrics to each bicluster.
 
     Args:
         exprs: Expression DataFrame.
         biclusters: Dictionary of biclusters.
 
     Returns:
-        DataFrame with bicluster information.
+        DataFrame with bicluster information and computed statistics.
     """
     new_biclusters = {}
     for bic_id, bic in biclusters.items():
