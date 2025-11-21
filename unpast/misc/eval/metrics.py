@@ -181,6 +181,7 @@ def _handle_empty_bicluster_case(
         "FDR_bic": 1.0,
         "Recall_bic": 0.0,
         "AP_50_95": 0.0,
+        "AP_ARI_50_95": 0.0,
     }
 
 
@@ -236,8 +237,8 @@ def calc_metrics(
     )
 
     # 3. Calc average precision metric
-    AP_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters)
-
+    AP_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters, method='Jaccard', exprs=_exprs)
+    AP_ARI_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters, method='ARI', exprs=_exprs)
     return {
         "wARIs": wARIs,
         "F1_f_avg": F1_f_avg,
@@ -245,4 +246,5 @@ def calc_metrics(
         "FDR_bic": FDR_bic,
         "Recall_bic": Recall_bic,
         "AP_50_95": AP_50_95,
+        "AP_ARI_50_95": AP_ARI_50_95,
     }
