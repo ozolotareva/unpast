@@ -34,17 +34,26 @@ def get_standard_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 5)
         ),
         "more_rows": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(100, 10), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(100, 10), bic_sizes=(5, 5)
         ),
         "more_cols": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(10, 100), bic_sizes=(5, 5)
         ),
         **{
             f"test_mu_{f}": DSEntryBlueprint(
-                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=f
+                scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(5, 5), bic_mu=f
             )
-            for f in [0.1, 0.5, 1.0, 2.0, 5.0]
+            for f in [1.0, 2.0, 3.0, 5.0, 7.0]
         },
+        "same_rows": DSEntryBlueprint(
+            scenario_type="SimpleMult", data_sizes=(30, 30), bic_codes=["0-9x0-9", "0-9x10-19"]
+        ),
+        "same_cols": DSEntryBlueprint(
+            scenario_type="SimpleMult", data_sizes=(30, 30), bic_codes=["0-9x0-9", "10-19x0-9"]
+        ),
+        "common_angle": DSEntryBlueprint(
+            scenario_type="SimpleMult", data_sizes=(30, 30), bic_codes=["0-9x0-9", "7-16x7-16"]
+        ),
     }
     return ds_schema
 

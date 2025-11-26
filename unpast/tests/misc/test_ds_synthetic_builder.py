@@ -211,10 +211,10 @@ def test_build_dataset_reproducibility(tmp_path):
     """Check that results has exactly the same results (by hashes)"""
     dataset = {
         "name1": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=3.0
         ),
         "name2": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=3.0
         ),
         **{
             f"test_mu_{i}": DSEntryBlueprint(
