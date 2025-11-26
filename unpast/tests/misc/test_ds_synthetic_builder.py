@@ -259,6 +259,21 @@ def test_get_scenario_dataset_blueprint_no_scale(tmp_path):
         assert len(bic) > 0
 
 
+def test_generate_standard_dataset_blueprint_part(tmp_path):
+    """Smoke test for standard dataset schema generation."""
+    ds_schema = get_standard_dataset_blueprint()
+    rand = random.Random(42)
+    filtered = {
+        name: entry
+        for name, entry in ds_schema.items()
+        if entry.get_args().get("data_sizes", (0, 0))[0] <= 20
+        and entry.get_args().get("data_sizes", (0, 0))[1] <= 20
+        and rand.random() < 0.5
+    }
+    build_dataset(filtered, output_dir=tmp_path, show_images=False)
+
+
+@pytest.mark.slow
 def test_generate_standard_dataset_blueprint(tmp_path):
     """Smoke test for standard dataset schema generation."""
     ds_schema = get_standard_dataset_blueprint()

@@ -11,8 +11,14 @@ import pandas as pd
 
 from unpast.core.preprocessing import zscore
 from unpast.core.sample_clustering import update_bicluster_data
+from unpast.misc.ds_synthetic.builder_correlated import (
+    build_correlated_background_bicluster,
+)
 from unpast.misc.ds_synthetic.builder_gene_expr import generate_exprs
-from unpast.misc.ds_synthetic.builder_simple import build_simple_biclusters, build_simple_multiple_biclusters
+from unpast.misc.ds_synthetic.builder_simple import (
+    build_simple_biclusters,
+    build_simple_multiple_biclusters,
+)
 from unpast.misc.ds_synthetic.ds_utils import Bicluster
 
 
@@ -118,7 +124,7 @@ class DSEntryBlueprint:
         "GeneExprs": generate_exprs,
         "Simple": build_simple_biclusters,
         "SimpleMult": build_simple_multiple_biclusters,
-        # "CorrelatedBackground": build_correlated_background_bicluster,
+        "CorrelatedBG": build_correlated_background_bicluster,
     }
 
     def __init__(
