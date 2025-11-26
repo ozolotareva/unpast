@@ -3,7 +3,7 @@
 import pandas as pd
 
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
-from unpast.misc.eval import calc_ari_matching
+from unpast.misc.eval.calc_ari_matching import calc_ari_matching
 
 
 class TestCalcAriMatching:
