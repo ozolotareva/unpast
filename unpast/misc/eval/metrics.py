@@ -180,15 +180,14 @@ def _handle_empty_bicluster_case(
         "F1_s_avg": 0.0,
         "FDR_bic": 1.0,
         "Recall_bic": 0.0,
-        "AP_50_95": 0.0,
-        "AP_ARI_50_95": 0.0,
+        "AP_ARI": 0.0,
     }
 
 
 def calc_metrics(
     true_biclusters: pd.DataFrame,
     pred_biclusters: pd.DataFrame,
-    _exprs: pd.DataFrame,
+    exprs: pd.DataFrame,
     matching_measure: str = "ARI",
     **calc_matching_args: Any,
 ) -> dict[str, float]:
@@ -197,7 +196,7 @@ def calc_metrics(
     Args:
         true_biclusters: DataFrame containing ground truth biclusters.
         pred_biclusters: DataFrame containing predicted biclusters.
-        _exprs: Expression data DataFrame.
+        exprs: Expression data DataFrame.
         matching_measure: Measure to use for matching ("ARI" or "Jaccard").
         **calc_matching_args: Additional arguments for calc_ari_matching.
 
@@ -208,7 +207,7 @@ def calc_metrics(
             - F1_s_avg: Average F1 score for samples
             - FDR_bic: False discovery rate for biclusters
             - Recall_bic: Recall for biclusters
-            - AP_50_95: Average precision at IoU thresholds 0.5-0.95
+            - AP_ARI: Average precision at IoU thresholds 0.5-0.95, using ARI
     """
     # 0. Handle empty cases
     if len(pred_biclusters) == 0 or len(true_biclusters) == 0:
@@ -217,7 +216,7 @@ def calc_metrics(
         )
 
     # 1. Find best matches and estimate performance
-    _all_samples = set(_exprs.columns.values)  # all samples in the dataset
+    _all_samples = set(exprs.columns.values)  # all samples in the dataset
     _known_groups = true_biclusters.loc[:, ["samples"]].to_dict()["samples"]
     _known_groups = {
         "true_biclusters": _known_groups
@@ -233,18 +232,18 @@ def calc_metrics(
     # 2. Calc other metrics
     wARIs = res["true_biclusters"]
     _, F1_f_avg, F1_s_avg, FDR_bic, Recall_bic = calc_performance_measures(
-        best_matches.dropna(), true_biclusters, pred_biclusters, _exprs
+        best_matches.dropna(), true_biclusters, pred_biclusters, exprs
     )
 
     # 3. Calc average precision metric
-    AP_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters, method='Jaccard', exprs=_exprs)
-    AP_ARI_50_95 = calc_average_precision_at_thresh(true_biclusters, pred_biclusters, method='ARI', exprs=_exprs)
+    AP_ARI = calc_average_precision_at_thresh(
+        true_biclusters, pred_biclusters, method="ARI", exprs=exprs
+    )
     return {
         "wARIs": wARIs,
         "F1_f_avg": F1_f_avg,
         "F1_s_avg": F1_s_avg,
         "FDR_bic": FDR_bic,
         "Recall_bic": Recall_bic,
-        "AP_50_95": AP_50_95,
-        "AP_ARI_50_95": AP_ARI_50_95,
+        "AP_ARI": AP_ARI,
     }

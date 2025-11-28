@@ -1,10 +1,12 @@
 """Tests for run_unpast, and hence all the core code. Usage: python -m pytest test/test_run_unpast.py"""
 
 import os
-import sys
 
 import pandas as pd
 import pytest
+
+from unpast.run_unpast import unpast
+from unpast.utils.io import read_bic_table
 
 TEST_DIR = os.path.dirname(__file__)
 RESULTS_DIR = os.path.join(TEST_DIR, "test_run_output")
@@ -12,8 +14,6 @@ if not os.access(RESULTS_DIR, os.W_OK):
     # repo dir is currently read-only during the testing stage in github-action
     RESULTS_DIR = "/tmp/unpast/test_run_output"
 REFERENCE_OUTPUT_DIR = os.path.join(TEST_DIR, "test_reference_output")
-
-from unpast.run_unpast import unpast
 
 ### Helper functions ###
 
@@ -62,18 +62,24 @@ def test_smoke():
     )
 
 
-def test_simple():
+def test_simple(tmp_path):
     """Check that clear biclusters are found."""
-    res = run_unpast_on_file(
-        filename="test_input/synthetic_small_example.tsv",
-        basename="test_simple",
+    res_returned = unpast(
+        os.path.join(TEST_DIR, "test_input/synthetic_small_example.tsv"),
+        out_dir=str(tmp_path),
         min_n_samples=2,
         clust_method="Louvain",
     )
+
+    # check that returned output is the same one
+    res = read_bic_table(tmp_path / "biclusters.tsv")
+    # todo: fix index, types, ...
+    # pd.testing.assert_frame_equal(res, res_returned)
+    assert (res.values == res_returned.values).all()
+
     assert len(res) == 1, "Too many clusters found"
-    features, samples = parse_to_features_samples_ids(res.iloc[0])
-    assert features == {0, 1}
-    assert samples == {0, 1}
+    assert res.loc[0, "gene_indexes"] == {0, 1}
+    assert res.loc[0, "sample_indexes"] == {0, 1}
 
 
 @pytest.mark.slow
