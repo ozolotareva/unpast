@@ -1,7 +1,7 @@
 """Dataset generation and configuration for synthetic biclusters.
 
 This module provides predefined dataset schemas and generation functions for
-creating standard and scenario-based synthetic datasets with embedded biclusters.
+creating modular and scenario-based synthetic datasets with embedded biclusters.
 """
 
 import random
@@ -14,8 +14,8 @@ from unpast.misc.ds_synthetic.ds_utils import save_dataset_entry
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 
 
-def get_standard_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
-    """Get a standard dataset schema for basic bicluster testing.
+def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
+    """Get a modular dataset schema for basic bicluster testing.
 
     Returns:
         Dictionary mapping dataset names to DSEntryBlueprint configurations

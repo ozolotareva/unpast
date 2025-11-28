@@ -8,8 +8,8 @@ import pytest
 
 from unpast.misc.ds_synthetic.dataset import (
     build_dataset,
+    get_modular_dataset_blueprint,
     get_scenario_dataset_blueprint,
-    get_standard_dataset_blueprint,
 )
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.tests.test_utils import _hash_table
@@ -259,9 +259,9 @@ def test_get_scenario_dataset_blueprint_no_scale(tmp_path):
         assert len(bic) > 0
 
 
-def test_generate_standard_dataset_blueprint_part(tmp_path):
-    """Smoke test for standard dataset schema generation."""
-    ds_schema = get_standard_dataset_blueprint()
+def test_generate_modular_dataset_blueprint_part(tmp_path):
+    """Smoke test for modular dataset schema generation."""
+    ds_schema = get_modular_dataset_blueprint()
     rand = random.Random(42)
     filtered = {
         name: entry
@@ -274,7 +274,7 @@ def test_generate_standard_dataset_blueprint_part(tmp_path):
 
 
 @pytest.mark.slow
-def test_generate_standard_dataset_blueprint(tmp_path):
-    """Smoke test for standard dataset schema generation."""
-    ds_schema = get_standard_dataset_blueprint()
+def test_generate_modular_dataset_blueprint(tmp_path):
+    """Smoke test for modular dataset schema generation."""
+    ds_schema = get_modular_dataset_blueprint()
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)
