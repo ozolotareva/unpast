@@ -1,8 +1,6 @@
 """Binarization module for gene expression data."""
 
-import sys
 import warnings
-from time import time
 
 import numpy as np
 import pandas as pd
@@ -366,16 +364,25 @@ def _add_snrs(stats, null_distribution, sizes, pval):
         null_distribution (DataFrame): DataFrame with empirical null distribution
     """
     stats = stats.dropna(subset=["size"])
-    stats["pval"] = stats.apply(
-        lambda row: calc_e_pval(row["SNR"], row["size"], null_distribution), axis=1
-    )
-    _accepted, pval_adj = fdrcorrection(stats["pval"])
-    stats["pval_BH"] = pval_adj
 
-    # find SNR threshold
     thresholds = np.quantile(null_distribution.loc[sizes, :].values, q=1 - pval, axis=1)
     size_snr_trend = get_trend(sizes, thresholds, plot=False)
-    stats["SNR_threshold"] = stats["size"].apply(lambda x: size_snr_trend(x))
+
+    if not stats.empty:
+        stats["pval"] = stats.apply(
+            lambda row: calc_e_pval(row["SNR"], row["size"], null_distribution), axis=1
+        )
+        _accepted, pval_adj = fdrcorrection(stats["pval"])
+        stats["pval_BH"] = pval_adj
+        # find SNR threshold
+        stats["SNR_threshold"] = stats["size"].apply(lambda x: size_snr_trend(x))
+
+    else:
+        # empty stats DataFrame
+        stats["pval"] = pd.Series(dtype=float)
+        stats["pval_BH"] = pd.Series(dtype=float)
+        stats["SNR_threshold"] = pd.Series(dtype=float)
+
     return stats, size_snr_trend
 
 

@@ -323,5 +323,121 @@ def test_binarize_plot(monkeypatch, tmp_path):
     assert null_dist is not None
 
 
+def test__add_snrs_with_empty_stats():
+    """Test _add_snrs handles empty DataFrame correctly.
+
+    This test ensures that when stats DataFrame is empty (e.g., after dropna),
+    the function doesn't crash and returns properly structured empty DataFrame
+    with all required columns.
+    """
+    # Create empty stats DataFrame with the expected columns
+    stats = pd.DataFrame(columns=["SNR", "size", "direction", "convergence", "pval"])
+
+    # Create a minimal null distribution for 10 samples
+    sizes = np.array([5])
+    null_distribution = pd.DataFrame(
+        np.random.randn(1, 100),  # 1 size x 100 permutations
+        index=sizes,
+    )
+
+    pval = 0.01
+
+    # Call the function - should not raise an error
+    result_stats, size_snr_trend = binarization._add_snrs(
+        stats, null_distribution, sizes, pval
+    )
+
+    # Check that result is still a DataFrame with correct columns
+    assert isinstance(result_stats, pd.DataFrame)
+    assert result_stats.empty
+    assert "pval" in result_stats.columns
+    assert "pval_BH" in result_stats.columns
+    assert "SNR_threshold" in result_stats.columns
+
+    # Check that size_snr_trend is still created
+    assert size_snr_trend is not None
+    assert callable(size_snr_trend)
+
+
+def test__add_snrs_with_valid_stats():
+    """Test _add_snrs with non-empty stats DataFrame."""
+    # Create stats DataFrame with valid data
+    stats = pd.DataFrame(
+        {
+            "SNR": [2.5, 3.0, 1.5],
+            "size": [5, 6, 5],
+            "direction": ["UP", "UP", "DOWN"],
+            "convergence": [True, True, True],
+        }
+    )
+
+    # Create null distribution
+    sizes = np.array([5, 6])
+    np.random.seed(42)
+    null_distribution = pd.DataFrame(
+        np.random.randn(2, 1000),  # 2 sizes x 1000 permutations
+        index=sizes,
+    )
+
+    pval = 0.01
+
+    # Call the function
+    result_stats, size_snr_trend = binarization._add_snrs(
+        stats, null_distribution, sizes, pval
+    )
+
+    # Check that result has correct shape and columns
+    assert len(result_stats) == 3
+    assert "pval" in result_stats.columns
+    assert "pval_BH" in result_stats.columns
+    assert "SNR_threshold" in result_stats.columns
+
+    # Check that p-values are in valid range
+    assert all(result_stats["pval"] >= 0)
+    assert all(result_stats["pval"] <= 1)
+
+    # Check that SNR_threshold values are calculated
+    assert all(~result_stats["SNR_threshold"].isna())
+
+    # Check that size_snr_trend is callable
+    assert callable(size_snr_trend)
+
+
+def test__add_snrs_with_nan_sizes():
+    """Test _add_snrs correctly handles rows with NaN sizes."""
+    # Create stats DataFrame with some NaN sizes
+    stats = pd.DataFrame(
+        {
+            "SNR": [2.5, 3.0, 1.5, 2.0],
+            "size": [5, np.nan, 6, np.nan],
+            "direction": ["UP", "UP", "DOWN", "UP"],
+            "convergence": [True, True, True, False],
+        }
+    )
+
+    # Create null distribution
+    sizes = np.array([5, 6])
+    np.random.seed(42)
+    null_distribution = pd.DataFrame(
+        np.random.randn(2, 1000),
+        index=sizes,
+    )
+
+    pval = 0.01
+
+    # Call the function
+    result_stats, size_snr_trend = binarization._add_snrs(
+        stats, null_distribution, sizes, pval
+    )
+
+    # Check that NaN rows are dropped
+    assert len(result_stats) == 2  # Only 2 rows have valid sizes
+    assert all(~result_stats["size"].isna())
+
+    # Check that remaining rows have p-values
+    assert len(result_stats["pval"]) == 2
+    assert all(~result_stats["pval"].isna())
+
+
 if __name__ == "__main__":
     pytest.main([__file__])
