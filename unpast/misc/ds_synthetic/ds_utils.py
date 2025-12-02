@@ -50,11 +50,16 @@ def save_dataset_entry(
         coexpressed_modules=extra_info.get("coexpressed_modules", []),
         fig_title=name,
         fig_path=ds_path / "heatmap.png",
+        fig_icon_path=ds_path / "heatmap_icon.png",
         visualize=show_images,
     )
 
     return {
         "exprs_file": str(exprs_file),
         "bic_file": str(bic_file),
-        "extra_info": extra_info,
+        "extra_info": {
+            **extra_info,
+            "heatmap_path": str(ds_path / "heatmap.png"),
+            "heatmap_icon_path": str(ds_path / "heatmap_icon.png"),
+        },
     }

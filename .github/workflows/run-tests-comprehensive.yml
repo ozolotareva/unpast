@@ -47,4 +47,5 @@ jobs:
               pip3 install nbconvert ipykernel && \
               python3 -m nbconvert --to notebook --execute *.ipynb && \
               cat performances.tsv \
+              cat metrics.tsv \
             "

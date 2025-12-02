@@ -4,7 +4,9 @@ from typing import Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 import seaborn as sns
+from scipy import ndimage
 
 
 def plot_binarized_feature_impl(
@@ -134,6 +136,7 @@ def plot_biclusters_heatmap(
     limit_features: Optional[int] = None,  # how many genes to show
     fig_title: str = "",
     fig_path: Optional[Path] = None,
+    fig_icon_path: Optional[Path] = None,
     visualize: bool = True,
 ) -> None:
     """Plot heatmap of expression data with biclusters and co-expressed modules.
@@ -147,9 +150,13 @@ def plot_biclusters_heatmap(
         fig_path (Optional[Path]): The file path to save the figure (default: "").
         visualize (bool): Whether to display the figure (default: True).
     """
+    CMAP = sns.color_palette("coolwarm", as_cmap=True)
+    VMIN = -3
+    VMAX = 3
+    ICON_SIZE = 50
+        
     sample_keys = defaultdict(list)  # avoid errors if biclusters not provided
     gene_keys = defaultdict(list)
-
     if biclusters is not None:
         for sample in exprs.columns:
             sample_keys[sample] = [
@@ -180,9 +187,9 @@ def plot_biclusters_heatmap(
         yticklabels=False,
         row_cluster=False,
         col_cluster=False,
-        cmap=sns.color_palette("coolwarm", as_cmap=True),
-        vmin=-3,
-        vmax=3,
+        cmap=CMAP,
+        vmin=VMIN,
+        vmax=VMAX,
         figsize=(4, 5),
     )
     fig.ax_cbar.set_visible(False)  # switch on/off colorbar
@@ -195,4 +202,19 @@ def plot_biclusters_heatmap(
     if visualize:
         plt.show()
 
-    plt.close(fig.fig)
+    plt.close(fig.figure)
+
+    if fig_icon_path:
+        def renorm(img: np.ndarray) -> np.ndarray: 
+            return (img - VMIN) / (VMAX - VMIN)
+        
+        img = CMAP(renorm(exprs.loc[genes_sorted, samples_sorted].values))
+
+        # resize, and place in 50x50 canvas
+        coeff = min(ICON_SIZE / img.shape[0], ICON_SIZE / img.shape[1])
+        img_resized = ndimage.zoom(img, (coeff, coeff, 1))
+        img_resized = np.clip(img_resized, 0, 1)  # Ensure values stay in valid range
+        
+        canvas = np.zeros((ICON_SIZE, ICON_SIZE, 4))
+        canvas[:img_resized.shape[0], :img_resized.shape[1], :] = img_resized
+        plt.imsave(str(fig_icon_path), canvas)

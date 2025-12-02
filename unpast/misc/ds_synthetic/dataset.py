@@ -43,25 +43,25 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 15)
         ),
         **{
-            f"more_rows_{i}": DSEntryBlueprint(
+            f"more_rows_{i:02d}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(10 * i, 10), bic_sizes=(5, 5)
             )
             for i in (3, 10, 30)
         },
         **{
-            f"more_cols_{i}": DSEntryBlueprint(
+            f"more_cols_{i:02d}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(10, 10 * i), bic_sizes=(5, 5)
             )
             for i in (3, 10, 30)
         },
         **{
-            f"small_mu_{int(f)}": DSEntryBlueprint(
+            f"small_mu_{f:.1f}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(20, 20), bic_sizes=(5, 5), bic_mu=f
             )
             for f in [1.0, 2.0, 3.0, 5.0, 7.0]
         },
         **{
-            f"big_mu_{f}": DSEntryBlueprint(
+            f"big_mu_{f:.1f}": DSEntryBlueprint(
                 scenario_type="Simple",
                 data_sizes=(200, 200),
                 bic_sizes=(50, 50),
@@ -70,7 +70,7 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             for f in [1.0, 2.0, 3.0, 5.0, 7.0]
         },
         **{
-            f"scaled_{i}": DSEntryBlueprint(
+            f"scaled_{i:02d}": DSEntryBlueprint(
                 scenario_type="Simple",
                 data_sizes=(20 * i, 20 * i),
                 bic_sizes=(5 * i, 5 * i),
@@ -78,7 +78,7 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             for i in (1, 3, 10, 30)
         },
         **{
-            f"scaled_data_{i}": DSEntryBlueprint(
+            f"scaled_data_{i:02d}": DSEntryBlueprint(
                 scenario_type="Simple", data_sizes=(20 * i, 20 * i), bic_sizes=(5, 5)
             )
             for i in (1, 3, 10)
@@ -109,7 +109,7 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             for i in range(5)
         },
         **{
-            f"diff_size_{i}": DSEntryBlueprint(
+            f"diff_size_{i:02d}": DSEntryBlueprint(
                 scenario_type="SimpleMult",
                 data_sizes=(100, 100),
                 bic_codes=["0-4x0-4", f"{5}-{4 + 5 * i}x{5}-{4 + 5 * i}"],
@@ -117,7 +117,7 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             for i in [1, 3, 10]
         },
         **{
-            f"many_small_{n}": DSEntryBlueprint(
+            f"many_small_{n:02d}": DSEntryBlueprint(
                 scenario_type="SimpleMult",
                 data_sizes=(100, 100),
                 bic_codes=[
@@ -127,7 +127,7 @@ def get_modular_dataset_blueprint() -> dict[str, DSEntryBlueprint]:
             for n in [3, 5, 10, 15]
         },
         **{
-            f"complex_bg_r{n}": DSEntryBlueprint(
+            f"complex_bg_r{n:02d}": DSEntryBlueprint(
                 scenario_type="CorrelatedBG",
                 data_sizes=(20, 20),
                 bic_sizes=(5, 5),

@@ -12,13 +12,13 @@ from unpast.tests.misc.eval.test_metrics import _gen_random_biclusters
 def _build_bics_example():
     # schema of the data
     # 1,2,3,4 - true bics. 1,2,5 - predicted bics
-    # gene \ sample      s1      s2     s3    s4
-    #       -------------------------------------------------
-    #        g1 |       12___   123__  1_3__ __3__
+    # gene \ sample      s1      s2     s3     s4
+    #       --------------------------------------------------
+    #        g1 |       12___   123__  1_3__  __3__
     #
-    #        g2 |       1__45   1_3__  1_3_5 __3__
+    #        g2 |       1__45   1_3__  1_3_5  __3__
     #
-    #        g3 |       ____5   __3__  __3_5 __3__
+    #        g3 |       ____5   __3__  __3_5  __3__
 
     bics = pd.DataFrame(
         {
