@@ -75,6 +75,7 @@ def _calc_jaccard(bic1: pd.Series, bic2: pd.Series) -> float:
     jaccard_sim = area12 / (area1 + area2 - area12)
     return jaccard_sim
 
+
 def _calc_bicluster_ari(bic1: pd.Series, bic2: pd.Series, exprs: pd.DataFrame) -> float:
     """Calculate Adjusted Rand Index (ARI) between two biclusters.
         ARI for biclusters is defined here as max(0, ari_samples) * max(0, ari_genes)
@@ -86,9 +87,10 @@ def _calc_bicluster_ari(bic1: pd.Series, bic2: pd.Series, exprs: pd.DataFrame) -
     Returns:
         Adjusted Rand Index as a float in [0.0, 1.0].
     """
+
     def _to_mask(vals: set[str], all_vals: list[str]) -> np.ndarray:
         return np.isin(all_vals, list(vals)).astype(int)
-    
+
     genes1, samples1 = bic1["genes"], bic1["samples"]
     genes2, samples2 = bic2["genes"], bic2["samples"]
 
@@ -100,7 +102,7 @@ def _calc_bicluster_ari(bic1: pd.Series, bic2: pd.Series, exprs: pd.DataFrame) -
     gene_labels2 = _to_mask(genes2, all_genes)
     sample_labels1 = _to_mask(samples1, all_samples)
     sample_labels2 = _to_mask(samples2, all_samples)
-    
+
     # Calculate ARI for genes and samples separately
     ari_genes = adjusted_rand_score(gene_labels1, gene_labels2)
     ari_samples = adjusted_rand_score(sample_labels1, sample_labels2)
@@ -141,9 +143,11 @@ def _calc_mat_iou(
 
             elif method == "ARI":
                 assert exprs is not None, "Expression data required for ARI calculation"
-                mat_iou.loc[pred_ind, true_ind] = _calc_bicluster_ari(pred_bic, true_bic, exprs)
-            
-            else: 
+                mat_iou.loc[pred_ind, true_ind] = _calc_bicluster_ari(
+                    pred_bic, true_bic, exprs
+                )
+
+            else:
                 raise ValueError(f"Unknown method '{method}' for IoU calculation.")
 
     return mat_iou
@@ -184,10 +188,12 @@ def _calc_average_precision_by_matrix(
             TP += 1
 
             # when matched, recall increases
-            precision_recall_points.append((
-                TP / (pred_ind + 1),  # precision
-                TP / gt_count,  # recall
-            ))
+            precision_recall_points.append(
+                (
+                    TP / (pred_ind + 1),  # precision
+                    TP / gt_count,  # recall
+                )
+            )
 
     # integrate AP using precision-recall points
     pr_ar = np.array(precision_recall_points)
@@ -229,7 +235,7 @@ def calc_average_precision_at_thresh(
     Returns:
         Mean Average Precision as a float in ``[0.0, 1.0]``.
 
-    Note:s
+    Notes:
         Implementation intentionally omitted in this draft.
     """
     if len(bics_true) == 0:
@@ -245,7 +251,9 @@ def calc_average_precision_at_thresh(
     bics_pred = _validate_cols(bics_pred, score_col)
 
     bics_pred = bics_pred.sort_values(by="score", ascending=False)
-    mat_iou_pred_to_true = _calc_mat_iou(bics_pred, bics_true, exprs=exprs, method=method)
+    mat_iou_pred_to_true = _calc_mat_iou(
+        bics_pred, bics_true, exprs=exprs, method=method
+    )
 
     ap_scores = []
     for thr in threshs:

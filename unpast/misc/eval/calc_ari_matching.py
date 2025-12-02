@@ -160,14 +160,14 @@ def _filter_sample_clusters(
         return pd.DataFrame()
 
     sample_clusters = sample_clusters_[
-        sample_clusters_["samples"].apply(lambda x: len(x)) >= min_n_samples
+        sample_clusters_["samples"].apply(len) >= min_n_samples
     ]
-    sample_clusters["n_samples"] = sample_clusters["samples"].apply(lambda x: len(x))
+    sample_clusters["n_samples"] = sample_clusters["samples"].apply(len)
     if min_SNR:
         sample_clusters = sample_clusters[sample_clusters["SNR"] >= min_SNR]
     if min_n_genes:
         sample_clusters = sample_clusters[
-            sample_clusters["genes"].apply(lambda x: len(x)) >= min_n_genes
+            sample_clusters["genes"].apply(len) >= min_n_genes
         ]
 
     return sample_clusters
