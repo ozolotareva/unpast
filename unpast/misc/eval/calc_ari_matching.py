@@ -3,6 +3,8 @@
 Jaccard can be also used instead of ARI
 """
 
+from typing import Optional, Union
+
 import numpy as np
 import pandas as pd
 from fisher import pvalue
@@ -15,17 +17,18 @@ logger = get_logger(__name__)
 
 
 def calc_ari_matching(
-    sample_clusters_: pd.DataFrame | None,  # data.Frame with "samples" column
+    sample_clusters_: Optional[pd.DataFrame],  # data.Frame with "samples" column
     known_groups: dict[
         str, dict[str, set]
     ],  # dict={"classification1":{"group1":{"s1","s2",...},"group2":{...}, ...}}
     all_samples: set,  # set of all samples in input; needed for overlap p-value computations
     matching_measure: str = "ARI",  # must be "ARI" or "Jaccard"
-    adjust_pvals: str
-    | bool = "B",  # ["B", "BH", False] # correction for multiple testing
+    adjust_pvals: Union[
+        str, bool
+    ] = "B",  # ["B", "BH", False] # correction for multiple testing
     pval_cutoff: float = 0.05,  # cutoff for p-values to select significant matches
     min_SNR: float = 0,
-    min_n_genes: int | bool = False,
+    min_n_genes: Union[int, bool] = False,
     min_n_samples: int = 1,
     verbose: bool = False,
 ) -> tuple[pd.Series, pd.DataFrame]:
@@ -73,7 +76,7 @@ def _process_class(
     known_groups_cl: dict[str, set],
     all_samples: set,
     performance_measure: str,
-    adjust_pvals: str | bool,
+    adjust_pvals: Union[str, bool],
     pval_cutoff: float,
 ) -> tuple[float, pd.DataFrame]:
     """Process a single classification 'cl' and return (performance_value, best_match_stats_df).
@@ -142,7 +145,7 @@ def _filter_sample_clusters(
     sample_clusters_: pd.DataFrame,
     min_n_samples: int,
     min_SNR: float,
-    min_n_genes: int | bool,
+    min_n_genes: Union[int, bool],
 ) -> pd.DataFrame:
     """Filter sample_clusters DataFrame according to provided thresholds.
 
@@ -193,7 +196,7 @@ def _apply_bh(df_pval: pd.DataFrame, a: float = 0.05) -> pd.DataFrame:
 
 
 def _adjust_pvals_df(
-    pvals: pd.DataFrame, adjust_pvals: str | bool, pval_cutoff: float = 0.05
+    pvals: pd.DataFrame, adjust_pvals: Union[str, bool], pval_cutoff: float = 0.05
 ) -> pd.DataFrame:
     """Adjust p-values DataFrame according to requested method.
 

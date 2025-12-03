@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
@@ -12,7 +12,7 @@ THRESHS = tuple(x / 100 for x in range(50, 100, 5))
 USE_MAX_PRECISION = True
 
 
-def _validate_cols(bics: pd.DataFrame, score_col: str | None = None) -> pd.DataFrame:
+def _validate_cols(bics: pd.DataFrame, score_col: Optional[str] = None) -> pd.DataFrame:
     """Validate and standardize a bicluster DataFrame.
 
     Args:
@@ -115,7 +115,7 @@ def _calc_bicluster_ari(bic1: pd.Series, bic2: pd.Series, exprs: pd.DataFrame) -
 def _calc_mat_iou(
     bics_pred: pd.DataFrame,
     bics_true: pd.DataFrame,
-    exprs: pd.DataFrame | None = None,
+    exprs: Optional[pd.DataFrame] = None,
     method: str = "ARI",
 ) -> pd.DataFrame:
     """Calculate IoU / Jaccard similarity matrix between predicted and true biclusters.
@@ -213,7 +213,7 @@ def _calc_average_precision_by_matrix(
 def calc_average_precision_at_thresh(
     bics_true: pd.DataFrame,
     bics_pred: pd.DataFrame,
-    exprs: pd.DataFrame | None = None,
+    exprs: Optional[pd.DataFrame] = None,
     threshs: Iterable[float] = THRESHS,
     method: str = "ARI",
     score_col: str = "SNR",
