@@ -2,26 +2,18 @@
 
 import random
 import warnings
+
 import pandas as pd
 import pytest
 
-from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
 from unpast.misc.ds_synthetic.dataset import (
     build_dataset,
+    get_modular_dataset_blueprint,
     get_scenario_dataset_blueprint,
-    get_standard_dataset_blueprint,
 )
+from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
+from unpast.tests.test_utils import _hash_table
 from unpast.utils.io import read_bic_table, read_exprs
-
-
-def _hash_table(df):
-    """Hash a DataFrame for reproducibility."""
-    rows_hashes = pd.util.hash_pandas_object(df, index=True)
-    hash = pd.util.hash_pandas_object(
-        pd.DataFrame(rows_hashes).T,  # we need one value
-        index=True,
-    )
-    return hash.sum()
 
 
 def _set_to_str(x):
@@ -219,10 +211,10 @@ def test_build_dataset_reproducibility(tmp_path):
     """Check that results has exactly the same results (by hashes)"""
     dataset = {
         "name1": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=3.0
         ),
         "name2": DSEntryBlueprint(
-            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3)
+            scenario_type="Simple", data_sizes=(10, 10), bic_sizes=(3, 3), bic_mu=3.0
         ),
         **{
             f"test_mu_{i}": DSEntryBlueprint(
@@ -267,7 +259,22 @@ def test_get_scenario_dataset_blueprint_no_scale(tmp_path):
         assert len(bic) > 0
 
 
-def test_generate_standard_dataset_blueprint(tmp_path):
-    """Smoke test for standard dataset schema generation."""
-    ds_schema = get_standard_dataset_blueprint()
+def test_generate_modular_dataset_blueprint_part(tmp_path):
+    """Smoke test for modular dataset schema generation."""
+    ds_schema = get_modular_dataset_blueprint()
+    rand = random.Random(42)
+    filtered = {
+        name: entry
+        for name, entry in ds_schema.items()
+        if entry.get_args().get("data_sizes", (0, 0))[0] <= 20
+        and entry.get_args().get("data_sizes", (0, 0))[1] <= 20
+        and rand.random() < 0.5
+    }
+    build_dataset(filtered, output_dir=tmp_path, show_images=False)
+
+
+@pytest.mark.slow
+def test_generate_modular_dataset_blueprint(tmp_path):
+    """Smoke test for modular dataset schema generation."""
+    ds_schema = get_modular_dataset_blueprint()
     build_dataset(ds_schema, output_dir=tmp_path, show_images=False)

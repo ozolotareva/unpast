@@ -1,17 +1,16 @@
 """Tests for eval module."""
 
-import numpy as np
 import pandas as pd
+
 from unpast.misc.ds_synthetic.entry import DSEntryBlueprint
-from unpast.misc.eval import calculate_perfromance
-from unpast.utils.io import read_bic_table
+from unpast.misc.eval.calc_ari_matching import calc_ari_matching
 
 
-class TestCalculatePerformance:
-    """Test cases for calculate_perfromance function."""
+class TestCalcAriMatching:
+    """Test cases for calc_ari_matching function."""
 
-    def test_calculate_performance_smoke_test(self, tmp_path):
-        """Simple smoke test for calculate_perfromance function using DSEntryBlueprint."""
+    def test_ari_matching_smoke_test(self, tmp_path):
+        """Simple smoke test for calc_ari_matching function using DSEntryBlueprint."""
         n_biomarkers = 50
         frac_samples = [0.1, 0.25, 0.5]
         n_genes = 200
@@ -58,7 +57,7 @@ class TestCalculatePerformance:
             gt_known_groups["ground_truth"][f"bic_{idx}"] = row["samples"]
 
         # Test ground truth vs ground truth - should give perfect performance
-        gt_performances, gt_best_matches = calculate_perfromance(
+        gt_performances, gt_best_matches = calc_ari_matching(
             sample_clusters_=sample_clusters,
             known_groups=gt_known_groups,
             all_samples=all_samples,
@@ -94,7 +93,7 @@ class TestCalculatePerformance:
         }
 
         # Call the function - should not crash
-        performances, best_matches = calculate_perfromance(
+        performances, best_matches = calc_ari_matching(
             sample_clusters_=sample_clusters,
             known_groups=known_groups,
             all_samples=all_samples,

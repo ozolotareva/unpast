@@ -1,7 +1,15 @@
+"""Utility functions and data structures for synthetic dataset generation.
+
+This module provides helper functions for saving synthetic datasets and
+the Bicluster named tuple for representing bicluster structures.
+"""
+
 from collections import namedtuple
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
+
 from unpast.utils.io import write_bic_table
 from unpast.utils.visualization import plot_biclusters_heatmap
 
@@ -12,10 +20,10 @@ def save_dataset_entry(
     name: str,
     exprs: pd.DataFrame,
     bic_df: pd.DataFrame,
-    extra_info: dict,
+    extra_info: dict[str, Any],
     ds_path: Path,
     show_images: bool = True,
-) -> dict:
+) -> dict[str, Any]:
     """Save dataset entry files and plot heatmap.
 
     Args:
@@ -42,11 +50,16 @@ def save_dataset_entry(
         coexpressed_modules=extra_info.get("coexpressed_modules", []),
         fig_title=name,
         fig_path=ds_path / "heatmap.png",
+        fig_icon_path=ds_path / "heatmap_icon.png",
         visualize=show_images,
     )
 
     return {
         "exprs_file": str(exprs_file),
         "bic_file": str(bic_file),
-        "extra_info": extra_info,
+        "extra_info": {
+            **extra_info,
+            "heatmap_path": str(ds_path / "heatmap.png"),
+            "heatmap_icon_path": str(ds_path / "heatmap_icon.png"),
+        },
     }
