@@ -186,7 +186,7 @@ class TestPrepareInputMatrix:
 
     def test_prepare_input_matrix_no_standardization(self):
         """Test with standardization disabled."""
-        result = prepare_input_matrix(self.test_data, standradize=False)
+        result = prepare_input_matrix(self.test_data, standardize=False)
 
         # Result should be the same as input (except for string conversion)
         expected = self.test_data.copy()

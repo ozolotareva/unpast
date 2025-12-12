@@ -95,7 +95,7 @@ def unpast(
     verbose: bool = False,
     plot_all: bool = False,
     e_dist_size: int = 10000,
-    standradize: bool = True,
+    standardize: bool = True,
 ):
     """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
 
@@ -154,7 +154,7 @@ def unpast(
     exprs = prepare_input_matrix(
         exprs,
         min_n_samples=min_n_samples,
-        standradize=standradize,
+        standardize=standardize,
         ceiling=ceiling,
     )
 
@@ -435,6 +435,7 @@ def parse_args():
         help="don't save binarization results (load only)",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument("--standardize", default=True, type=bool, help="whether to standardize input matrix")
     # parser.add_argument('--plot', action='store_true', help = "show plots")
 
     return parser.parse_args()
@@ -475,6 +476,7 @@ def main():
             seed=args.seed,
             # plot_all = args.plot,
             verbose=args.verbose,
+            standardize=args.standardize,
         )
     except Exception as e:
         logger.error(e)
