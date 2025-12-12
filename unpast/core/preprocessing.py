@@ -37,7 +37,7 @@ def prepare_input_matrix(
     input_matrix: pd.DataFrame,
     min_n_samples: int = 5,
     tol: float = 0.01,
-    standradize: bool = True,
+    standardize: bool = True,
     ceiling: float = 0,  # if float>0, limit z-scores to [-x,x]
 ):
     """Prepare and standardize input expression matrix for biclustering analysis.
@@ -46,7 +46,7 @@ def prepare_input_matrix(
         input_matrix (DataFrame): raw expression matrix with features as rows and samples as columns
         min_n_samples (int): minimum number of samples required for processing
         tol (float): tolerance for checking if data is already standardized
-        standradize (bool): whether to perform z-score standardization
+        standardize (bool): whether to perform z-score standardization
         ceiling (float): if >0, limit z-scores to [-ceiling, ceiling] range
 
     Returns:
@@ -74,7 +74,7 @@ def prepare_input_matrix(
     std_passed = np.all(np.abs(std - 1) < tol)
     if not (mean_passed and std_passed):
         logger.debug("Input is not standardized.")
-        if standradize:
+        if standardize:
             exprs = zscore(exprs)
             if not mean_passed:
                 logger.debug("- centering mean to 0")
@@ -96,7 +96,7 @@ def prepare_input_matrix(
         )
         exprs = exprs.loc[keep_features, :]
 
-    if standradize:
+    if standardize:
         if ceiling > 0:
             logger.debug(
                 f"Standardized expressions will be limited to [-{ceiling},{ceiling}]:"
