@@ -54,7 +54,7 @@ def _min_intraclass_variance_split(data):
             In this case, result is the same as
                 jenks (see test__min_intraclass_variance_split_jenks)
                 global optimum of kmeans
-                otzu for 1-dimensional image
+                method Otsu for 1-dimensional image
 
         Complexity: O(n)
             (jenks is O(n^2 *k) but works for any amount k of classes)
@@ -153,8 +153,8 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     # remove from bicluster samples with the sign different from its median sign
     # TODO: consider removing/using more robust method
     if labels.sum() > 0:
-        pos = len(row[labels] >= 0)
-        neg = len(row[labels] < 0)
+        pos = (row[labels] >= 0).sum()
+        neg = (row[labels] < 0).sum()
         # optimization: don't calculate median when it can be avoided
         # the following is equivalent to:
         # "if np.median(row[labels]) >= 0: labels[row < 0] = False"

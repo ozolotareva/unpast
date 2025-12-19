@@ -436,9 +436,8 @@ def parse_args():
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument(
-        "--standardize",
-        default=True,
-        type=bool,
+        "--not_standardize",
+        action="store_true",
         help="whether to standardize input matrix",
     )
     # parser.add_argument('--plot', action='store_true', help = "show plots")
@@ -481,7 +480,7 @@ def main():
             seed=args.seed,
             # plot_all = args.plot,
             verbose=args.verbose,
-            standardize=args.standardize,
+            standardize=not args.not_standardize,
         )
     except Exception as e:
         logger.error(e)
