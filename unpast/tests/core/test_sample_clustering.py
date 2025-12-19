@@ -240,8 +240,8 @@ class TestMakeBiclusters:
             assert col in biclusters.columns
 
     def test_make_biclusters_empty_input(self):
-        """Test with empty feature clusters."""
-        make_biclusters(
+        """Smoke test with empty feature clusters."""
+        df = make_biclusters(
             [],  # Empty feature clusters
             self.binarized_data,
             self.data,
@@ -249,9 +249,12 @@ class TestMakeBiclusters:
             min_n_samples=2,
             min_n_genes=1,
         )
+        # Should return empty DataFrame with correct columns
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 0
 
     def test_make_biclusters_small_input(self):
-        """Test with minimal input data."""
+        """Smoke test with minimal input data."""
         g_inds = [["g1"]]
         bin_data = pd.DataFrame(
             [

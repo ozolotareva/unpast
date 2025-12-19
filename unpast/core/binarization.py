@@ -60,7 +60,7 @@ def _min_intraclass_variance_split(data):
             (jenks is O(n^2 *k) but works for any amount k of classes)
 
     Args:
-        data (DataFrame): expression data with samples as rows and features as columns
+        data (array): expression values for a single feature across samples
 
     Returns:
         array: boolean mask indicating the optimal split
@@ -158,12 +158,18 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         # optimization: don't calculate median when it can be avoided
         # the following is equivalent to:
         # "if np.median(row[labels]) >= 0: labels[row < 0] = False"
+        # "else: labels[row >= 0] = False"
         if pos > neg:
             labels[row < 0] = False
 
         elif pos == neg:
             if np.median(row[labels]) >= 0:
                 labels[row < 0] = False
+            else:
+                labels[row >= 0] = False
+
+        else:
+            labels[row >= 0] = False
 
     if labels.sum() >= min_n_samples:
         size = labels.sum()  # the smaller group size
