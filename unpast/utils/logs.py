@@ -58,7 +58,7 @@ def get_logger(name: Union[str, None] = None) -> PrefixLogger:
         package_name = str(__package__).split(".")[0]  # root package name
         # using root logger for __main__ to allow "root_package" filtering
         name = package_name + "." + name
-    logger = PrefixLogger(logging.getLogger(name))  
+    logger = PrefixLogger(logging.getLogger(name))
 
     return logger
 

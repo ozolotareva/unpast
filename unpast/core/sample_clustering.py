@@ -315,22 +315,24 @@ def make_biclusters(
             biclusters[i] = update_bicluster_data(biclusters[i], data)
 
     biclusters = pd.DataFrame.from_dict(biclusters).T
-    
+
     # If no biclusters were found, return empty DataFrame with expected columns
     if biclusters.empty:
-        return pd.DataFrame(columns=[
-            "SNR",
-            "n_genes",
-            "n_samples",
-            "genes",
-            "samples",
-            "direction",
-            "genes_up",
-            "genes_down",
-            "gene_indexes",
-            "sample_indexes",
-        ])
-    
+        return pd.DataFrame(
+            columns=[
+                "SNR",
+                "n_genes",
+                "n_samples",
+                "genes",
+                "samples",
+                "direction",
+                "genes_up",
+                "genes_down",
+                "gene_indexes",
+                "sample_indexes",
+            ]
+        )
+
     # add direction
     biclusters["direction"] = "BOTH"
     biclusters.loc[

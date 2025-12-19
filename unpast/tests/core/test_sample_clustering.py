@@ -252,13 +252,21 @@ class TestMakeBiclusters:
 
     def test_make_biclusters_small_input(self):
         """Test with minimal input data."""
-        g_inds = [['g1']]
-        bin_data = pd.DataFrame([
-            [0],
-        ], columns = ['g1'], index = ['s1'])
-        data = pd.DataFrame([
-            [0.0],
-        ], columns = ['s1'], index = ['g1'])
+        g_inds = [["g1"]]
+        bin_data = pd.DataFrame(
+            [
+                [0],
+            ],
+            columns=["g1"],
+            index=["s1"],
+        )
+        data = pd.DataFrame(
+            [
+                [0.0],
+            ],
+            columns=["s1"],
+            index=["g1"],
+        )
         make_biclusters(g_inds, bin_data, data)
 
     def test_make_biclusters_empty_nonempty_columns(self):
@@ -272,7 +280,7 @@ class TestMakeBiclusters:
             min_n_samples=2,
             min_n_genes=1,
         )
-        
+
         # Get non-empty result
         nonempty_result = make_biclusters(
             self.feature_clusters,
@@ -282,20 +290,21 @@ class TestMakeBiclusters:
             min_n_samples=2,
             min_n_genes=1,
         )
-        
+
         # Both should be DataFrames
         assert isinstance(empty_result, pd.DataFrame)
         assert isinstance(nonempty_result, pd.DataFrame)
-        
+
         # Empty result should be empty
         assert len(empty_result) == 0
-        
+
         # Non-empty result should have data
         assert len(nonempty_result) > 0
-        
+
         # Both should have exactly the same columns
-        assert list(empty_result.columns) == list(nonempty_result.columns), \
+        assert list(empty_result.columns) == list(nonempty_result.columns), (
             f"Column mismatch: empty={list(empty_result.columns)}, non-empty={list(nonempty_result.columns)}"
+        )
 
     def test_make_biclusters_direction(self):
         """Test direction assignment."""

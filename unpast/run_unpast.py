@@ -435,7 +435,12 @@ def parse_args():
         help="don't save binarization results (load only)",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("--standardize", default=True, type=bool, help="whether to standardize input matrix")
+    parser.add_argument(
+        "--standardize",
+        default=True,
+        type=bool,
+        help="whether to standardize input matrix",
+    )
     # parser.add_argument('--plot', action='store_true', help = "show plots")
 
     return parser.parse_args()
@@ -453,7 +458,7 @@ def main():
         directions = ["BOTH"]
 
     try:
-        biclusters = unpast(
+        _biclusters = unpast(
             args.exprs,
             out_dir=args.out_dir,
             binary_dir=args.binary_dir,
