@@ -56,7 +56,7 @@ def _min_intraclass_variance_split(data):
                 global optimum of kmeans
                 method Otsu for 1-dimensional image
 
-        Complexity: O(n)
+        Complexity: O(n log(n))
             (jenks is O(n^2 *k) but works for any amount k of classes)
 
     Args:
@@ -134,7 +134,7 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     #     labels = row >= breaks[1]  # True for samples above the first break
 
     elif method == "jenks":
-        # same result as jenks for 2 classes, but O(n), not O(n^2 * k)
+        # same result as jenks for 2 classes, but O(n log(n)), not O(n^2 * k)
         labels = _min_intraclass_variance_split(row)
 
     else:

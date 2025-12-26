@@ -44,6 +44,7 @@ def build_simple_biclusters(
 
     return table, {"bic": Bicluster(bic_rows, bic_cols)}, {}
 
+
 def _parse_bic_size(size_str: str) -> tuple[tuple[int, int], tuple[int, int]]:
     """Parse bicluster size string of the form 'start-end x start-end'.
 
@@ -57,6 +58,7 @@ def _parse_bic_size(size_str: str) -> tuple[tuple[int, int], tuple[int, int]]:
     row_start, row_end = map(int, row_part.strip().split("-"))
     col_start, col_end = map(int, col_part.strip().split("-"))
     return (row_start, row_end), (col_start, col_end)
+
 
 def build_simple_multiple_biclusters(
     data_sizes: tuple[int, int],
@@ -91,7 +93,7 @@ def build_simple_multiple_biclusters(
 
         assert 0 <= row_start <= row_end <= data_sizes[0]
         assert 0 <= col_start <= col_end <= data_sizes[1]
-            
+
         bic_rows = list(range(row_start, row_end))
         bic_cols = list(range(col_start, col_end))
         table.iloc[bic_rows, bic_cols] += bic_mu

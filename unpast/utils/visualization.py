@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Optional
 
 import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from scipy import ndimage
 
@@ -154,7 +154,7 @@ def plot_biclusters_heatmap(
     VMIN = -3
     VMAX = 3
     ICON_SIZE = 50
-        
+
     sample_keys = defaultdict(list)  # avoid errors if biclusters not provided
     gene_keys = defaultdict(list)
     if biclusters is not None:
@@ -205,16 +205,17 @@ def plot_biclusters_heatmap(
     plt.close(fig.figure)
 
     if fig_icon_path:
-        def renorm(img: np.ndarray) -> np.ndarray: 
+
+        def renorm(img: np.ndarray) -> np.ndarray:
             return (img - VMIN) / (VMAX - VMIN)
-        
+
         img = CMAP(renorm(exprs.loc[genes_sorted, samples_sorted].values))
 
         # resize, and place in 50x50 canvas
         coeff = min(ICON_SIZE / img.shape[0], ICON_SIZE / img.shape[1])
         img_resized = ndimage.zoom(img, (coeff, coeff, 1))
         img_resized = np.clip(img_resized, 0, 1)  # Ensure values stay in valid range
-        
+
         canvas = np.zeros((ICON_SIZE, ICON_SIZE, 4))
-        canvas[:img_resized.shape[0], :img_resized.shape[1], :] = img_resized
+        canvas[: img_resized.shape[0], : img_resized.shape[1], :] = img_resized
         plt.imsave(str(fig_icon_path), canvas)
