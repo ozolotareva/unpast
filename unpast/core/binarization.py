@@ -47,6 +47,51 @@ def _fit_gmm_model(row, seed=42, prob_cutoff=0.5):
         return labels, is_converged
 
 
+def _min_intraclass_variance_split(data):
+    """Find the optimal split for minimizing intra-class variance.
+
+        Minimize intra-cluster variance to find best split to 2 classes
+            In this case, result is the same as
+                jenks (see test__min_intraclass_variance_split_jenks)
+                global optimum of kmeans
+                method Otsu for 1-dimensional image
+
+        Complexity: O(n log(n))
+            (jenks is O(n^2 *k) but works for any amount k of classes)
+
+    Args:
+        data (array): expression values for a single feature across samples
+
+    Returns:
+        array: boolean mask indicating the optimal split
+
+    """
+    assert len(data.shape) == 1, (
+        "Data must be a single row for _min_intraclass_variance_split"
+    )
+    if len(data) < 2:
+        return np.zeros_like(data, dtype=bool)
+
+    sorted_data = np.sort(data)
+    cumsum = np.cumsum(sorted_data)
+    val_sum = cumsum[-1]
+    sq_cumsum = np.cumsum(sorted_data**2)
+    sq_sum = sq_cumsum[-1]
+
+    data_n = len(data)
+    n1 = np.arange(1, len(data))
+    n2 = data_n - n1
+
+    # let's calculate n1*class1_var + n2*class2_var
+    # n*var = n*mean_sq - mean^2 = sum_sq - sum^2/n
+    sums = (sq_cumsum[: data_n - 1] - cumsum[: data_n - 1] ** 2 / n1) + (
+        sq_sum - sq_cumsum[: data_n - 1] - (val_sum - cumsum[: data_n - 1]) ** 2 / n2
+    )
+    best_split_idx = np.argmin(sums)
+    thresh = (sorted_data[best_split_idx] + sorted_data[best_split_idx + 1]) / 2
+    return data >= thresh
+
+
 def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     """Identify positive and negative signal groups using GMM or other method of binarization.
 
@@ -76,15 +121,25 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
         else:
             assert method == "ward"
             model = AgglomerativeClustering(n_clusters=2, linkage="ward")
+
         # elif method == "HC_ward":
         #    model = Ward(n_clusters=2)
 
         labels = model.fit_predict(row2d) == 1
 
+    # elif method == "jenks":
+    #     from jenkspy import jenks_breaks
+    #     breaks = jenks_breaks(row, 2)
+    #     assert len(breaks) == 3, "Jenks breaks should return 3 values"
+    #     labels = row >= breaks[1]  # True for samples above the first break
+
+    elif method == "jenks":
+        # same result as jenks for 2 classes, but O(n log(n)), not O(n^2 * k)
+        labels = _min_intraclass_variance_split(row)
+
     else:
         raise NotImplementedError(
-            f"wrong binarization method name {method},"
-            " must be ['GMM', 'kmeans', 'ward']",
+            f"wrong binarization method name {method} in _select_pos_neg"
         )
 
     assert labels.dtype is np.dtype(bool)
@@ -98,10 +153,23 @@ def _select_pos_neg(row, min_n_samples, seed=42, prob_cutoff=0.5, method="GMM"):
     # remove from bicluster samples with the sign different from its median sign
     # TODO: consider removing/using more robust method
     if labels.sum() > 0:
-        if np.median(row[labels]) >= 0:
+        pos = (row[labels] >= 0).sum()
+        neg = (row[labels] < 0).sum()
+        # optimization: don't calculate median when it can be avoided
+        # the following is equivalent to:
+        # "if np.median(row[labels]) >= 0: labels[row < 0] = False"
+        # "else: labels[row >= 0] = False"
+        if pos > neg:
             labels[row < 0] = False
+
+        elif pos == neg:
+            if np.median(row[labels]) >= 0:
+                labels[row < 0] = False
+            else:
+                labels[row >= 0] = False
+
         else:
-            labels[row > 0] = False
+            labels[row >= 0] = False
 
     if labels.sum() >= min_n_samples:
         size = labels.sum()  # the smaller group size
@@ -152,9 +220,7 @@ def sklearn_binarization(
     """
     binarized_expressions = {}
     stats = {}
-    for i, (gene, row_) in enumerate(exprs.iterrows()):
-        row = row_.values
-
+    for i, (gene, row) in enumerate(zip(exprs.index, exprs.to_numpy())):
         pos_mask, neg_mask, snr, size, is_converged = _select_pos_neg(
             row, min_n_samples, seed=seed, prob_cutoff=prob_cutoff, method=method
         )

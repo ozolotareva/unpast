@@ -19,14 +19,14 @@ def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
         data (DataFrame): expression data with samples as rows and features as columns
         min_n_samples (int): minimum number of samples required for each cluster
         seed (int): random seed for reproducible clustering
-        method (str): clustering method to use ("kmeans", "Jenks", "ward")
+        method (str): clustering method to use ("kmeans", "jenks", "ward")
 
     Returns:
         dict: bicluster information containing sample indices and cluster size
     """
     # identify identify bicluster and backgound groups using 2-means
     max_n_iter = max(max(data.shape), 500)
-    if method == "kmeans" or method == "Jenks":
+    if method in ["kmeans", "jenks"]:
         labels = (
             KMeans(
                 n_clusters=2,
@@ -51,6 +51,12 @@ def cluster_samples(data, min_n_samples=5, seed=0, method="kmeans"):
             covariance_type="spherical",
             random_state=seed,
         ).fit_predict(data)
+
+    else:
+        raise NotImplementedError(
+            f"wrong sample clustering method name {method} in cluster_samples"
+        )
+
     ndx0 = np.where(labels == 0)[0]
     ndx1 = np.where(labels == 1)[0]
     if min(len(ndx1), len(ndx0)) < min_n_samples:
@@ -78,7 +84,7 @@ def modules2biclusters(
     Args:
         modules (list): list of feature modules/clusters from clustering algorithms
         data_to_cluster (DataFrame): expression data with samples as rows and features as columns
-        method (str): sample clustering method to use ("kmeans", "Jenks", "ward", "GMM")
+        method (str): sample clustering method to use ("kmeans", "jenks", "ward", "GMM")
         min_n_samples (int): minimum number of samples required for each bicluster
         min_n_genes (int): minimum number of genes required for each bicluster
         seed (int): random seed for reproducible clustering
@@ -275,7 +281,6 @@ def make_biclusters(
     Returns:
         DataFrame: final biclusters with metadata including genes, samples, SNR, and z-scores
     """
-
     biclusters = []
 
     if cluster_binary:
@@ -310,6 +315,24 @@ def make_biclusters(
             biclusters[i] = update_bicluster_data(biclusters[i], data)
 
     biclusters = pd.DataFrame.from_dict(biclusters).T
+
+    # If no biclusters were found, return empty DataFrame with expected columns
+    if biclusters.empty:
+        return pd.DataFrame(
+            columns=[
+                "SNR",
+                "n_genes",
+                "n_samples",
+                "genes",
+                "samples",
+                "direction",
+                "genes_up",
+                "genes_down",
+                "gene_indexes",
+                "sample_indexes",
+            ]
+        )
+
     # add direction
     biclusters["direction"] = "BOTH"
     biclusters.loc[

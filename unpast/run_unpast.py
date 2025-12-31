@@ -95,7 +95,7 @@ def unpast(
     verbose: bool = False,
     plot_all: bool = False,
     e_dist_size: int = 10000,
-    standradize: bool = True,
+    standardize: bool = True,
 ):
     """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
 
@@ -154,7 +154,7 @@ def unpast(
     exprs = prepare_input_matrix(
         exprs,
         min_n_samples=min_n_samples,
-        standradize=standradize,
+        standardize=standardize,
         ceiling=ceiling,
     )
 
@@ -367,7 +367,7 @@ def parse_args():
         metavar="kmeans",
         default="kmeans",
         type=str,
-        choices=["kmeans", "ward", "GMM"],
+        choices=["kmeans", "ward", "GMM", "jenks"],
         help="binarization method",
     )
     parser.add_argument(
@@ -435,6 +435,11 @@ def parse_args():
         help="don't save binarization results (load only)",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "--not_standardize",
+        action="store_true",
+        help="whether to standardize input matrix",
+    )
     # parser.add_argument('--plot', action='store_true', help = "show plots")
 
     return parser.parse_args()
@@ -452,7 +457,7 @@ def main():
         directions = ["BOTH"]
 
     try:
-        biclusters = unpast(
+        _biclusters = unpast(
             args.exprs,
             out_dir=args.out_dir,
             binary_dir=args.binary_dir,
@@ -475,6 +480,7 @@ def main():
             seed=args.seed,
             # plot_all = args.plot,
             verbose=args.verbose,
+            standardize=not args.not_standardize,
         )
     except Exception as e:
         logger.error(e)

@@ -240,18 +240,74 @@ class TestMakeBiclusters:
             assert col in biclusters.columns
 
     def test_make_biclusters_empty_input(self):
-        """Test with empty feature clusters."""
-        # This test reveals a bug in the original code when handling empty biclusters
-        # The code tries to access columns that don't exist in an empty DataFrame
-        with pytest.raises(KeyError):
-            make_biclusters(
-                [],  # Empty feature clusters
-                self.binarized_data,
-                self.data,
-                merge=1,
-                min_n_samples=2,
-                min_n_genes=1,
-            )
+        """Smoke test with empty feature clusters."""
+        df = make_biclusters(
+            [],  # Empty feature clusters
+            self.binarized_data,
+            self.data,
+            merge=1,
+            min_n_samples=2,
+            min_n_genes=1,
+        )
+        # Should return empty DataFrame with correct columns
+        assert isinstance(df, pd.DataFrame)
+        assert len(df) == 0
+
+    def test_make_biclusters_small_input(self):
+        """Smoke test with minimal input data."""
+        g_inds = [["g1"]]
+        bin_data = pd.DataFrame(
+            [
+                [0],
+            ],
+            columns=["g1"],
+            index=["s1"],
+        )
+        data = pd.DataFrame(
+            [
+                [0.0],
+            ],
+            columns=["s1"],
+            index=["g1"],
+        )
+        make_biclusters(g_inds, bin_data, data)
+
+    def test_make_biclusters_empty_nonempty_columns(self):
+        """Test that empty and non-empty results have the same columns."""
+        # Get empty result
+        empty_result = make_biclusters(
+            [],  # Empty feature clusters
+            self.binarized_data,
+            self.data,
+            merge=1,
+            min_n_samples=2,
+            min_n_genes=1,
+        )
+
+        # Get non-empty result
+        nonempty_result = make_biclusters(
+            self.feature_clusters,
+            self.binarized_data,
+            self.data,
+            merge=1,
+            min_n_samples=2,
+            min_n_genes=1,
+        )
+
+        # Both should be DataFrames
+        assert isinstance(empty_result, pd.DataFrame)
+        assert isinstance(nonempty_result, pd.DataFrame)
+
+        # Empty result should be empty
+        assert len(empty_result) == 0
+
+        # Non-empty result should have data
+        assert len(nonempty_result) > 0
+
+        # Both should have exactly the same columns
+        assert list(empty_result.columns) == list(nonempty_result.columns), (
+            f"Column mismatch: empty={list(empty_result.columns)}, non-empty={list(nonempty_result.columns)}"
+        )
 
     def test_make_biclusters_direction(self):
         """Test direction assignment."""
