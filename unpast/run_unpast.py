@@ -6,7 +6,11 @@ import pandas as pd
 
 from unpast import __version__
 from unpast.core.binarization import binarize
-from unpast.core.feature_clustering import run_Louvain, run_WGCNA, run_WGCNA_iterative
+from unpast.core.feature_clustering import (
+    run_sknetwork_clustering,
+    run_WGCNA,
+    run_WGCNA_iterative,
+)
 from unpast.core.preprocessing import prepare_input_matrix
 from unpast.core.sample_clustering import make_biclusters
 from unpast.utils.io import ProjectPaths, write_args, write_bic_table
@@ -197,7 +201,7 @@ def unpast(
 
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
 
-    if clust_method == "Louvain":
+    if clust_method in ["Louvain", "Leiden"]:
         for d in directions:
             logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
@@ -210,12 +214,13 @@ def unpast(
                 # if similarity cuttofs is a single value turns it to a list
                 try:
                     similarity_cutoffs = [elem for elem in similarity_cutoffs]
-                except:
+                except Exception:
                     similarity_cutoffs = [similarity_cutoffs]
 
                 # if modularity m is defined, choses a similarity cutoff corresponding to this modularity
                 # and rund Louvain clustering
-                modules, single_features, similarity_cutoff = run_Louvain(
+                modules, single_features, similarity_cutoff = run_sknetwork_clustering(
+                    clust_method,
                     similarity,
                     similarity_cutoffs=similarity_cutoffs,
                     m=modularity,
@@ -254,7 +259,7 @@ def unpast(
 
     else:
         raise NotImplementedError(
-            f"'clust_method' must be 'WGCNA', 'iWGCNA', or 'Louvain', found {clust_method}"
+            f"'clust_method' must be 'WGCNA', 'iWGCNA', 'Louvain', or 'Leiden', found {clust_method}"
         )
 
     ######### making biclusters #########
@@ -277,7 +282,7 @@ def unpast(
     ######### save biclusters #########
     if "WGCNA" in clust_method:
         modularity, similarity_cutoff = None, None
-    elif clust_method == "Louvain":
+    elif clust_method == "Louvain" or clust_method == "Leiden":
         ds, dhs = None, None
     write_bic_table(
         biclusters,
@@ -384,17 +389,18 @@ def parse_args():
         metavar="Louvain",
         default="Louvain",
         type=str,
-        choices=["Louvain", "WGCNA"],
+        choices=["Louvain", "Leiden", "WGCNA", "iWGCNA"],
         help="feature clustering method",
     )
-    # Louvain parameters
+    # Louvain / Leiden parameters
+
     parser.add_argument(
         "-m",
         "--modularity",
         default=1 / 3,
         metavar="1/3",
         type=float,
-        help="Modularity corresponding to a cutoff for similarity matrix (Louvain clustering)",
+        help="Modularity corresponding to a cutoff for similarity matrix (Louvain/Leiden clustering)",
     )
     parser.add_argument(
         "-r",
@@ -402,7 +408,7 @@ def parse_args():
         default=-1,
         metavar="-1",
         type=float,
-        help="A cutoff or a list of cuttofs for similarity matrix (Louvain clustering). If set to -1, will be chosen authomatically from [1/5,4/5] using elbow method.",
+        help="A cutoff or a list of cuttofs for similarity matrix (Louvain/Leiden clustering). If set to -1, will be chosen authomatically from [1/5,4/5] using elbow method.",
     )
     # WGCNA parameters
     parser.add_argument(

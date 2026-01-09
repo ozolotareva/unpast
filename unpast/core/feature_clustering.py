@@ -3,11 +3,13 @@
 import os
 import subprocess
 from pathlib import Path
-from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sknetwork
+from scipy.sparse import csr_matrix
+from sknetwork.clustering import get_modularity
 
 from unpast.utils.logs import get_logger, log_function_duration
 
@@ -121,7 +123,7 @@ def run_WGCNA(
         precluster = "F"
 
     deepSplit = int(deepSplit)
-    if not deepSplit in [0, 1, 2, 3, 4]:
+    if deepSplit not in [0, 1, 2, 3, 4]:
         logger.error("deepSplit must be 1,2,3 or 4. See WGCNA documentation.")
         return ([], [])
     if not 0 < detectCutHeight < 1:
@@ -259,17 +261,58 @@ def run_WGCNA(
     return (modules, not_clustered)
 
 
-@log_function_duration(name="Louvain feature clustering")
-def run_Louvain(
+def run_Louvain(*args, **kwargs):
+    """Run Louvain community detection clustering on similarity matrix.
+    Wrapper for run_sknetwork_clustering.
+    """
+    return run_sknetwork_clustering("Louvain", *args, **kwargs)
+
+
+def run_Leiden(*args, **kwargs):
+    """Run Leiden community detection clustering on similarity matrix.
+    Wrapper for run_sknetwork_clustering.
+    """
+    return run_sknetwork_clustering("Leiden", *args, **kwargs)
+
+
+def _load_algo_cls(clust_method):
+    """Load clustering algorithm class from sknetwork."""
+
+    if clust_method == "Leiden":
+        try:
+            from sknetwork.clustering import Leiden
+
+            return Leiden
+        except ImportError:
+            logger.warning(
+                "Leiden requires sknetwork >= 0.32.1."
+                f" Found {sknetwork.__version__}."
+                " Falling back to Louvain."
+            )
+            from sknetwork.clustering import Louvain
+
+            return Louvain
+    elif clust_method == "Louvain":
+        from sknetwork.clustering import Louvain
+
+        return Louvain
+    else:
+        raise ValueError(f"Unknown clustering method: {clust_method}")
+
+
+@log_function_duration(name="Sknetwork feature clustering")
+def run_sknetwork_clustering(
+    clust_method,
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
     m=False,
     plot=False,
     modularity_measure="newman",
 ):
-    """Run Louvain community detection clustering on similarity matrix.
+    """Run sknetwork community detection clustering (Louvain or Leiden) on similarity matrix.
 
     Args:
+        clust_method (str): "Louvain" or "Leiden"
         similarity (DataFrame): feature similarity matrix
         similarity_cutoffs (array): range of similarity thresholds to test for clustering
         m (bool): whether to return additional modularity information
@@ -286,25 +329,9 @@ def run_Louvain(
         logger.error("no features to cluster")
         return [], [], None
 
-    logger.debug("Running Louvain ...")
     logger.debug(f"modularity: {modularity_measure}")
 
-    import sknetwork
-    from sknetwork.clustering import Louvain
-
-    try:
-        from sknetwork.clustering import modularity
-
-        old_sknetwork_version = True
-    except:
-        from sknetwork.clustering import get_modularity
-
-        logger.debug(f"sknetwork version used: {sknetwork.__version__}")
-        old_sknetwork_version = False
-    try:
-        from scipy.sparse.csr import csr_matrix
-    except:
-        from scipy.sparse import csr_matrix
+    AlgoCls = _load_algo_cls(clust_method)
 
     modularities = []
     feature_clusters = {}
@@ -321,13 +348,9 @@ def run_Louvain(
         gene_names = sim_binary.index.values
         sparse_matrix = csr_matrix(sim_binary)
 
-        if old_sknetwork_version:
-            labels = Louvain(modularity=modularity_measure).fit_transform(sparse_matrix)
-            Q = modularity(sparse_matrix, labels)
-        else:
-            sparse_matrix = sparse_matrix.astype("bool")
-            labels = Louvain(modularity=modularity_measure).fit_predict(sparse_matrix)
-            Q = get_modularity(sparse_matrix, labels)
+        sparse_matrix = sparse_matrix.astype("bool")
+        labels = AlgoCls(modularity=modularity_measure).fit_predict(sparse_matrix)
+        Q = get_modularity(sparse_matrix, labels)
 
         modularities.append(Q)
         # if binary similarity matrix contains no zeroes
@@ -372,12 +395,16 @@ def run_Louvain(
                 best_cutoff = kn.knee
                 best_Q = kn.knee_y
                 labels = feature_clusters[best_cutoff]
-            except:
-                logger.error("Failed to identify similarity cutoff")
+            except Exception as e:
+                logger.error(f"Failed to identify similarity cutoff, error: {e}")
                 logger.info(f"Similarity cutoff: set to {similarity_cutoffs[0]}")
                 best_cutoff = similarity_cutoffs[0]
                 best_Q = np.nan
                 logger.info(f"Modularity: {modularities}")
+
+                # ? Fix: Ensure labels are defined if loop ran once (it did)
+                # labels = feature_clusters[best_cutoff]
+
                 if plot:
                     plt.plot(similarity_cutoffs, modularities, "bx-")
                     plt.xlabel("similarity cutoff")
