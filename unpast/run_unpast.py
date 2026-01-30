@@ -20,7 +20,7 @@ from unpast.utils.logs import (
     log_function_duration,
     setup_logging,
 )
-from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.similarity import get_similarity_ari, get_similarity_jaccard
 
 logger = get_logger(__name__)
 
@@ -100,6 +100,7 @@ def unpast(
     plot_all: bool = False,
     e_dist_size: int = 10000,
     standardize: bool = True,
+    similarity_method: str = "jaccard",
 ):
     """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
 
@@ -206,7 +207,12 @@ def unpast(
             logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
             if df.shape[0] > 1:
-                similarity = get_similarity_jaccard(df)
+                if similarity_method.lower() == "ari":
+                    similarity = get_similarity_ari(df)
+                elif similarity_method.lower() == "jaccard":
+                    similarity = get_similarity_jaccard(df)
+                else:
+                    raise ValueError(f"Unknown similarity method: {similarity_method}")
                 # similarity = get_similarity_corr(df,verbose = verbose)
 
                 if similarity_cutoffs == -1:  # guess from the data
@@ -446,6 +452,12 @@ def parse_args():
         action="store_true",
         help="whether to standardize input matrix",
     )
+    parser.add_argument(
+        "--similarity_method",
+        default="jaccard",
+        choices=["ari", "jaccard"],
+        help="Similarity method for gene clustering (ari or jaccard). Default: jaccard",
+    )
     # parser.add_argument('--plot', action='store_true', help = "show plots")
 
     return parser.parse_args()
@@ -487,6 +499,7 @@ def main():
             # plot_all = args.plot,
             verbose=args.verbose,
             standardize=not args.not_standardize,
+            similarity_method=args.similarity_method,
         )
     except Exception as e:
         logger.error(e)

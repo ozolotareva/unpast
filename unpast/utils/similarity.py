@@ -1,14 +1,66 @@
 """Cluster binarized genes"""
 
-import sys
-from time import time
-
 import numpy as np
 import pandas as pd
 
 from unpast.utils.logs import get_logger, log_function_duration
 
 logger = get_logger(__name__)
+
+
+@log_function_duration(name="Similarity ARI")
+def get_similarity_ari(binarized_data: pd.DataFrame) -> pd.DataFrame:
+    """Calculate pairwise Adjusted Rand Index between features based on binary patterns.
+
+    Treats each feature column as a binary clustering of samples, then computes
+    the ARI between all pairs of features using vectorized operations.
+
+    Args:
+        binarized_data: Binary matrix with samples as rows, features as columns.
+            Values should be 0 or 1.
+
+    Returns:
+        Symmetric similarity matrix with ARI values in [-1, 1].
+        Diagonal entries are 1.0.
+    """
+    X = binarized_data.to_numpy(dtype=int)
+    n_samples = X.shape[0]
+
+    # Contingency table components for all feature pairs
+    n11 = X.T @ X
+    n1 = X.sum(axis=0)
+    n10 = n1[:, None] - n11
+    n01 = n10.T
+    n00 = n_samples - n01 - n10 - n11
+
+    def comb2(k):
+        return k * (k - 1) / 2
+
+    index = comb2(n00) + comb2(n01) + comb2(n10) + comb2(n11)
+    self_comb = comb2(n1) + comb2(n_samples - n1)
+    si = self_comb[:, None]
+    sj = self_comb[None, :]
+    expected_index = si * sj / comb2(n_samples)
+    max_index = (si + sj) / 2
+
+    numerator = index - expected_index
+    denominator = max_index - expected_index
+
+    with np.errstate(divide="ignore", invalid="ignore"):
+        # if denominator is 0, set ARI to 1.0 (perfect match)
+        # (not expected to happen from the binarization step)
+        # using 0.1 threshold to avoid floating point issues
+        ari = np.where(np.abs(denominator) > 0.1, numerator / denominator, 1.0)
+
+    ari = ari.clip(-1.0, 1.0)  # Ensure valid range in case of floating point errors
+    ari_df = pd.DataFrame(
+        ari, index=binarized_data.columns, columns=binarized_data.columns
+    )
+
+    logger.debug(
+        f"ARI similarities for binarized data with shape {binarized_data.shape} computed."
+    )
+    return ari_df
 
 
 @log_function_duration(name="Jaccard Similarity")

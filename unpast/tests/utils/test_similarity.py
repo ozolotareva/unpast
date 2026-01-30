@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
+from sklearn.metrics import adjusted_rand_score
 
-from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.similarity import get_similarity_ari, get_similarity_jaccard
 
 # from unpast.utils.similarity import get_similarity_corr
 
@@ -135,3 +136,41 @@ class TestGetSimilarityJaccard:
 #         assert result.shape == (2, 2)
 #         # Correlation with constant gene should be NaN, then filled with 0
 #         assert result.loc["gene1", "gene2"] == 0.0
+
+
+class TestGetSimilarityARI:
+    """Test cases for get_similarity_ari function."""
+
+    def test_ari_vs_sklearn(self):
+        """
+        Verify that the vectorized ARI implementation produces the same results
+        as sklearn.metrics.adjusted_rand_score on random binary data.
+        """
+        np.random.seed(42)
+        n_samples = 20
+        n_features = 10
+
+        # Generate random binary data (0s and 1s)
+        data = np.random.randint(0, 2, size=(n_samples, n_features))
+        data[:, :2] = 1  # Make first two features identical for testing
+        data[:, 2:4] = 0  # Make next two features zeros for testing
+        df = pd.DataFrame(data, columns=[f"feat_{i}" for i in range(n_features)])
+
+        # Calculate ARI using our vectorized function
+        ari_matrix_custom = get_similarity_ari(df)
+
+        # Calculate ARI using sklearn loop
+        ari_matrix_sklearn = np.zeros((n_features, n_features))
+        for i in range(n_features):
+            for j in range(n_features):
+                # sklearn ARI takes two label vectors
+                score = adjusted_rand_score(df.iloc[:, i], df.iloc[:, j])
+                ari_matrix_sklearn[i, j] = score
+
+        # Check if results are close enough
+        np.testing.assert_allclose(
+            ari_matrix_custom.values,
+            ari_matrix_sklearn,
+            atol=1e-10,
+            err_msg="Vectorized ARI does not match sklearn ARI",
+        )
