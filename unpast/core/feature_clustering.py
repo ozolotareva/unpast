@@ -440,7 +440,7 @@ def run_sknetwork_clustering(
     if plot and len(similarity_cutoffs) > 1:
         plt.plot(similarity_cutoffs, modularities, "bx-")
         plt.vlines(
-            best_cutoff, plt.ylim()[0], plt.ylim()[1], linestyles="dashed", color="red"
+            label_cutoff, plt.ylim()[0], plt.ylim()[1], linestyles="dashed", color="red"
         )
         plt.xlabel("similarity cutoff")
         plt.ylabel("modularity")
@@ -458,6 +458,6 @@ def run_sknetwork_clustering(
     logger.debug(
         f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
     )
-    logger.debug(f"- similarity cutoff: {best_cutoff:.2f}")
+    logger.debug(f"- similarity cutoff: {label_cutoff:.2f}")
     logger.debug(f"- modularity: {best_Q:.3f}")
-    return modules, not_clustered, best_cutoff
+    return modules, not_clustered, label_cutoff

@@ -200,7 +200,7 @@ def test_louvain_reproducible_multiple_inputs():
     hashes_df = pd.DataFrame({"hash": all_hashes})
     combined_hash = _hash_table(hashes_df)
 
-    assert combined_hash == 16116491793059322961
+    assert combined_hash == 8879686658221870339
 
 
 class TestWGCNAFunctions:
