@@ -398,28 +398,25 @@ def run_sknetwork_clustering(
         modularities.append(Q)
 
     # Phase 2: Select optimal cutoff
+    selection_method = None  # Track how cutoff was selected
+
     if len(similarity_cutoffs) == 1:
-        best_cutoff, best_Q = similarity_cutoffs[0], modularities[0]
-        label_cutoff = best_cutoff
+        best_cutoff = similarity_cutoffs[0]
+        selection_method = "single cutoff"
 
     elif len(set(modularities)) == 1:
-        best_cutoff, best_Q = similarity_cutoffs[-1], modularities[-1]
-        label_cutoff = best_cutoff
+        best_cutoff = similarity_cutoffs[-1]
+        selection_method = "constant modularity"
 
     else:
         knee_cutoff, knee_Q = _find_knee(similarity_cutoffs, modularities)
 
         if knee_cutoff is not None:
-            best_cutoff, best_Q = knee_cutoff, knee_Q
+            best_cutoff = knee_cutoff
+            selection_method = "knee detection"
         else:
-            best_cutoff, best_Q = similarity_cutoffs[0], np.nan
-            if plot:
-                plt.plot(similarity_cutoffs, modularities, "bx-")
-                plt.xlabel("similarity cutoff")
-                plt.ylabel("modularity")
-                plt.show()
-
-        label_cutoff = best_cutoff
+            best_cutoff = similarity_cutoffs[0]
+            selection_method = "fallback (first cutoff)"
 
         # Check if modularity threshold gives a lower cutoff
         if m:
@@ -427,23 +424,31 @@ def run_sknetwork_clustering(
                 similarity_cutoffs, modularities, m
             )
             if thresh_cutoff is not None and thresh_cutoff < best_cutoff:
-                best_cutoff, best_Q = thresh_cutoff, thresh_Q
+                # Legacy behavior: ignore threshold, keep using knee cutoff
+                # New behavior: use threshold cutoff for both clustering and return
                 if not legacy_m_labels:
-                    label_cutoff = thresh_cutoff
+                    selection_method = "modularity threshold"
+                    best_cutoff = thresh_cutoff
 
     # Phase 3: Run clustering at selected cutoff
-    labels, _, feature_names = _cluster_at_cutoff(
-        algo_cls, similarity, label_cutoff, modularity_measure
+    labels, actual_Q, feature_names = _cluster_at_cutoff(
+        algo_cls, similarity, best_cutoff, modularity_measure
     )
 
     # Plot if requested
     if plot and len(similarity_cutoffs) > 1:
         plt.plot(similarity_cutoffs, modularities, "bx-")
         plt.vlines(
-            label_cutoff, plt.ylim()[0], plt.ylim()[1], linestyles="dashed", color="red"
+            best_cutoff,
+            plt.ylim()[0],
+            plt.ylim()[1],
+            linestyles="dashed",
+            color="red",
+            label=f"Selected: {selection_method}",
         )
         plt.xlabel("similarity cutoff")
         plt.ylabel("modularity")
+        plt.legend()
         plt.show()
 
     # Convert labels to modules
@@ -456,8 +461,9 @@ def run_sknetwork_clustering(
             not_clustered.append(features[0])
 
     logger.debug(
-        f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
+        f"Detected modules: {len(modules)} ({selection_method})"
+        f", not clustered features {len(not_clustered)}"
     )
-    logger.debug(f"- similarity cutoff: {label_cutoff:.2f}")
-    logger.debug(f"- modularity: {best_Q:.3f}")
-    return modules, not_clustered, label_cutoff
+    logger.debug(f"- similarity cutoff: {best_cutoff:.2f}")
+    logger.debug(f"- modularity: {actual_Q:.3f}")
+    return modules, not_clustered, best_cutoff
