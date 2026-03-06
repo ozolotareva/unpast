@@ -268,17 +268,26 @@ def run_Louvain(*args, **kwargs):
     return run_sknetwork_clustering("Louvain", *args, **kwargs)
 
 
-def run_Leiden(*args, **kwargs):
-    """Run Leiden community detection clustering on similarity matrix.
-    Wrapper for run_sknetwork_clustering.
-    """
-    return run_sknetwork_clustering("Leiden", *args, **kwargs)
+# def run_Leiden(*args, **kwargs):
+#     removing simplicity of Leiden option for now, 
+#     as it may hang on some inputs and doesn't seem 
+#     to give better results than Louvain
+#    
+#     """Run Leiden community detection clustering on similarity matrix.
+#     Wrapper for run_sknetwork_clustering.
+#     """
+#     return run_sknetwork_clustering("Leiden", *args, **kwargs)
 
 
 def _load_algo_cls(clust_method):
     """Load clustering algorithm class from sknetwork."""
 
     if clust_method == "Leiden":
+        logger.warning(
+            "Leiden clustering may hang on some inputs."
+            " Consider using Louvain instead (default)."
+        )
+
         try:
             from sknetwork.clustering import Leiden
 
@@ -365,13 +374,13 @@ def run_sknetwork_clustering(
     modularity_measure="newman",
     legacy_m_labels=True,
 ):
-    """Run Louvain/Leiden clustering on similarity matrix.
+    """Run Louvain clustering on similarity matrix.
 
     Scans similarity thresholds, binarizes the matrix at each threshold,
     runs clustering, and selects optimal threshold via knee detection.
 
     Args:
-        clust_method: "Louvain" or "Leiden"
+        clust_method: "Louvain" or "Leiden" (not recommended)
         similarity: feature similarity matrix (DataFrame)
         similarity_cutoffs: thresholds to test
         m: optional modularity threshold (uses lowest cutoff achieving it)

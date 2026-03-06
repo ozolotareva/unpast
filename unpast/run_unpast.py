@@ -406,7 +406,7 @@ def parse_args():
         default=1 / 3,
         metavar="1/3",
         type=float,
-        help="Modularity corresponding to a cutoff for similarity matrix (Louvain/Leiden clustering)",
+        help="Modularity corresponding to a cutoff for similarity matrix (Louvain clustering)",
     )
     parser.add_argument(
         "-r",
@@ -414,7 +414,7 @@ def parse_args():
         default=-1,
         metavar="-1",
         type=float,
-        help="A cutoff or a list of cuttofs for similarity matrix (Louvain/Leiden clustering). If set to -1, will be chosen authomatically from [1/5,4/5] using elbow method.",
+        help="A cutoff or a list of cuttofs for similarity matrix (Louvain clustering). If set to -1, will be chosen authomatically from [1/5,4/5] using elbow method.",
     )
     # WGCNA parameters
     parser.add_argument(
