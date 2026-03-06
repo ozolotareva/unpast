@@ -161,7 +161,7 @@ def write_bic_table(
         metadata = metadata + "c=" + clust_method + "; "
         if len(directions):
             metadata = metadata + "directions=" + "-".join(directions) + "; "
-        if clust_method == "Louvain":
+        if clust_method in ["Louvain", "Leiden"]:
             metadata = (
                 metadata
                 + "similarity_cutoff="
