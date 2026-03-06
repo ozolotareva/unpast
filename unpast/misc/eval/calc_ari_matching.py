@@ -120,12 +120,12 @@ def _process_classification(
             # sort passed matches by their performance decreasing and p-vals increasing
             d = pd.concat([performance.loc[passed_pvals.index.values, subt],passed_pvals],axis=1)
             d.columns = [performance_measure,"adj_pval"]
-            # choose significant match with highest ARI (or J) and lowes pval
+            # choose significant match with highest ARI (or J) and lowest pval
             d = d.sort_values(by= [performance_measure,"adj_pval"], ascending=[False, True])
             bm_id = d.index.values[0] # best match index
             bm_pval, bm_performance = d.loc[bm_id,["adj_pval",performance_measure]].values
-            if performance_measure == "ARI": # lower-limit is 0, ARI can be negative
-                bm_performance = max(0,bm_performance)
+            #if performance_measure == "ARI": # lower-limit is 0, ARI can be negative
+            #    bm_performance = max(0,bm_performance)
                 
             bm_is_enrich = is_enriched.loc[bm_id, subt]
             bm_samples = sample_clusters.loc[bm_id, "samples"]
