@@ -75,8 +75,7 @@ def test_simple(tmp_path):
     res = read_bic_table(tmp_path / "biclusters.tsv")
     # todo: fix index, types, ...
     # pd.testing.assert_frame_equal(res, res_returned)
-    #assert (res.values == res_returned.values).all()
-    pd.testing.assert_frame_equal(res,  res_returned, rtol=1e-3, atol=1e-5, check_like=True)
+    assert (res.values == res_returned.values).all()
 
     assert len(res) == 1, "Too many clusters found"
     assert res.loc[0, "gene_indexes"] == {0, 1}
