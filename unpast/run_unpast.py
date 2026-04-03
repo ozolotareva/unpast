@@ -6,7 +6,11 @@ import pandas as pd
 
 from unpast import __version__
 from unpast.core.binarization import binarize
-from unpast.core.feature_clustering import run_Louvain, run_WGCNA, run_WGCNA_iterative
+from unpast.core.feature_clustering import (
+    run_sknetwork_clustering,
+    run_WGCNA,
+    run_WGCNA_iterative,
+)
 from unpast.core.preprocessing import prepare_input_matrix
 from unpast.core.sample_clustering import make_biclusters
 from unpast.utils.io import ProjectPaths, write_args, write_bic_table
@@ -16,7 +20,7 @@ from unpast.utils.logs import (
     log_function_duration,
     setup_logging,
 )
-from unpast.utils.similarity import get_similarity_jaccard
+from unpast.utils.similarity import get_similarity_ari, get_similarity_jaccard
 
 logger = get_logger(__name__)
 
@@ -96,6 +100,7 @@ def unpast(
     plot_all: bool = False,
     e_dist_size: int = 10000,
     standardize: bool = True,
+    similarity_method: str = "jaccard",
 ):
     """Main UnPaSt biclustering algorithm for identifying differentially expressed biclusters.
 
@@ -137,7 +142,7 @@ def unpast(
     else:
         setup_logging(log_file=paths.log, log_level=LOG_LEVELS["INFO"])
     version = __version__
-    logger.debug(f"Running UnPaSt v. {version}")
+    logger.debug(f"Running UnPaSt v.{version}")
     write_args(locals(), paths.args, args_label="Run arguments")
 
     # read inputs
@@ -197,12 +202,17 @@ def unpast(
 
     feature_clusters, not_clustered, used_similarity_cutoffs = [], [], []
 
-    if clust_method == "Louvain":
+    if clust_method in ["Louvain", "Leiden"]:
         for d in directions:
             logger.debug(f"Clustering {d}-regulated features")
             df = bin_data_dict[d]
             if df.shape[0] > 1:
-                similarity = get_similarity_jaccard(df)
+                if similarity_method.lower() == "ari":
+                    similarity = get_similarity_ari(df)
+                elif similarity_method.lower() == "jaccard":
+                    similarity = get_similarity_jaccard(df)
+                else:
+                    raise ValueError(f"Unknown similarity method: {similarity_method}")
                 # similarity = get_similarity_corr(df,verbose = verbose)
 
                 if similarity_cutoffs == -1:  # guess from the data
@@ -210,12 +220,13 @@ def unpast(
                 # if similarity cuttofs is a single value turns it to a list
                 try:
                     similarity_cutoffs = [elem for elem in similarity_cutoffs]
-                except:
+                except Exception:
                     similarity_cutoffs = [similarity_cutoffs]
 
                 # if modularity m is defined, choses a similarity cutoff corresponding to this modularity
                 # and rund Louvain clustering
-                modules, single_features, similarity_cutoff = run_Louvain(
+                modules, single_features, similarity_cutoff = run_sknetwork_clustering(
+                    clust_method,
                     similarity,
                     similarity_cutoffs=similarity_cutoffs,
                     m=modularity,
@@ -254,7 +265,7 @@ def unpast(
 
     else:
         raise NotImplementedError(
-            f"'clust_method' must be 'WGCNA', 'iWGCNA', or 'Louvain', found {clust_method}"
+            f"'clust_method' must be 'WGCNA', 'iWGCNA', 'Louvain', or 'Leiden', found {clust_method}"
         )
 
     ######### making biclusters #########
@@ -277,7 +288,7 @@ def unpast(
     ######### save biclusters #########
     if "WGCNA" in clust_method:
         modularity, similarity_cutoff = None, None
-    elif clust_method == "Louvain":
+    elif clust_method == "Louvain" or clust_method == "Leiden":
         ds, dhs = None, None
     write_bic_table(
         biclusters,
@@ -384,10 +395,11 @@ def parse_args():
         metavar="Louvain",
         default="Louvain",
         type=str,
-        choices=["Louvain", "WGCNA"],
+        choices=["Louvain", "Leiden", "WGCNA", "iWGCNA"],
         help="feature clustering method",
     )
-    # Louvain parameters
+    # Louvain / Leiden parameters
+
     parser.add_argument(
         "-m",
         "--modularity",
@@ -440,6 +452,12 @@ def parse_args():
         action="store_true",
         help="whether to standardize input matrix",
     )
+    parser.add_argument(
+        "--similarity_method",
+        default="jaccard",
+        choices=["ari", "jaccard"],
+        help="Similarity method for gene clustering (ari or jaccard). Default: jaccard",
+    )
     # parser.add_argument('--plot', action='store_true', help = "show plots")
 
     return parser.parse_args()
@@ -481,6 +499,7 @@ def main():
             # plot_all = args.plot,
             verbose=args.verbose,
             standardize=not args.not_standardize,
+            similarity_method=args.similarity_method,
         )
     except Exception as e:
         logger.error(e)

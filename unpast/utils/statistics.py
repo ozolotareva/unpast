@@ -182,4 +182,4 @@ def calc_e_pval(snr, size, null_distribution):
         float: empirical p-value
     """
     e_dist = null_distribution.loc[int(size), :]
-    return (len(e_dist[e_dist >= abs(snr)]) + 1.0) / (null_distribution.shape[1] + 1.0)
+    return ((e_dist >= abs(snr)).sum() + 1.0) / (null_distribution.shape[1] + 1.0)

@@ -3,11 +3,13 @@
 import os
 import subprocess
 from pathlib import Path
-from time import time
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sknetwork
+from scipy.sparse import csr_matrix
+from sknetwork.clustering import get_modularity
 
 from unpast.utils.logs import get_logger, log_function_duration
 
@@ -121,7 +123,7 @@ def run_WGCNA(
         precluster = "F"
 
     deepSplit = int(deepSplit)
-    if not deepSplit in [0, 1, 2, 3, 4]:
+    if deepSplit not in [0, 1, 2, 3, 4]:
         logger.error("deepSplit must be 1,2,3 or 4. See WGCNA documentation.")
         return ([], [])
     if not 0 < detectCutHeight < 1:
@@ -259,168 +261,218 @@ def run_WGCNA(
     return (modules, not_clustered)
 
 
-@log_function_duration(name="Louvain feature clustering")
-def run_Louvain(
+def run_Louvain(*args, **kwargs):
+    """Run Louvain community detection clustering on similarity matrix.
+    Wrapper for run_sknetwork_clustering.
+    """
+    return run_sknetwork_clustering("Louvain", *args, **kwargs)
+
+
+# def run_Leiden(*args, **kwargs):
+#     removing simplicity of Leiden option for now, 
+#     as it may hang on some inputs and doesn't seem 
+#     to give better results than Louvain
+#    
+#     """Run Leiden community detection clustering on similarity matrix.
+#     Wrapper for run_sknetwork_clustering.
+#     """
+#     return run_sknetwork_clustering("Leiden", *args, **kwargs)
+
+
+def _load_algo_cls(clust_method):
+    """Load clustering algorithm class from sknetwork."""
+
+    if clust_method == "Leiden":
+        logger.warning(
+            "Leiden clustering may hang on some inputs."
+            " Consider using Louvain instead (default)."
+        )
+
+        try:
+            from sknetwork.clustering import Leiden
+
+            return Leiden
+        except ImportError:
+            logger.warning(
+                "Leiden requires sknetwork >= 0.32.1."
+                f" Found {sknetwork.__version__}."
+                " Falling back to Louvain."
+            )
+            from sknetwork.clustering import Louvain
+
+            return Louvain
+    elif clust_method == "Louvain":
+        from sknetwork.clustering import Louvain
+
+        return Louvain
+    else:
+        raise ValueError(f"Unknown clustering method: {clust_method}")
+
+
+def _cluster_at_cutoff(algo_cls, similarity, cutoff, modularity_measure):
+    """Binarize similarity matrix and run clustering at given cutoff.
+
+    Returns:
+        tuple: (labels, modularity_score, feature_names)
+    """
+    sim_binary = similarity.copy()
+    sim_binary[sim_binary < cutoff] = 0
+    sim_binary[sim_binary != 0] = 1
+
+    # Keep only features with at least one connection
+    row_sums = sim_binary.sum()
+    connected = row_sums[row_sums > 0].index
+    sim_binary = sim_binary.loc[connected, connected]
+
+    feature_names = sim_binary.index.values
+    sparse_matrix = csr_matrix(sim_binary).astype("bool")
+
+    labels = algo_cls(modularity=modularity_measure).fit_predict(sparse_matrix)
+    modularity_score = get_modularity(sparse_matrix, labels)
+
+    # Bugfix for Louvain: if all similarities are 1, put everything in one cluster
+    if sim_binary.min().min() == 1:
+        labels = np.zeros(len(labels), dtype=int)
+
+    return labels, modularity_score, feature_names
+
+
+def _find_knee(cutoffs, modularities):
+    """Find optimal cutoff using knee detection. Returns (cutoff, Q) or (None, None)."""
+    from kneed import KneeLocator
+
+    direction = "increasing" if modularities[0] < modularities[-1] else "decreasing"
+    logger.debug(f"curve type: {direction}")
+
+    try:
+        kn = KneeLocator(
+            cutoffs, modularities, curve="concave", direction=direction, online=True
+        )
+        return kn.knee, kn.knee_y
+    except Exception as e:
+        logger.error(f"Failed to identify similarity cutoff, error: {e}")
+        logger.info(f"Similarity cutoff: set to {cutoffs[0]}")
+        logger.info(f"Modularity: {modularities}")
+        return None, None
+
+
+def _find_first_above_threshold(cutoffs, modularities, threshold):
+    """Find first cutoff where modularity >= threshold. Returns (cutoff, Q) or (None, None)."""
+    for i, mod in enumerate(modularities):
+        if mod >= threshold:
+            return cutoffs[i], mod
+    return None, None
+
+
+@log_function_duration(name="Sknetwork feature clustering")
+def run_sknetwork_clustering(
+    clust_method,
     similarity,
     similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
     m=False,
     plot=False,
     modularity_measure="newman",
+    legacy_m_labels=True,
 ):
-    """Run Louvain community detection clustering on similarity matrix.
+    """Run Louvain clustering on similarity matrix.
+
+    Scans similarity thresholds, binarizes the matrix at each threshold,
+    runs clustering, and selects optimal threshold via knee detection.
 
     Args:
-        similarity (DataFrame): feature similarity matrix
-        similarity_cutoffs (array): range of similarity thresholds to test for clustering
-        m (bool): whether to return additional modularity information
-        plot (bool): whether to generate plots of modularity vs cutoffs
-        modularity_measure (str): modularity measure to use ("newman", "dugue")
+        clust_method: "Louvain" or "Leiden" (not recommended)
+        similarity: feature similarity matrix (DataFrame)
+        similarity_cutoffs: thresholds to test
+        m: optional modularity threshold (uses lowest cutoff achieving it)
+        plot: whether to plot modularity curve
+        modularity_measure: "newman" or "dugue"
+        legacy_m_labels: if True (default), when m parameter triggers a lower cutoff,
+            clustering labels are taken from the knee-detected cutoff (legacy behavior).
+            If False, labels are taken from the threshold cutoff (correct behavior).
 
     Returns:
-        tuple: (modules, not_clustered, best_Q) where
-            - modules: list of feature modules/clusters found
-            - not_clustered: list of features that could not be clustered
-            - best_Q: best modularity score achieved
+        (modules, not_clustered, best_cutoff)
     """
     if similarity.shape[0] == 0:
         logger.error("no features to cluster")
         return [], [], None
 
-    logger.debug("Running Louvain ...")
     logger.debug(f"modularity: {modularity_measure}")
+    algo_cls = _load_algo_cls(clust_method)
 
-    import sknetwork
-    from sknetwork.clustering import Louvain
-
-    try:
-        from sknetwork.clustering import modularity
-
-        old_sknetwork_version = True
-    except:
-        from sknetwork.clustering import get_modularity
-
-        logger.debug(f"sknetwork version used: {sknetwork.__version__}")
-        old_sknetwork_version = False
-    try:
-        from scipy.sparse.csr import csr_matrix
-    except:
-        from scipy.sparse import csr_matrix
-
+    # Phase 1: Scan cutoffs to find modularities
     modularities = []
-    feature_clusters = {}
-    best_Q = np.nan
     for cutoff in similarity_cutoffs:
-        # scan the whole range of similarity cutoffs
-        # e.g. [1/4;9/10] with step 0.5
-        sim_binary = similarity.copy()
-        sim_binary[sim_binary < cutoff] = 0
-        sim_binary[sim_binary != 0] = 1
-        rsums = sim_binary.sum()
-        non_zero_features = rsums[rsums > 0].index
-        sim_binary = sim_binary.loc[non_zero_features, non_zero_features]
-        gene_names = sim_binary.index.values
-        sparse_matrix = csr_matrix(sim_binary)
-
-        if old_sknetwork_version:
-            labels = Louvain(modularity=modularity_measure).fit_transform(sparse_matrix)
-            Q = modularity(sparse_matrix, labels)
-        else:
-            sparse_matrix = sparse_matrix.astype("bool")
-            labels = Louvain(modularity=modularity_measure).fit_predict(sparse_matrix)
-            Q = get_modularity(sparse_matrix, labels)
-
+        _, Q, _ = _cluster_at_cutoff(algo_cls, similarity, cutoff, modularity_measure)
         modularities.append(Q)
-        # if binary similarity matrix contains no zeroes
-        # bugfix for Louvain()
-        if sim_binary.min().min() == 1:
-            labels = np.zeros(len(labels))
-        feature_clusters[cutoff] = labels
 
-    # if similarity_cutoffs contains only one value, choose it as best_cutoff
+    # Phase 2: Select optimal cutoff
+    selection_method = None  # Track how cutoff was selected
+
     if len(similarity_cutoffs) == 1:
         best_cutoff = similarity_cutoffs[0]
-        best_Q = Q
+        selection_method = "single cutoff"
 
-    # find best_cutoff automatically
+    elif len(set(modularities)) == 1:
+        best_cutoff = similarity_cutoffs[-1]
+        selection_method = "constant modularity"
+
     else:
-        # check if modularity(cutoff)=const
-        if len(set(modularities)) == 1:
-            best_cutoff = similarity_cutoffs[-1]
-            best_Q = modularities[-1]
-            labels = feature_clusters[best_cutoff]
+        knee_cutoff, knee_Q = _find_knee(similarity_cutoffs, modularities)
 
-        #  if modularity!= const, scan the whole range of similarity cutoffs
-        #  e.g. [1/4;9/10] with step 0.05
+        if knee_cutoff is not None:
+            best_cutoff = knee_cutoff
+            selection_method = "knee detection"
         else:
-            # find the knee point in the dependency modularity(similarity curoff)
-            from kneed import KneeLocator
+            best_cutoff = similarity_cutoffs[0]
+            selection_method = "fallback (first cutoff)"
 
-            # define the type of the curve
-            curve_type = "increasing"
-            if modularities[0] >= modularities[-1]:
-                curve_type = "decreasing"
-            logger.debug(f"curve type: {curve_type}")
-            # detect knee and choose the one with the highest modularity
-            try:
-                kn = KneeLocator(
-                    similarity_cutoffs,
-                    modularities,
-                    curve="concave",
-                    direction=curve_type,
-                    online=True,
-                )
-                best_cutoff = kn.knee
-                best_Q = kn.knee_y
-                labels = feature_clusters[best_cutoff]
-            except:
-                logger.error("Failed to identify similarity cutoff")
-                logger.info(f"Similarity cutoff: set to {similarity_cutoffs[0]}")
-                best_cutoff = similarity_cutoffs[0]
-                best_Q = np.nan
-                logger.info(f"Modularity: {modularities}")
-                if plot:
-                    plt.plot(similarity_cutoffs, modularities, "bx-")
-                    plt.xlabel("similarity cutoff")
-                    plt.ylabel("modularity")
-                    plt.show()
-                    # return [], [], None
-            if m:
-                # if upper threshold for modularity m is specified
-                # chose the lowest similarity cutoff at which modularity reaches >= m
-                best_cutoff_m = 1
-                for i in range(len(modularities)):
-                    if modularities[i] >= m:
-                        best_cutoff_m = similarity_cutoffs[i]
-                        best_Q_m = modularities[i]
-                        labels_m = feature_clusters[best_cutoff]
-                        break
-                if best_cutoff_m < best_cutoff:
-                    best_cutoff = best_cutoff_m
-                    best_Q = best_Q_m
-                    labels = labels_m
+        # Check if modularity threshold gives a lower cutoff
+        if m:
+            thresh_cutoff, thresh_Q = _find_first_above_threshold(
+                similarity_cutoffs, modularities, m
+            )
+            if thresh_cutoff is not None and thresh_cutoff < best_cutoff:
+                # Legacy behavior: ignore threshold, keep using knee cutoff
+                # New behavior: use threshold cutoff for both clustering and return
+                if not legacy_m_labels:
+                    selection_method = "modularity threshold"
+                    best_cutoff = thresh_cutoff
 
+    # Phase 3: Run clustering at selected cutoff
+    labels, actual_Q, feature_names = _cluster_at_cutoff(
+        algo_cls, similarity, best_cutoff, modularity_measure
+    )
+
+    # Plot if requested
     if plot and len(similarity_cutoffs) > 1:
         plt.plot(similarity_cutoffs, modularities, "bx-")
         plt.vlines(
-            best_cutoff, plt.ylim()[0], plt.ylim()[1], linestyles="dashed", color="red"
+            best_cutoff,
+            plt.ylim()[0],
+            plt.ylim()[1],
+            linestyles="dashed",
+            color="red",
+            label=f"Selected: {selection_method}",
         )
         plt.xlabel("similarity cutoff")
         plt.ylabel("modularity")
+        plt.legend()
         plt.show()
 
-    modules = []
-    not_clustered = []
-
+    # Convert labels to modules
+    modules, not_clustered = [], []
     for label in set(labels):
-        ndx = np.argwhere(labels == label).reshape(1, -1)[0]
-        genes = gene_names[ndx]
-        if len(genes) > 1:
-            modules.append(genes)
+        features = feature_names[labels == label]
+        if len(features) > 1:
+            modules.append(features)
         else:
-            not_clustered.append(genes[0])
+            not_clustered.append(features[0])
+
     logger.debug(
-        f"Detected modules: {len(modules)}, not clustered features {len(not_clustered)} "
+        f"Detected modules: {len(modules)} ({selection_method})"
+        f", not clustered features {len(not_clustered)}"
     )
     logger.debug(f"- similarity cutoff: {best_cutoff:.2f}")
-    logger.debug(f"- modularity: {best_Q:.3f}")
+    logger.debug(f"- modularity: {actual_Q:.3f}")
     return modules, not_clustered, best_cutoff

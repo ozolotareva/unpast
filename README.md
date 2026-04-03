@@ -9,12 +9,7 @@
 
 UnPaSt is a novel method for identification of differentially expressed biclusters.
 
-<img src="https://github.com/ozolotareva/unpast_paper/blob/main/docs/UnPaSt_workflow_v7_method.png">
-
-## Cite
-UnPaSt preprint: [https://arxiv.org/abs/2408.00200](https://arxiv.org/abs/2408.00200).
-
-Code: [https://github.com/ozolotareva/unpast_paper/](https://github.com/ozolotareva/unpast_paper/)
+<img src="https://raw.githubusercontent.com/ozolotareva/unpast_paper/main/docs/UnPaSt_workflow_v7_method.png">
 
 ## Quick Start
 
@@ -202,5 +197,23 @@ with the files:
 
 The binarization files can be used to restart UnPaSt with the same input and seed from the feature clustering step and skip time-consuming feature binarization. 
 
-## Versions
-UnPaSt version used in PathoPlex paper: [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip)
+## Cite and related code versions
+
+If you use UnPaSt in your research, please cite the UnPaSt preprint  
+```bibtex
+@article{hartung2024unpast,
+  title={UnPaSt: unsupervised patient stratification by differentially expressed biclusters in omics data},
+  author={Hartung, Michael and Maier, Andreas and Delgado-Chaves, Fernando and Burankova, Yuliya and Isaeva, Olga I and Patroni, F{\'a}bio Malta de S{\'a} and He, Daniel and Shannon, Casey and Kaufmann, Katharina and Lohmann, Jens and others},
+  journal={arXiv preprint arXiv:2408.00200},
+  year={2024}
+}
+```
+
+### Code versions for reproducibility
+
+The following table provides links to the corresponding code versions for some papers using UnPaSt.
+
+| Paper | Corresponding code version | 
+|-------|------------------------------|
+| UnPaSt preprint: https://arxiv.org/abs/2408.00200 | [UnPaSt paper repository](https://github.com/ozolotareva/unpast_paper) |
+| PathoPlex paper: https://www.nature.com/articles/s41586-025-09225-2 | [UnPaSt_PathoPlex.zip](https://github.com/ozolotareva/unpast/blob/main/notebooks/UnPaSt_PathoPlex.zip) |

@@ -1,6 +1,5 @@
 """Tests for feature_clustering module."""
 
-import os
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -8,6 +7,7 @@ import pandas as pd
 import pytest
 
 from unpast.core.feature_clustering import run_Louvain
+from unpast.tests.test_utils import _hash_table
 from unpast.utils.io import ProjectPaths
 from unpast.utils.similarity import get_similarity_jaccard
 
@@ -79,6 +79,128 @@ class TestRunLouvain:
 
         # Should select optimal cutoff automatically
         assert best_cutoff in [0.3, 0.5, 0.7]
+
+
+def _modules_to_df(modules, not_clustered, best_cutoff):
+    """Convert run_Louvain output to a DataFrame for hashing."""
+    # Sort modules by first element for consistent ordering
+    sorted_modules = [sorted(m) for m in modules]
+    sorted_modules.sort(key=lambda x: x[0] if len(x) > 0 else "")
+
+    rows = []
+    for i, module in enumerate(sorted_modules):
+        rows.append(
+            {
+                "type": "module",
+                "index": i,
+                "genes": " ".join(sorted(module)),
+                "size": len(module),
+            }
+        )
+    rows.append(
+        {
+            "type": "not_clustered",
+            "index": -1,
+            "genes": " ".join(sorted(not_clustered)),
+            "size": len(not_clustered),
+        }
+    )
+    rows.append(
+        {
+            "type": "cutoff",
+            "index": -2,
+            "genes": "",
+            "size": best_cutoff if best_cutoff is not None else -1,
+        }
+    )
+    return pd.DataFrame(rows)
+
+
+def test_louvain_reproducible():
+    """Test that run_Louvain gives exactly the same results with same input."""
+    rand = np.random.RandomState(42)
+    n_features = 50
+
+    # Generate a random similarity matrix (symmetric, diagonal=1)
+    raw = rand.rand(n_features, n_features)
+    similarity_values = (raw + raw.T) / 2
+    np.fill_diagonal(similarity_values, 1.0)
+
+    feature_names = [f"gene_{i}" for i in range(n_features)]
+    similarity = pd.DataFrame(
+        similarity_values, index=feature_names, columns=feature_names
+    )
+
+    repeated_results = []
+    for _ in range(5):
+        modules, not_clustered, best_cutoff = run_Louvain(
+            similarity,
+            similarity_cutoffs=np.arange(0.33, 0.95, 0.05),
+            plot=False,
+        )
+        result_df = _modules_to_df(modules, not_clustered, best_cutoff)
+        repeated_results.append(result_df)
+
+    # All runs should produce identical results
+    first_hash = _hash_table(repeated_results[0])
+    for i, result_df in enumerate(repeated_results[1:], 1):
+        assert _hash_table(result_df) == first_hash, f"Run {i} differs from run 0"
+
+    # Check against known hash for regression detection
+    assert first_hash == 1221458917878672505
+
+
+@pytest.mark.slow
+def test_louvain_reproducible_multiple_inputs():
+    """Test run_Louvain reproducibility across many different random inputs."""
+    rand = np.random.RandomState(123)
+    n_iterations = 100
+
+    all_hashes = []
+    for iteration in range(n_iterations):
+        # Vary matrix size
+        n_features = rand.randint(30, 80)
+        decay = rand.uniform(0.05, 0.2)
+
+        # Generate similarity matrix with decreasing probability by distance
+        # Features closer in index are more likely to be similar
+        idx = np.arange(n_features)
+        dist_matrix = np.abs(idx[:, None] - idx[None, :])
+        # Decay probability: closer features have higher base similarity
+        base_similarity = np.exp(-decay * dist_matrix)
+        # Add random noise
+        noise = rand.rand(n_features, n_features) * 0.3
+        similarity_values = base_similarity * (0.7 + noise)
+        similarity_values = (similarity_values + similarity_values.T) / 2
+        np.fill_diagonal(similarity_values, 1.0)
+        similarity_values = np.clip(similarity_values, 0, 1)
+
+        feature_names = [f"g_{iteration}_{i}" for i in range(n_features)]
+        similarity = pd.DataFrame(
+            similarity_values, index=feature_names, columns=feature_names
+        )
+
+        # Vary cutoff ranges
+        start_cutoff = rand.uniform(0.2, 0.4)
+        cutoffs = np.arange(start_cutoff, 0.95, 0.05)
+
+        # Vary modularity threshold m
+        m_value = rand.choice([False, 1 / 3, 1 / 2, 2 / 3])
+
+        modules, not_clustered, best_cutoff = run_Louvain(
+            similarity,
+            similarity_cutoffs=cutoffs,
+            m=m_value,
+            plot=False,
+        )
+        result_df = _modules_to_df(modules, not_clustered, best_cutoff)
+        all_hashes.append(_hash_table(result_df))
+
+    # Create a DataFrame of hashes and hash it for a single comparison value
+    hashes_df = pd.DataFrame({"hash": all_hashes})
+    combined_hash = _hash_table(hashes_df)
+
+    assert combined_hash == 8879686658221870339
 
 
 class TestWGCNAFunctions:
