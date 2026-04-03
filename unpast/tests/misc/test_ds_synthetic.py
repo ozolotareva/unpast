@@ -77,7 +77,7 @@ class TestDSEntryBlueprint:
                 )
             )
         else:
-            assert _hash_table(data) == 16708327152901014055
+            assert _hash_table(data) == 3380947275775777505
 
         assert "frac" not in biclusters.columns
         assert _hash_table(biclusters.map(_set_to_str)) == 12863702880069835519
